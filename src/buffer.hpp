@@ -39,9 +39,9 @@ namespace asmio::x86 {
 
 		public:
 
-			uint32_t call() {
+			int call() {
 				const int cs = 0x23; // don't touch, magic
-				return x86_switch_mode(cs, reinterpret_cast<bool (*)(void)>(buffer));
+				return x86_switch_mode(cs, reinterpret_cast<uint32_t (*)()>(buffer));
 			}
 
 	};

@@ -13,5 +13,5 @@ int min_bytes(uint64_t value) {
 
 extern "C" {
 	extern int x86_check_mode();
-	extern bool x86_switch_mode(int cs, bool (*f)());
+	extern int x86_switch_mode(int, uint32_t (*)());
 }

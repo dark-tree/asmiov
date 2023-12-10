@@ -20,6 +20,7 @@ x86_switch_mode:
         // this assumes that the data segment is below 4GB
         mov     rsp, offset stack+0xf0
         lcall   [rbx]
+        movsxd  rax, eax
 
         // restore rsp to the original stack
         leave

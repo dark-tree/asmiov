@@ -24,18 +24,15 @@ int main() {
 
 	writer.put_nop();
 	writer.put_mov(EDX, 5);
+	writer.put_rol(EDX, 3);
 	writer.put_inc(EDX);
 	writer.put_mov(EAX, EDX);
 	writer.put_inc(EAX);
+	writer.put_neg(EAX);
+	writer.put_mov(CL, 2);
+	writer.put_sar(EAX, CL);
 	writer.put_nop();
 	writer.put_ret();
-
-//	writer.put_byte(0xb8);
-//	writer.put_byte(0x05);
-//	writer.put_byte(0x00);
-//	writer.put_byte(0x00);
-//	writer.put_byte(0x00);
-//	writer.put_byte(0xc3);
 
 	ExecutableBuffer buffer = writer.bake();
 	int eax = buffer.call();

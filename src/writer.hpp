@@ -81,10 +81,12 @@ namespace asmio::x86 {
 			}
 
 			void put_inst_imm(uint32_t immediate, uint8_t width) {
-				if (width >= BYTE)  buffer.push_back((immediate & 0x000000FF) >> 8 * 0);
-				if (width >= WORD)  buffer.push_back((immediate & 0x0000FF00) >> 8 * 1);
-				if (width >= DWORD) buffer.push_back((immediate & 0x00FF0000) >> 8 * 2);
-				if (width >= DWORD) buffer.push_back((immediate & 0xFF000000) >> 8 * 3);
+				const uint8_t* imm_ptr = (uint8_t*) &immediate;
+
+				if (width >= BYTE)  buffer.push_back(imm_ptr[0]);
+				if (width >= WORD)  buffer.push_back(imm_ptr[1]);
+				if (width >= DWORD) buffer.push_back(imm_ptr[2]);
+				if (width >= DWORD) buffer.push_back(imm_ptr[3]);
 			}
 
 			void put_inst_sib(Location ref) {
@@ -108,7 +110,7 @@ namespace asmio::x86 {
 				}
 
 				if (dst.is_simple()) {
-					put_inst_dw(opcode, direction, dst_reg.wide);
+					put_inst_dw(opcode, direction, dst_reg.is_wide());
 					put_inst_mod_reg_rm(MOD_SHORT, reg, dst_reg.reg);
 					return;
 				}
@@ -122,7 +124,7 @@ namespace asmio::x86 {
 					mod = MOD_BYTE;
 				}
 
-				put_inst_dw(opcode, direction, dst_reg.wide);
+				put_inst_dw(opcode, direction, dst_reg.is_wide());
 				put_inst_mod_reg_rm(mod, reg, sib ? RM_SIB : dst_reg.reg);
 
 				if (sib) {
@@ -200,7 +202,7 @@ namespace asmio::x86 {
 						put_inst_16bit_mark();
 					}
 
-					put_byte((0b1011 << 4) | (dst_reg.wide << 3) | dst_reg.reg);
+					put_byte((0b1011 << 4) | (dst_reg.is_wide() << 3) | dst_reg.reg);
 					put_inst_imm(src_val, dst.base.size);
 					return;
 				}
@@ -382,6 +384,8 @@ namespace asmio::x86 {
 			}
 
 			ExecutableBuffer bake() {
+
+				#if DEBUG_MODE
 				int i = 0;
 
 				for (uint8_t byte : buffer) {
@@ -397,6 +401,7 @@ namespace asmio::x86 {
 				}
 
 				std::cout << std::endl;
+				#endif
 
 				return ExecutableBuffer {buffer};
 			}

@@ -10,8 +10,13 @@ set(ASM_SOURCES
         src/switch.s
 )
 
+include_directories(LAIO
+        src/
+        .
+)
+
 add_executable(LAIO
-        src/main.cpp
+        test/tests.cpp
         ${ASM_SOURCES}
 )
 

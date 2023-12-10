@@ -23,14 +23,16 @@ namespace asmio::x86 {
 				const size_t size = ALIGN_UP(data.size(), page);
 
 				buffer = valloc(size);
-				memcpy(buffer, data.data(), size);
-				mprotect(buffer, size, PROT_EXEC | PROT_READ);
+				memcpy(buffer, data.data(), data.size());
+				mprotect(buffer, size, PROT_EXEC | PROT_READ | PROT_WRITE);
 
 				if (buffer == nullptr || errno) {
 					throw std::runtime_error{"Failed to allocate an executable buffer!"};
 				}
 
+				#if DEBUG_MODE
 				std::cout << "Executable buffer made, using " << size << " bytes" << std::endl;
+				#endif
 			}
 
 			~ExecutableBuffer() {

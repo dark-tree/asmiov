@@ -29,12 +29,11 @@ namespace asmio::x86 {
 
 		const uint8_t size;
 		const Name name;
-		const uint8_t flag;
-		const bool wide : 1;
+		const uint8_t flag : 5;
 		const uint8_t reg : 3;
 
 		constexpr Registry(uint8_t size, uint8_t reg, Name name, uint8_t flag)
-		: size(size), name(name), flag(flag), wide(size != 1), reg(reg) {}
+		: size(size), name(name), flag(flag), reg(reg) {}
 
 		bool is(Registry::Flag mask) const {
 			return (flag & mask) != 0;
@@ -42,6 +41,10 @@ namespace asmio::x86 {
 
 		bool is(Registry registry) const {
 			return this->size == registry.size && this->name == registry.name && this->flag == registry.flag;
+		}
+
+		bool is_wide() {
+			return size != 1;
 		}
 
 	};

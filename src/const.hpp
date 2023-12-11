@@ -16,7 +16,7 @@ namespace asmio::x86 {
 	// reg-to-reg, as in "mov EAX, EBX"
 	constexpr const uint8_t MOD_SHORT    = 0b11;
 
-	// placed in the r/m field along with mod set to MOD_SHORT to enable the SIB byte
+	// placed in the r/m field along with mod set to anything but MOD_SHORT to enable the SIB byte
 	constexpr const uint8_t RM_SIB       = 0b100;
 
 	// placed in the SIB byte's 'index' to mark the lack of index (makes SIB just a base holder)

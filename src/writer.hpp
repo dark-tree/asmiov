@@ -74,7 +74,7 @@ namespace asmio::x86 {
 				// |     \_ index registry
 				// \_ scaling factor
 
-				// Index register can be omitted from SIB by setting index' to NO_SIB_INDEX and
+				// Index register can be omitted from SIB by setting 'index' to NO_SIB_INDEX and
 				// 'ss' to NO_SIB_SCALE, this is useful for encoding the ESP registry
 
 				put_byte(base | (index << 3) | (ss << 6));
@@ -229,10 +229,79 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			void put_xchg(Location dst, Location src) {
+
+				if (dst.is_simple() && !src.base.is(UNSET)) {
+					put_inst_std(0b100001, src, dst.base.reg, true);
+					return;
+				}
+
+				if (!dst.base.is(UNSET) && src.is_simple()) {
+					put_inst_std(0b100001, dst, src.base.reg, true);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+			}
+
+			void put_push(Location src) {
+
+				// for some reason push & pop don't handle the wide flag,
+				// so we can only accept wide registers
+				if (!src.base.is_wide()) {
+					throw std::runtime_error {"Invalid operands, byte register can't be used here!"};
+				}
+
+				// short-form
+				if (src.is_simple()) {
+
+					if (src.base.size == WORD) {
+						put_inst_16bit_mark();
+					}
+
+					put_byte((0b01010 << 3) | src.base.reg);
+					return;
+				}
+
+				if (!src.base.is(UNSET)) {
+					put_inst_std(0b111111, 0b110, src.base.reg, true);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+			}
+
+			void put_pop(Location src) {
+
+				// for some reason push & pop don't handle the wide flag,
+				// so we can only accept wide registers
+				if (!src.base.is_wide()) {
+					throw std::runtime_error {"Invalid operands, byte register can't be used here!"};
+				}
+
+				// short-form
+				if (src.is_simple()) {
+
+					if (src.base.size == WORD) {
+						put_inst_16bit_mark();
+					}
+
+					put_byte((0b01011 << 3) | src.base.reg);
+					return;
+				}
+
+				if (!src.base.is(UNSET)) {
+					put_inst_std(0b100011, 0b000, src.base.reg, true);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+			}
+
 			void put_inc(Location dst) {
 
-				// inc REG
-				if (dst.is_simple()) {
+				// short-form
+				if (dst.is_simple() && dst.base.is_wide()) {
 					Registry dst_reg = dst.base;
 
 					if (dst.base.size == WORD) {
@@ -243,10 +312,7 @@ namespace asmio::x86 {
 					return;
 				}
 
-				// inc [REG]
-				// inc [REG + VAL]
-				// inc [REG + REG * VAL + VAL]
-				if (dst.reference && !dst.base.is(UNSET)) {
+				if (!dst.base.is(UNSET)) {
 					put_inst_std(0b111111, dst, 0b000, true);
 					return;
 				}
@@ -256,8 +322,8 @@ namespace asmio::x86 {
 
 			void put_dec(Location dst) {
 
-				// dec REG
-				if (dst.is_simple()) {
+				// short-form
+				if (dst.is_simple() && dst.base.is_wide()) {
 					Registry dst_reg = dst.base;
 
 					if (dst.base.size == WORD) {
@@ -268,10 +334,7 @@ namespace asmio::x86 {
 					return;
 				}
 
-				// dec [REG]
-				// dec [REG + VAL]
-				// dec [REG + REG * VAL + VAL]
-				if (dst.reference && !dst.base.is(UNSET)) {
+				if (!dst.base.is(UNSET)) {
 					put_inst_std(0b111111, dst, 0b001, true);
 					return;
 				}
@@ -280,11 +343,6 @@ namespace asmio::x86 {
 			}
 
 			void put_neg(Location dst) {
-
-				// neg REG
-				// neg [REG]
-				// neg [REG + VAL]
-				// neg [REG + REG * VAL + VAL]
 				if (!dst.base.is(UNSET)) {
 					put_inst_std(0b111101, dst, 0b011, true);
 					return;
@@ -372,15 +430,19 @@ namespace asmio::x86 {
 			}
 
 			void put_word(uint16_t word) {
-				buffer.push_back((word & 0x000000FF) >> 8 * 0);
-				buffer.push_back((word & 0x0000FF00) >> 8 * 1);
+				const uint8_t* imm_ptr = (uint8_t*) &word;
+
+				buffer.push_back(imm_ptr[0]);
+				buffer.push_back(imm_ptr[1]);
 			}
 
 			void put_dword(uint32_t dword) {
-				buffer.push_back((dword & 0x000000FF) >> 8 * 0);
-				buffer.push_back((dword & 0x0000FF00) >> 8 * 1);
-				buffer.push_back((dword & 0x00FF0000) >> 8 * 2);
-				buffer.push_back((dword & 0xFF000000) >> 8 * 3);
+				const uint8_t* imm_ptr = (uint8_t*) &dword;
+
+				buffer.push_back(imm_ptr[0]);
+				buffer.push_back(imm_ptr[1]);
+				buffer.push_back(imm_ptr[2]);
+				buffer.push_back(imm_ptr[3]);
 			}
 
 			ExecutableBuffer bake() {

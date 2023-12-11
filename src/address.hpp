@@ -43,7 +43,7 @@ namespace asmio::x86 {
 			return this->size == registry.size && this->name == registry.name && this->flag == registry.flag;
 		}
 
-		bool is_wide() {
+		bool is_wide() const {
 			return size != 1;
 		}
 
@@ -165,7 +165,7 @@ namespace asmio::x86 {
 			uint8_t get_ss_flag() {
 				// count trailing zeros
 				// 0001 -> 0, 0010 -> 1
-				// 0100 -> 2, 1000 -> 2
+				// 0100 -> 2, 1000 -> 3
 
 				return __builtin_ctz(scale);
 			}

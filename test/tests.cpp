@@ -44,4 +44,40 @@ TEST(writer_simple_arithmetic) {
 
 }
 
+TEST(writer_simple_xchg) {
+
+	BufferWriter writer;
+
+	writer.put_nop();
+	writer.put_mov(EAX, 0xA);
+	writer.put_mov(EDX, 0xD);
+	writer.put_xchg(EDX, EAX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int eax = buffer.call();
+
+	CHECK(eax, 0xD);
+
+}
+
+TEST(writer_simple_push_pop) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 9);
+	writer.put_push(EAX);
+	writer.put_mov(EAX, 7);
+	writer.put_pop(ECX);
+	writer.put_mov(EAX, ECX);
+
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int eax = buffer.call();
+
+	CHECK(eax, 9);
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

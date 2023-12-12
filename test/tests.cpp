@@ -70,13 +70,29 @@ TEST(writer_simple_push_pop) {
 	writer.put_mov(EAX, 7);
 	writer.put_pop(ECX);
 	writer.put_mov(EAX, ECX);
-
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
 	int eax = buffer.call();
 
 	CHECK(eax, 9);
+
+}
+
+TEST(writer_simple_movsx_movzx) {
+
+	BufferWriter writer;
+
+	writer.put_mov(CL, 9);
+	writer.put_movzx(EDX, CL);
+	writer.put_neg(DL);
+	writer.put_movsx(EAX, DL);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int eax = buffer.call();
+
+	CHECK(eax, -9);
 
 }
 

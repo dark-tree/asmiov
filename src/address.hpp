@@ -110,38 +110,39 @@ namespace asmio::x86 {
 			const uint32_t scale;
 			const int offset;
 			const bool reference;
+			const uint8_t size;
 
 		public:
 
 			Location(int offset = 0)
-			: Location(UNSET, UNSET, 1, offset) {}
+			: Location(UNSET, UNSET, 1, offset, DWORD, false) {}
 
 			Location(Registry registry)
-			: Location(registry, UNSET, 1, 0) {}
+			: Location(registry, UNSET, 1, 0, registry.size, false) {}
 
 			Location(ScaledRegistry index)
-			: Location(UNSET, index.registry, index.scale, 0) {}
+			: Location(UNSET, index.registry, index.scale, 0, DWORD, false) {}
 
-			explicit Location(Registry base, Registry index, uint32_t scale, int offset, bool reference = false)
-			: base(base), index(index), scale(scale), offset(offset), reference(reference) {
+			explicit Location(Registry base, Registry index, uint32_t scale, int offset, int size, bool reference)
+			: base(base), index(index), scale(scale), offset(offset), size(size), reference(reference) {
 				assertValidScale(index, scale);
 			}
 
 		public:
 
-			Location ref() {
+			Location ref(uint8_t size_hint) {
 				ASSERT_MUTABLE(*this);
-				return Location {base, index, scale, offset, true};
+				return Location {base, index, scale, offset, size_hint, true};
 			}
 
 			Location operator + (int extend) const {
 				ASSERT_MUTABLE(*this);
-				return Location {base, index, scale, offset + extend};
+				return Location {base, index, scale, offset + extend, size, false};
 			}
 
 			Location operator - (int extend) const {
 				ASSERT_MUTABLE(*this);
-				return Location {base, index, scale, offset - extend};
+				return Location {base, index, scale, offset - extend, size, false};
 			}
 
 			bool is_immediate() {
@@ -173,7 +174,7 @@ namespace asmio::x86 {
 	};
 
 	Location operator + (Registry registry, int offset) {
-		return Location {registry, UNSET, 1, offset};
+		return Location {registry, UNSET, 1, offset, DWORD, false};
 	}
 
 	ScaledRegistry operator * (Registry registry, uint8_t scale) {
@@ -181,7 +182,7 @@ namespace asmio::x86 {
 	}
 
 	Location operator + (Registry base, ScaledRegistry index) {
-		return Location {base, index.registry, index.scale, 0};
+		return Location {base, index.registry, index.scale, 0, DWORD, false};
 	}
 
 	Location operator + (ScaledRegistry index, int offset) {
@@ -192,8 +193,9 @@ namespace asmio::x86 {
 		return base + (index * 1);
 	}
 
+	template<uint8_t size_hint = DWORD>
 	Location ref(Location location) {
-		return location.ref();
+		return location.ref(size_hint);
 	}
 
 }

@@ -101,7 +101,7 @@ namespace asmio::x86 {
 				put_inst_sib(ss_flag, index_reg, ref.base.reg);
 			}
 
-			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool direction) {
+			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool direction, bool wide, bool longer = false) {
 				Registry dst_reg = dst.base;
 
 				// TODO test
@@ -109,8 +109,13 @@ namespace asmio::x86 {
 					put_inst_16bit_mark();
 				}
 
+				// two byte opcode, starts with 0x0F
+				if (longer) {
+					put_byte(0x0F);
+				}
+
 				if (dst.is_simple()) {
-					put_inst_dw(opcode, direction, dst_reg.is_wide());
+					put_inst_dw(opcode, direction, wide);
 					put_inst_mod_reg_rm(MOD_SHORT, reg, dst_reg.reg);
 					return;
 				}
@@ -124,7 +129,7 @@ namespace asmio::x86 {
 					mod = MOD_BYTE;
 				}
 
-				put_inst_dw(opcode, direction, dst_reg.is_wide());
+				put_inst_dw(opcode, direction, wide);
 				put_inst_mod_reg_rm(mod, reg, sib ? RM_SIB : dst_reg.reg);
 
 				if (sib) {
@@ -146,17 +151,39 @@ namespace asmio::x86 {
 				uint8_t src_reg = src.base.reg;
 				uint8_t dst_len = dst.base.size;
 
-				put_inst_std(src.is_immediate() ? 0b110001 : 0b100010, dst, src_reg, direction);
+				put_inst_std(src.is_immediate() ? 0b110001 : 0b100010, dst, src_reg, direction, dst.base.is_wide());
 
 				if (src.is_immediate()) {
 					put_inst_imm(src.offset, dst_len);
 				}
 			}
 
+			void put_inst_movx(uint8_t opcode, Location dst, Location src) {
+				uint8_t dst_len = dst.size;
+				uint8_t src_len = src.size;
+
+				// 66h movsx (w=0) -> movsx [word], [byte]
+				// 66h movsx (w=1) ->
+				//     movsx (w=0) -> movsx [quad], [byte]
+				//     movsx (w=1) -> movsx [quad], [word]
+
+				if (!dst.is_simple()) {
+					throw std::runtime_error {"Invalid destination operand!"};
+				}
+
+				if (src_len >= dst_len) {
+					throw std::runtime_error {"Invalid destination sizes!"};
+				}
+
+				put_inst_std(opcode, src, dst.base.reg, true, dst_len == WORD, true);
+			}
+
 			void put_inst_shift(Location dst, Location src, uint8_t inst) {
 
+				bool dst_wide = dst.base.is_wide();
+
 				if (src.is_simple() && src.base.is(CL)) {
-					put_inst_std(0b110100, dst, inst, true);
+					put_inst_std(0b110100, dst, inst, true, dst_wide);
 
 					return;
 				}
@@ -165,9 +192,9 @@ namespace asmio::x86 {
 					uint8_t src_val = src.offset;
 
 					if (src_val == 1) {
-						put_inst_std(0b110100, dst, inst, false);
+						put_inst_std(0b110100, dst, inst, false, dst_wide);
 					} else {
-						put_inst_std(0b110000, dst, inst, false);
+						put_inst_std(0b110000, dst, inst, false, dst_wide);
 						put_byte(src_val);
 					}
 
@@ -229,15 +256,23 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			void put_movsx(Location dst, Location src) {
+				put_inst_movx(0b101111, dst, src);
+			}
+
+			void put_movzx(Location dst, Location src) {
+				put_inst_movx(0b101101, dst, src);
+			}
+
 			void put_xchg(Location dst, Location src) {
 
 				if (dst.is_simple() && !src.base.is(UNSET)) {
-					put_inst_std(0b100001, src, dst.base.reg, true);
+					put_inst_std(0b100001, src, dst.base.reg, true, src.base.is_wide());
 					return;
 				}
 
 				if (!dst.base.is(UNSET) && src.is_simple()) {
-					put_inst_std(0b100001, dst, src.base.reg, true);
+					put_inst_std(0b100001, dst, src.base.reg, true, dst.base.is_wide());
 					return;
 				}
 
@@ -264,7 +299,7 @@ namespace asmio::x86 {
 				}
 
 				if (!src.base.is(UNSET)) {
-					put_inst_std(0b111111, 0b110, src.base.reg, true);
+					put_inst_std(0b111111, 0b110, src.base.reg, true, src.base.is_wide());
 					return;
 				}
 
@@ -291,7 +326,7 @@ namespace asmio::x86 {
 				}
 
 				if (!src.base.is(UNSET)) {
-					put_inst_std(0b100011, 0b000, src.base.reg, true);
+					put_inst_std(0b100011, 0b000, src.base.reg, true, src.base.is_wide());
 					return;
 				}
 
@@ -313,7 +348,7 @@ namespace asmio::x86 {
 				}
 
 				if (!dst.base.is(UNSET)) {
-					put_inst_std(0b111111, dst, 0b000, true);
+					put_inst_std(0b111111, dst, 0b000, true, dst.base.is_wide());
 					return;
 				}
 
@@ -321,10 +356,10 @@ namespace asmio::x86 {
 			}
 
 			void put_dec(Location dst) {
+				Registry dst_reg = dst.base;
 
 				// short-form
 				if (dst.is_simple() && dst.base.is_wide()) {
-					Registry dst_reg = dst.base;
 
 					if (dst.base.size == WORD) {
 						put_inst_16bit_mark();
@@ -334,8 +369,8 @@ namespace asmio::x86 {
 					return;
 				}
 
-				if (!dst.base.is(UNSET)) {
-					put_inst_std(0b111111, dst, 0b001, true);
+				if (!dst_reg.is(UNSET)) {
+					put_inst_std(0b111111, dst, 0b001, true, dst_reg.is_wide());
 					return;
 				}
 
@@ -344,7 +379,7 @@ namespace asmio::x86 {
 
 			void put_neg(Location dst) {
 				if (!dst.base.is(UNSET)) {
-					put_inst_std(0b111101, dst, 0b011, true);
+					put_inst_std(0b111101, dst, 0b011, true, dst.base.is_wide());
 					return;
 				}
 

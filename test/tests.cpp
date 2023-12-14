@@ -115,4 +115,77 @@ TEST(writer_simple_lea) {
 	CHECK(output, (edx + eax * 2 - 5) + eax);
 }
 
+TEST(writer_simple_add) {
+
+	int eax = 12, edx = 56, ecx = 60;
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, eax);
+	writer.put_mov(EDX, edx);
+	writer.put_mov(ECX, ecx);
+	writer.put_add(ECX, EDX);
+	writer.put_add(EAX, ECX);
+	writer.put_add(EAX, 5);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, eax + edx + ecx + 5);
+
+}
+
+TEST(writer_simple_adc) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 0xFFFFFFF0);
+	writer.put_mov(EDX, 0x00000000);
+	writer.put_add(EAX, 0x1F);
+	writer.put_adc(EDX, 0);
+	writer.put_xchg(EAX, EDX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 0x1);
+
+}
+
+TEST(writer_simple_sub) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 0xF);
+	writer.put_mov(EDX, 0xA);
+	writer.put_sub(EAX, EDX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 0xF - 0xA);
+
+}
+
+TEST(writer_simple_sbb) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 0xA);
+	writer.put_mov(EDX, 0x0);
+	writer.put_sub(EAX, 0xB);
+	writer.put_sbb(EDX, 0);
+	writer.put_xchg(EAX, EDX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, -1);
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

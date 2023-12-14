@@ -205,6 +205,28 @@ namespace asmio::x86 {
 
 			}
 
+			void put_inst_add(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_imm, uint8_t opcode_reg) {
+
+				if (dst.is_simple() && (src.reference || src.is_simple())) {
+					put_inst_std(opcode_rmr, src, dst.base.reg, true, dst.base.is_wide());
+					return;
+				}
+
+				if (src.is_simple() && dst.reference) {
+					put_inst_std(opcode_rmr, src, dst.base.reg, false, src.base.is_wide());
+					return;
+				}
+
+				if ((dst.reference || dst.is_simple()) && src.is_immediate()) {
+					put_inst_std(opcode_imm, dst, opcode_reg, false /* TODO: sign field (???) */, dst.base.is_wide());
+					put_inst_imm(src.offset, dst.base.size);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+
+			}
+
 			void put_inst_16bit_mark() {
 				put_byte(0b01100110);
 			}
@@ -412,6 +434,26 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			/// Add
+			void put_add(Location dst, Location src) {
+				put_inst_add(dst, src, 0b000000, 0b100000, 0b000);
+			}
+
+			/// Add with carry
+			void put_adc(Location dst, Location src) {
+				put_inst_add(dst, src, 0b000100, 0b100000, 0b010);
+			}
+
+			/// Subtract
+			void put_sub(Location dst, Location src) {
+				put_inst_add(dst, src, 0b001010, 0b100000, 0b101);
+			}
+
+			/// Subtract with borrow
+			void put_sbb(Location dst, Location src) {
+				put_inst_add(dst, src, 0b000110, 0b100000, 0b011);
+			}
+
 			/// Rotate Left
 			void put_rol(Location dst, Location src) {
 
@@ -555,6 +597,16 @@ namespace asmio::x86 {
 			/// Complement Carry Flag
 			void put_cmc() {
 				put_byte(0b11111000);
+			}
+
+			/// Store AH into flags
+			void put_sahf() {
+				put_byte(0b10011110);
+			}
+
+			/// Load status flags into AH register
+			void put_lahf() {
+				put_byte(0b10011111);
 			}
 
 			/// Return from procedure

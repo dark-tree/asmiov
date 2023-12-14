@@ -96,4 +96,23 @@ TEST(writer_simple_movsx_movzx) {
 
 }
 
+TEST(writer_simple_lea) {
+
+	int eax = 12, edx = 56, ecx = 60;
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, eax);
+	writer.put_mov(EDX, edx);
+	writer.put_mov(ECX, ecx);
+	writer.put_lea(ECX, EDX + EAX * 2 - 5);
+	writer.put_lea(EAX, ECX + EAX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, (edx + eax * 2 - 5) + eax);
+}
+
 BEGIN(VSTL_MODE_LENIENT)

@@ -175,7 +175,7 @@ namespace asmio::x86 {
 					throw std::runtime_error {"Invalid destination sizes!"};
 				}
 
-				put_inst_std(opcode, src, dst.base.reg, true, dst_len == WORD, true);
+				put_inst_std(opcode, src, dst.base.reg, true, src_len == WORD, true);
 			}
 
 			void put_inst_shift(Location dst, Location src, uint8_t inst) {
@@ -211,6 +211,7 @@ namespace asmio::x86 {
 
 		public:
 
+			/// Move
 			void put_mov(Location dst, Location src) {
 
 				// verify operand size
@@ -220,7 +221,7 @@ namespace asmio::x86 {
 					}
 				}
 
-				// mov REG, VAL
+				// short form, VAL to REG
 				if (src.is_immediate() && dst.is_simple()) {
 					Registry dst_reg = dst.base;
 					uint32_t src_val = src.offset;
@@ -234,19 +235,14 @@ namespace asmio::x86 {
 					return;
 				}
 
-				// mov REG, REG
-				// mov REG, [REG]
-				// mov REG, [REG + VAL]
-				// mov REG, [REG + REG * VAL + VAL]
+				// handle REG to REG/MEM
 				if (dst.is_simple() && !src.base.is(UNSET)) {
 					put_inst_mov(src, dst, true);
 
 					return;
 				}
 
-				// mov [REG], VAL/REG
-				// mov [REG + VAL], VAL/REG
-				// mov [REG + REG * VAL + VAL], VAL/REG
+				// handle REG/VAL to MEM
 				if ((src.is_immediate() || src.is_simple()) && !dst.base.is(UNSET)) {
 					put_inst_mov(dst, src, src.is_immediate());
 
@@ -256,14 +252,39 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			/// Move with Sign Extension
 			void put_movsx(Location dst, Location src) {
 				put_inst_movx(0b101111, dst, src);
 			}
 
+			/// Move with Zero Extension
 			void put_movzx(Location dst, Location src) {
 				put_inst_movx(0b101101, dst, src);
 			}
 
+			/// Load Effective Address
+			void put_lea(Location dst, Location src) {
+
+				// lea deals with addresses, addresses use 32 bits,
+				// so this is quite a logical limitation
+				if (dst.base.size != DWORD) {
+					throw std::runtime_error {"Invalid operands, non-dword target register can't be used here!"};
+				}
+
+				// handle EXP to REG
+				if (dst.is_simple() && !src.reference) {
+					put_inst_std(0b100011, src, dst.base.reg, false, true);
+					return;
+				}
+
+				if (src.reference) {
+					throw std::runtime_error {"Invalid operands, reference can't be used here!"};
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+			}
+
+			/// Exchange
 			void put_xchg(Location dst, Location src) {
 
 				if (dst.is_simple() && !src.base.is(UNSET)) {
@@ -279,6 +300,7 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			/// Push
 			void put_push(Location src) {
 
 				// for some reason push & pop don't handle the wide flag,
@@ -306,6 +328,7 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			/// Pop
 			void put_pop(Location src) {
 
 				// for some reason push & pop don't handle the wide flag,
@@ -333,6 +356,7 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			/// Increment
 			void put_inc(Location dst) {
 
 				// short-form
@@ -355,6 +379,7 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			/// Decrement
 			void put_dec(Location dst) {
 				Registry dst_reg = dst.base;
 
@@ -377,6 +402,7 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			/// Negate
 			void put_neg(Location dst) {
 				if (!dst.base.is(UNSET)) {
 					put_inst_std(0b111101, dst, 0b011, true, dst.base.is_wide());
@@ -386,70 +412,152 @@ namespace asmio::x86 {
 				throw std::runtime_error {"Invalid operands!"};
 			}
 
+			/// Rotate Left
 			void put_rol(Location dst, Location src) {
+
+				//       + - + ------- + - +
+				// CF <- | M |   ...   | L | <- MB
+				//       + - + ------- + - +
+				//       |             |
+				//       |             \_ Least Significant Bit (LB)
+				//       \_ Most Significant Bit (MB)
+
 				put_inst_shift(dst, src, INST_ROL);
 			}
 
+			/// Rotate Right
 			void put_ror(Location dst, Location src) {
+
+				//       + - + ------- + - +
+				// LB -> | M |   ...   | L | -> CF
+				//       + - + ------- + - +
+				//       |             |
+				//       |             \_ Least Significant Bit (LB)
+				//       \_ Most Significant Bit (MB)
+
 				put_inst_shift(dst, src, INST_ROR);
 			}
 
+			/// Rotate Left Through Carry
 			void put_rcl(Location dst, Location src) {
+
+				//       + - + ------- + - +
+				// CF <- | M |   ...   | L | <- CF
+				//       + - + ------- + - +
+				//       |             |
+				//       |             \_ Least Significant Bit (LB)
+				//       \_ Most Significant Bit (MB)
+
 				put_inst_shift(dst, src, INST_RCL);
 			}
 
+			/// Rotate Right Through Carry
 			void put_rcr(Location dst, Location src) {
+
+				//       + - + ------- + - +
+				// CF -> | M |   ...   | L | -> CF
+				//       + - + ------- + - +
+				//       |             |
+				//       |             \_ Least Significant Bit (LB)
+				//       \_ Most Significant Bit (MB)
+
 				put_inst_shift(dst, src, INST_RCR);
 			}
 
+			/// Shift left
 			void put_shl(Location dst, Location src) {
+
+				//       + - + ------- + - +
+				// CF <- | M |   ...   | L | <- 0
+				//       + - + ------- + - +
+				//       |             |
+				//       |             \_ Least Significant Bit (LB)
+				//       \_ Most Significant Bit (MB)
+
 				put_inst_shift(dst, src, INST_SHL);
 			}
 
+			/// Shift Right
 			void put_shr(Location dst, Location src) {
+
+				//       + - + ------- + - +
+				//  0 -> | M |   ...   | L | -> CF
+				//       + - + ------- + - +
+				//       |             |
+				//       |             \_ Least Significant Bit (LB)
+				//       \_ Most Significant Bit (MB)
+
 				put_inst_shift(dst, src, INST_SHR);
 			}
 
+			/// Arithmetic Shift Left
 			void put_sal(Location dst, Location src) {
-				put_inst_shift(dst, src, INST_SHL); // SAL == SHL
+
+				//       + - + ------- + - +
+				// CF <- | M |   ...   | L | <- 0
+				//       + - + ------- + - +
+				//       |             |
+				//       |             \_ Least Significant Bit (LB)
+				//       \_ Most Significant Bit (MB)
+
+				// Works the exact same way SHL does
+				put_inst_shift(dst, src, INST_SHL);
 			}
 
+			/// Arithmetic Shift Right
 			void put_sar(Location dst, Location src) {
+
+				//       + - + ------- + - +
+				// MB -> | M |   ...   | L | -> CF
+				//       + - + ------- + - +
+				//       |             |
+				//       |             \_ Least Significant Bit (LB)
+				//       \_ Most Significant Bit (MB)
+
 				put_inst_shift(dst, src, INST_SAR);
 			}
 
+			/// No Operation
 			void put_nop() {
 				put_byte(0b10010000);
 			}
 
+			/// Push All
 			void put_pusha() {
 				put_byte(0b01100000);
 			}
 
+			/// Pop All
 			void put_popa() {
 				put_byte(0b01100001);
 			}
 
+			/// Push Flags
 			void put_pushf() {
 				put_byte(0b10011100);
 			}
 
+			/// Pop Flags
 			void put_popf() {
 				put_byte(0b10011101);
 			}
 
+			/// Clear Carry
 			void put_clc() {
 				put_byte(0b11111000);
 			}
 
+			/// Set Carry
 			void put_stc() {
 				put_byte(0b11111001);
 			}
 
+			/// Complement Carry Flag
 			void put_cmc() {
 				put_byte(0b11111000);
 			}
 
+			/// Return from procedure
 			void put_ret(uint16_t bytes = 0) {
 				if (bytes != 0) {
 					put_byte(0b11000010);

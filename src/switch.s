@@ -46,6 +46,6 @@ x86_check_mode:
         setz    al
         ret
 
-        .data
-        .align  16
+.data
+.align  16
 stack:  .space 0x100

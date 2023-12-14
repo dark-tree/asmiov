@@ -188,4 +188,42 @@ TEST(writer_simple_sbb) {
 
 }
 
+TEST(writer_simple_stc_lahf_sahf) {
+
+	BufferWriter writer;
+
+	writer.put_mov(AH, 0);
+	writer.put_sahf();
+	writer.put_stc();
+	writer.put_lahf();
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = (buffer.call() & 0xFF00) >> 8;
+
+	ASSERT(!(output & 0b1000'0000)); // ZF
+	ASSERT( (output & 0b0000'0001)); // CF
+	ASSERT( (output & 0b0000'0010)); // always set to 1
+
+}
+
+TEST (writer_simple_cmp_lahf) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 0xA);
+	writer.put_mov(EDX, 0xE);
+	writer.put_cmp(EAX, EDX);
+	writer.put_lahf();
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = (buffer.call() & 0xFF00) >> 8;
+
+	ASSERT(output & 0b1000'0000); // ZF
+	ASSERT(output & 0b0000'0001); // CF
+	ASSERT(output & 0b0000'0010); // always set to 1
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

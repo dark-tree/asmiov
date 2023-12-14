@@ -205,7 +205,7 @@ namespace asmio::x86 {
 
 			}
 
-			void put_inst_add(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_imm, uint8_t opcode_reg) {
+			void put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_imm, uint8_t opcode_reg) {
 
 				if (dst.is_simple() && (src.reference || src.is_simple())) {
 					put_inst_std(opcode_rmr, src, dst.base.reg, true, dst.base.is_wide());
@@ -436,22 +436,27 @@ namespace asmio::x86 {
 
 			/// Add
 			void put_add(Location dst, Location src) {
-				put_inst_add(dst, src, 0b000000, 0b100000, 0b000);
+				put_inst_tuple(dst, src, 0b000000, 0b100000, 0b000);
 			}
 
 			/// Add with carry
 			void put_adc(Location dst, Location src) {
-				put_inst_add(dst, src, 0b000100, 0b100000, 0b010);
+				put_inst_tuple(dst, src, 0b000100, 0b100000, 0b010);
 			}
 
 			/// Subtract
 			void put_sub(Location dst, Location src) {
-				put_inst_add(dst, src, 0b001010, 0b100000, 0b101);
+				put_inst_tuple(dst, src, 0b001010, 0b100000, 0b101);
 			}
 
 			/// Subtract with borrow
 			void put_sbb(Location dst, Location src) {
-				put_inst_add(dst, src, 0b000110, 0b100000, 0b011);
+				put_inst_tuple(dst, src, 0b000110, 0b100000, 0b011);
+			}
+
+			/// Compare
+			void put_cmp(Location dst, Location src) {
+				put_inst_tuple(dst, src, 0b001110, 0b100000, 0b111);
 			}
 
 			/// Rotate Left
@@ -607,6 +612,26 @@ namespace asmio::x86 {
 			/// Load status flags into AH register
 			void put_lahf() {
 				put_byte(0b10011111);
+			}
+
+			/// ASCII adjust for add
+			void put_aaa() {
+				put_byte(0b00110111);
+			}
+
+			/// Decimal adjust for add
+			void put_daa() {
+				put_byte(0b00111111);
+			}
+
+			/// ASCII adjust for subtract
+			void put_aas() {
+				put_byte(0b00100111);
+			}
+
+			/// Decimal adjust for subtract
+			void put_das() {
+				put_byte(0b00101111);
 			}
 
 			/// Return from procedure

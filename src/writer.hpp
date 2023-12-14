@@ -459,6 +459,11 @@ namespace asmio::x86 {
 				put_inst_tuple(dst, src, 0b001110, 0b100000, 0b111);
 			}
 
+			/// Multiply (Unsigned)
+			void put_mul(Location dst) {
+				put_inst_std(0b111101, dst, 0b100, true, dst.base.is_wide());
+			}
+
 			/// Rotate Left
 			void put_rol(Location dst, Location src) {
 

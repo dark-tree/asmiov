@@ -226,4 +226,20 @@ TEST (writer_simple_cmp_lahf) {
 
 }
 
+TEST(writer_simple_mul) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 0xA);
+	writer.put_mov(EDX, 0xB);
+	writer.put_mul(EDX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 0xA * 0xB);
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

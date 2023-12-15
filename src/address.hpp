@@ -145,16 +145,33 @@ namespace asmio::x86 {
 				return Location {base, index, scale, offset - extend, size, false};
 			}
 
+			/**
+			 * Checks if this location is a simple
+			 * un-referenced constant (immediate) value
+			 */
 			bool is_immediate() {
 				return base.is(UNSET) && index.is(UNSET) && scale == 1 && !reference;
 			}
 
+			/**
+			 * Checks if this location
+			 * uses the index component
+			 */
 			bool is_indexed() {
 				return !index.is(UNSET);
 			}
 
+			/**
+			 * Checks if this location is a simple
+			 * un-referenced register
+			 */
 			bool is_simple() {
 				return !base.is(UNSET) && !is_indexed() && offset == 0 && !reference;
+			}
+
+
+			bool is_memory() {
+				return (reference && !base.is(UNSET)) || is_simple();
 			}
 
 			uint8_t get_mod_flag() {

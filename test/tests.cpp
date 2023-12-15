@@ -136,7 +136,7 @@ TEST(writer_simple_add) {
 
 }
 
-TEST(writer_simple_adc) {
+TEST(writer_simple_add_adc) {
 
 	BufferWriter writer;
 
@@ -170,7 +170,7 @@ TEST(writer_simple_sub) {
 
 }
 
-TEST(writer_simple_sbb) {
+TEST(writer_simple_sub_sbb) {
 
 	BufferWriter writer;
 
@@ -239,6 +239,49 @@ TEST(writer_simple_mul) {
 	int output = buffer.call();
 
 	CHECK(output, 0xA * 0xB);
+
+}
+
+TEST(writer_simple_mul_imul) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 7);
+	writer.put_mov(EDX, 5);
+	writer.put_mov(ECX, 2);
+	writer.put_mul(EDX);
+	writer.put_imul(EAX, 3);
+	writer.put_imul(EAX, ECX);
+	writer.put_imul(EAX, EAX, 11);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 7 * 5 * 3 * 2 * 11);
+
+}
+
+TEST(writer_simple_div_idiv) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 50);
+
+	writer.put_mov(EDX, 0);
+	writer.put_mov(ECX, 5);
+	writer.put_div(ECX);
+
+	writer.put_mov(EDX, 0);
+	writer.put_mov(ECX, -2);
+	writer.put_idiv(ECX);
+
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 50 / 5 / -2);
 
 }
 

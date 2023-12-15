@@ -105,7 +105,7 @@ namespace asmio::x86 {
 				Registry dst_reg = dst.base;
 
 				// TODO test
-				if (dst_reg.size == WORD) {
+				if (dst.size == WORD) {
 					put_inst_16bit_mark();
 				}
 
@@ -461,7 +461,68 @@ namespace asmio::x86 {
 
 			/// Multiply (Unsigned)
 			void put_mul(Location dst) {
-				put_inst_std(0b111101, dst, 0b100, true, dst.base.is_wide());
+				if (dst.is_simple() || dst.reference) {
+					put_inst_std(0b111101, dst, 0b100, true, dst.base.is_wide());
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+			}
+
+			/// Integer multiply (Signed)
+			void put_imul(Location dst, Location src) {
+
+				// TODO: This requires a change to the size system to work
+				// short form
+				// if (dst.is_simple() && src.is_memory() && dst.base.name == Registry::Name::A) {
+				// 	put_inst_std(0b111101, src, 0b101, true, dst.base.is_wide());
+				// 	return;
+				// }
+
+				if (dst.is_simple() && src.is_memory() && dst.base.size != BYTE) {
+					put_inst_std(0b101011, src, dst.base.reg, true, true, true);
+					return;
+				}
+
+				if (dst.is_simple() && src.is_immediate()) {
+					put_imul(dst, dst, src);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+			}
+
+			/// Integer multiply (Signed), triple arg version
+			void put_imul(Location dst, Location src, Location val) {
+				if (dst.is_simple() && src.is_memory() && val.is_immediate() && dst.base.size != BYTE) {
+					put_inst_std(0b011010, src, dst.base.reg, true /* TODO: sign flag */, true);
+
+					// not sure why but it looks like IMUL uses 8bit immediate values
+					put_byte(val.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+			}
+
+			/// Divide (Unsigned)
+			void put_div(Location src) {
+				if (src.is_memory()) {
+					put_inst_std(0b111101, src, 0b110, true, src.size != BYTE);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+			}
+
+			/// Integer divide (Signed)
+			void put_idiv(Location src) {
+				if (src.is_memory()) {
+					put_inst_std(0b111101, src, 0b111, true, src.size != BYTE);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
 			}
 
 			/// Rotate Left

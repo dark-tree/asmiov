@@ -11,6 +11,18 @@ int min_bytes(uint64_t value) {
 	return 1;
 }
 
+
+
+uint64_t hash_djb2(const char* str) {
+	uint64_t hash = 5381;
+
+	for (int c; (c = *str) != 0; str ++) {
+		hash = (hash << 5) + hash * 33 + c;
+	}
+
+	return hash;
+}
+
 extern "C" {
 	extern int x86_check_mode();
 	extern int x86_switch_mode(int, uint32_t (*)());

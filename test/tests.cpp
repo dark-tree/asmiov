@@ -6,11 +6,12 @@
 
 using namespace asmio::x86;
 
-TEST(writer_basic) {
+TEST(writer_simple_mov_ret_nop) {
 
 	BufferWriter writer;
 
 	writer.put_mov(EAX, 5);
+	writer.put_nop();
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -20,7 +21,7 @@ TEST(writer_basic) {
 
 }
 
-TEST(writer_simple_arithmetic) {
+TEST(writer_simple_rol_inc_neg_sar) {
 
 	BufferWriter writer;
 
@@ -374,6 +375,51 @@ TEST(writer_simple_bts_btr_btc) {
 	int output = buffer.call();
 
 	CHECK(output, 0b1100'1010);
+
+}
+
+TEST(writer_simple_jmp_forward) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 1);
+	writer.put_jmp("l_skip");
+	writer.put_mov(EAX, 2);
+	writer.label("l_skip");
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 1);
+
+}
+
+TEST(writer_simple_jmp_back) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 1);
+	writer.put_jmp("1");
+	writer.put_ret();
+
+	writer.label("2");
+	writer.put_mov(EAX, 3);
+	writer.put_jmp("3");
+	writer.put_ret();
+
+	writer.label("1");
+	writer.put_mov(EAX, 2);
+	writer.put_jmp("2");
+	writer.put_ret();
+
+	writer.label("3");
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 3);
 
 }
 

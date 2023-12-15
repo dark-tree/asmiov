@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <utility>
 #include "address.hpp"
+#include "label.hpp"
 #include "buffer.hpp"
 
 namespace asmio::x86 {
@@ -12,7 +13,9 @@ namespace asmio::x86 {
 
 		private:
 
+			std::unordered_map<Label, size_t, Label::HashFunction> labels;
 			std::vector<uint8_t> buffer;
+			std::vector<LabelCommand> commands;
 
 			void put_inst_dw(uint8_t opcode, bool d, bool w) {
 
@@ -250,7 +253,31 @@ namespace asmio::x86 {
 				put_byte(0b01100110);
 			}
 
+			void put_label(Label label, uint8_t size) {
+				commands.emplace_back(label, size, buffer.size());
+
+				while (size --> 0) {
+					put_byte(0);
+				}
+			}
+
+			bool has_label(Label label) {
+				return labels.contains(label);
+			}
+
+			int get_label(Label label) {
+				return labels.at(label);
+			}
+
 		public:
+
+			void label(Label label) {
+				if (has_label(label)) {
+					throw std::runtime_error {"Invalid label, redefinition attempted!"};
+				}
+
+				labels[label] = buffer.size();
+			}
 
 			/// Move
 			void put_mov(Location dst, Location src) {
@@ -694,6 +721,24 @@ namespace asmio::x86 {
 				put_inst_shift(dst, src, INST_SAR);
 			}
 
+			/// Unconditional Jump
+			Label put_jmp(Label label) {
+
+				if (has_label(label)) {
+					int offset = get_label(label) - buffer.size();
+
+					if (offset > -127) {
+						put_byte(0b11101011);
+						put_label(label, BYTE);
+						return label;
+					}
+				}
+
+				put_byte(0b11101001);
+				put_label(label, DWORD);
+				return label;
+			}
+
 			/// No Operation
 			void put_nop() {
 				put_byte(0b10010000);
@@ -826,6 +871,12 @@ namespace asmio::x86 {
 			}
 
 			ExecutableBuffer bake() {
+
+				for (LabelCommand command : commands) {
+					const int imm_val = get_label(command.label) - command.offset - command.size;
+					const uint8_t* imm_ptr = (uint8_t*) &imm_val;
+					memcpy(buffer.data() + command.offset, imm_ptr, command.size);
+				}
 
 				#if DEBUG_MODE
 				int i = 0;

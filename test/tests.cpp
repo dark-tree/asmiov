@@ -423,4 +423,25 @@ TEST(writer_simple_jmp_back) {
 
 }
 
+TEST(writer_simple_je) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 5);
+	writer.put_mov(ECX, 6);
+	writer.put_cmp(ECX, 7);
+
+	writer.put_jb("skip");
+	writer.put_mov(EAX, 0);
+	writer.label("skip");
+
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 5);
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

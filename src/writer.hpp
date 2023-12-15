@@ -109,7 +109,7 @@ namespace asmio::x86 {
 
 				// TODO test
 				if (dst.size == WORD) {
-					put_inst_16bit_mark();
+					put_inst_16bit_operand_mark();
 				}
 
 				// two byte opcode, starts with 0x0F
@@ -249,7 +249,29 @@ namespace asmio::x86 {
 
 			}
 
-			void put_inst_16bit_mark() {
+			void put_inst_jx(Label label, uint8_t sopcode, uint8_t lopcode) {
+
+				if (has_label(label)) {
+					int offset = get_label(label) - buffer.size();
+
+					if (offset > -127) {
+						put_byte(sopcode);
+						put_label(label, BYTE);
+						return;
+					}
+				}
+
+				put_byte(0b00001111);
+				put_byte(lopcode);
+				put_label(label, DWORD);
+
+			}
+
+			void put_inst_16bit_operand_mark() {
+				put_byte(0b01100110);
+			}
+
+			void put_inst_16bit_address_mark() {
 				put_byte(0b01100110);
 			}
 
@@ -295,7 +317,7 @@ namespace asmio::x86 {
 					uint32_t src_val = src.offset;
 
 					if (dst.base.size == WORD) {
-						put_inst_16bit_mark();
+						put_inst_16bit_operand_mark();
 					}
 
 					put_byte((0b1011 << 4) | (dst_reg.is_wide() << 3) | dst_reg.reg);
@@ -381,7 +403,7 @@ namespace asmio::x86 {
 				if (src.is_simple()) {
 
 					if (src.base.size == WORD) {
-						put_inst_16bit_mark();
+						put_inst_16bit_operand_mark();
 					}
 
 					put_byte((0b01010 << 3) | src.base.reg);
@@ -409,7 +431,7 @@ namespace asmio::x86 {
 				if (src.is_simple()) {
 
 					if (src.base.size == WORD) {
-						put_inst_16bit_mark();
+						put_inst_16bit_operand_mark();
 					}
 
 					put_byte((0b01011 << 3) | src.base.reg);
@@ -432,7 +454,7 @@ namespace asmio::x86 {
 					Registry dst_reg = dst.base;
 
 					if (dst.base.size == WORD) {
-						put_inst_16bit_mark();
+						put_inst_16bit_operand_mark();
 					}
 
 					put_byte((0b01000 << 3) | dst_reg.reg);
@@ -455,7 +477,7 @@ namespace asmio::x86 {
 				if (dst.is_simple() && dst.base.is_wide()) {
 
 					if (dst.base.size == WORD) {
-						put_inst_16bit_mark();
+						put_inst_16bit_operand_mark();
 					}
 
 					put_byte((0b01001 << 3) | dst_reg.reg);
@@ -739,6 +761,102 @@ namespace asmio::x86 {
 				return label;
 			}
 
+			/// Jump on Overflow
+			Label put_jo(Label label) {
+				put_inst_jx(label, 0b01110000, 0b10000000);
+				return label;
+			}
+
+			/// Jump on Not Overflow
+			Label put_jno(Label label) {
+				put_inst_jx(label, 0b01110001, 0b10000001);
+				return label;
+			}
+
+			/// Jump on Below
+			Label put_jb(Label label) {
+				put_inst_jx(label, 0b01110010, 0b10000010);
+				return label;
+			}
+
+			/// Jump on Not Below
+			Label put_jnb(Label label) {
+				put_inst_jx(label, 0b01110011, 0b10000011);
+				return label;
+			}
+
+			/// Jump on Equal
+			Label put_je(Label label) {
+				put_inst_jx(label, 0b01110100, 0b10000100);
+				return label;
+			}
+
+			/// Jump on Not Equal
+			Label put_jne(Label label) {
+				put_inst_jx(label, 0b01110101, 0b10000101);
+				return label;
+			}
+
+			/// Jump on Below or Equal
+			Label put_jbe(Label label) {
+				put_inst_jx(label, 0b01110110, 0b10000110);
+				return label;
+			}
+
+			/// Jump on Not Below or Equal
+			Label put_jnbe(Label label) {
+				put_inst_jx(label, 0b01110111, 0b10000111);
+				return label;
+			}
+
+			/// Jump on Sign
+			Label put_js(Label label) {
+				put_inst_jx(label, 0b01111000, 0b10001000);
+				return label;
+			}
+
+			/// Jump on Not Sign
+			Label put_jns(Label label) {
+				put_inst_jx(label, 0b01111001, 0b10001001);
+				return label;
+			}
+
+			/// Jump on Parity
+			Label put_jp(Label label) {
+				put_inst_jx(label, 0b01111010, 0b10001010);
+				return label;
+			}
+
+			/// Jump on Not Parity
+			Label put_jnp(Label label) {
+				put_inst_jx(label, 0b01111011, 0b10001011);
+				return label;
+			}
+
+			/// Jump on Less
+			Label put_jl(Label label) {
+				put_inst_jx(label, 0b01111100, 0b10001100);
+				return label;
+			}
+
+			/// Jump on Not Less
+			Label put_jnl(Label label) {
+				put_inst_jx(label, 0b01111101, 0b10001101);
+				return label;
+			}
+
+			/// Jump on Less or Equal
+			Label put_jle(Label label) {
+				put_inst_jx(label, 0b01111110, 0b10001110);
+				return label;
+			}
+
+			/// Jump on Not Less or Equal
+			Label put_jnle(Label label) {
+				put_inst_jx(label, 0b01111111, 0b10001111);
+				return label;
+			}
+
 			/// No Operation
 			void put_nop() {
 				put_byte(0b10010000);
@@ -807,6 +925,86 @@ namespace asmio::x86 {
 			/// Decimal adjust for subtract
 			void put_das() {
 				put_byte(0b00101111);
+			}
+
+			/// Alias to JB, Jump on Not Above or Equal
+			Label put_jnae(Label label) {
+				return put_jb(label);
+			}
+
+			/// Alias to JNB, Jump on Above or Equal
+			Label put_jae(Label label) {
+				return put_jnb(label);
+			}
+
+			/// Alias to JE, Jump on Zero
+			Label put_jz(Label label) {
+				return put_je(label);
+			}
+
+			/// Alias to JNE, Jump on Not Zero
+			Label put_jnz(Label label) {
+				return put_jne(label);
+			}
+
+			/// Alias to JBE, Jump on Not Above
+			Label put_jna(Label label) {
+				return put_jbe(label);
+			}
+
+			/// Alias to JNBE, Jump on Above
+			Label put_ja(Label label) {
+				return put_jnbe(label);
+			}
+
+			/// Alias to JP, Jump on Parity Even
+			Label put_jpe(Label label) {
+				return put_jp(label);
+			}
+
+			/// Alias to JNP, Jump on Parity Odd
+			Label put_jpo(Label label) {
+				return put_jnp(label);
+			}
+
+			/// Alias to JL, Jump on Not Greater or Equal
+			Label put_jnge(Label label) {
+				return put_jl(label);
+			}
+
+			/// Alias to JNL, Jump on Greater or Equal
+			Label put_jge(Label label) {
+				return put_jnl(label);
+			}
+
+			/// Alias to JLE, Jump on Not Greater
+			Label put_jng(Label label) {
+				return put_jle(label);
+			}
+
+			/// Alias to JNLE, Jump on Greater
+			Label put_jg(Label label) {
+				return put_jnle(label);
+			}
+
+			/// Jump on CX Zero
+			Label put_jcxz(Label label) {
+				put_inst_16bit_address_mark();
+				return put_jecxz(label);
+			}
+
+			/// Jump on ECX Zero
+			Label put_jecxz(Label label) {
+				put_byte(0b11100011);
+				put_label(label, BYTE);
+				return label;
+			}
+
+			/// Loop Times
+			Label put_loop(Label label) {
+				put_byte(0b11100010);
+				put_label(label, BYTE);
+				return label;
 			}
 
 			/// ASCII adjust for division

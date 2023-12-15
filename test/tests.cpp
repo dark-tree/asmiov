@@ -285,4 +285,73 @@ TEST(writer_simple_div_idiv) {
 
 }
 
+TEST(writer_simple_or) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 0b0000'0110);
+	writer.put_mov(EDX, 0b0101'0000);
+	writer.put_or(EAX,  0b0000'1100);
+	writer.put_or(EAX, EDX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 0b0101'1110);
+
+}
+
+TEST(writer_simple_and_not_xor_or) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 0b0000'0110'0111);
+	writer.put_mov(EDX, 0b0101'0010'1010);
+	writer.put_mov(ECX, 0b1011'0000'0110);
+
+	writer.put_not(ECX);      // -> 0b0100'1111'1001
+	writer.put_and(EDX, ECX); // -> 0b0100'0010'1000
+	writer.put_xor(EAX, EDX); // -> 0b0100'0100'1111
+	writer.put_or(EAX, 0b1000'0000'0001);
+
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 0b1100'0100'1111);
+
+}
+
+TEST(writer_simple_aam) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 27);
+	writer.put_aam(); // AL -> 7, AH -> 2
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 0x0207);
+
+}
+
+TEST(writer_simple_aad) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 0x0509);
+	writer.put_aad(); // AL -> 59, AH -> 0
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 59);
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

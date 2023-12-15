@@ -145,6 +145,10 @@ namespace asmio::x86 {
 				return Location {base, index, scale, offset - extend, size, false};
 			}
 
+			bool get_size(Location& ref) {
+				return size == VOID ? ref.size : size;
+			}
+
 			/**
 			 * Checks if this location is a simple
 			 * un-referenced constant (immediate) value

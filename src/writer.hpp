@@ -205,9 +205,9 @@ namespace asmio::x86 {
 
 			}
 
-			void put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_imm, uint8_t opcode_reg) {
+			void put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_reg) {
 
-				if (dst.is_simple() && (src.reference || src.is_simple())) {
+				if (dst.is_simple() && src.is_memory()) {
 					put_inst_std(opcode_rmr, src, dst.base.reg, true, dst.base.is_wide());
 					return;
 				}
@@ -217,9 +217,9 @@ namespace asmio::x86 {
 					return;
 				}
 
-				if ((dst.reference || dst.is_simple()) && src.is_immediate()) {
-					put_inst_std(opcode_imm, dst, opcode_reg, false /* TODO: sign field (???) */, dst.base.is_wide());
-					put_inst_imm(src.offset, dst.base.size);
+				if (dst.is_memory() && src.is_immediate()) {
+					put_inst_std(0b100000, dst, opcode_reg, false /* TODO: sign field (???) */, dst.size != BYTE);
+					put_inst_imm(src.offset, dst.size);
 					return;
 				}
 
@@ -436,27 +436,42 @@ namespace asmio::x86 {
 
 			/// Add
 			void put_add(Location dst, Location src) {
-				put_inst_tuple(dst, src, 0b000000, 0b100000, 0b000);
+				put_inst_tuple(dst, src, 0b000000, 0b000);
 			}
 
 			/// Add with carry
 			void put_adc(Location dst, Location src) {
-				put_inst_tuple(dst, src, 0b000100, 0b100000, 0b010);
+				put_inst_tuple(dst, src, 0b000100, 0b010);
 			}
 
 			/// Subtract
 			void put_sub(Location dst, Location src) {
-				put_inst_tuple(dst, src, 0b001010, 0b100000, 0b101);
+				put_inst_tuple(dst, src, 0b001010, 0b101);
 			}
 
 			/// Subtract with borrow
 			void put_sbb(Location dst, Location src) {
-				put_inst_tuple(dst, src, 0b000110, 0b100000, 0b011);
+				put_inst_tuple(dst, src, 0b000110, 0b011);
 			}
 
 			/// Compare
 			void put_cmp(Location dst, Location src) {
-				put_inst_tuple(dst, src, 0b001110, 0b100000, 0b111);
+				put_inst_tuple(dst, src, 0b001110, 0b111);
+			}
+
+			/// Binary And
+			void put_and(Location dst, Location src) {
+				put_inst_tuple(dst, src, 0b001000, 0b110);
+			}
+
+			/// Binary Or
+			void put_or(Location dst, Location src) {
+				put_inst_tuple(dst, src, 0b000010, 0b001);
+			}
+
+			/// Binary Xor
+			void put_xor(Location dst, Location src) {
+				put_inst_tuple(dst, src, 0b001100, 0b010);
 			}
 
 			/// Multiply (Unsigned)
@@ -512,7 +527,7 @@ namespace asmio::x86 {
 					return;
 				}
 
-				throw std::runtime_error {"Invalid operands!"};
+				throw std::runtime_error {"Invalid operand!"};
 			}
 
 			/// Integer divide (Signed)
@@ -522,7 +537,17 @@ namespace asmio::x86 {
 					return;
 				}
 
-				throw std::runtime_error {"Invalid operands!"};
+				throw std::runtime_error {"Invalid operand!"};
+			}
+
+			/// Invert
+			void put_not(Location dst) {
+				if (dst.is_memory()) {
+					put_inst_std(0b111101, dst, 0b010, true, dst.base.is_wide());
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
 			}
 
 			/// Rotate Left
@@ -577,7 +602,7 @@ namespace asmio::x86 {
 				put_inst_shift(dst, src, INST_RCR);
 			}
 
-			/// Shift left
+			/// Shift Left
 			void put_shl(Location dst, Location src) {
 
 				//       + - + ------- + - +
@@ -698,6 +723,36 @@ namespace asmio::x86 {
 			/// Decimal adjust for subtract
 			void put_das() {
 				put_byte(0b00101111);
+			}
+
+			/// ASCII adjust for division
+			void put_aad() {
+
+				// the operation performed by AAD:
+				// AH = AL + AH * 10
+				// AL = 0
+
+				put_word(0b00001010'11010101);
+			}
+
+			/// ASCII adjust for multiplication
+			void put_aam() {
+
+				// the operation performed by AAM:
+				// AH = AL div 10
+				// AL = AL mod 10
+
+				put_word(0b00001010'11010100);
+			}
+
+			/// Convert byte to word
+			void put_cbw() {
+				put_byte(0b10011000);
+			}
+
+			/// Convert word to double word
+			void put_cwd() {
+				put_byte(0b10011001);
 			}
 
 			/// Return from procedure

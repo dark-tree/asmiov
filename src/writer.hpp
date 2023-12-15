@@ -227,6 +227,25 @@ namespace asmio::x86 {
 
 			}
 
+			void put_inst_btx(Location dst, Location src, uint8_t opcode, uint8_t inst) {
+
+				if (dst.size == WORD || dst.size == DWORD) {
+					if (dst.is_memory() && src.is_simple()) {
+						put_inst_std(opcode, dst, src.base.reg, true, true, true);
+						return;
+					}
+
+					if (dst.is_memory() && src.is_immediate()) {
+						put_inst_std(0b101110, dst, inst, true, false, true);
+						put_byte(src.offset);
+						return;
+					}
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+
+			}
+
 			void put_inst_16bit_mark() {
 				put_byte(0b01100110);
 			}
@@ -472,6 +491,26 @@ namespace asmio::x86 {
 			/// Binary Xor
 			void put_xor(Location dst, Location src) {
 				put_inst_tuple(dst, src, 0b001100, 0b010);
+			}
+
+			/// Bit Test
+			void put_bt(Location dst, Location src) {
+				put_inst_btx(dst, src, 0b101000, 0b100);
+			}
+
+			/// Bit Test and Set
+			void put_bts(Location dst, Location src) {
+				put_inst_btx(dst, src, 0b101010, 0b101);
+			}
+
+			/// Bit Test and Reset
+			void put_btr(Location dst, Location src) {
+				put_inst_btx(dst, src, 0b101100, 0b110);
+			}
+
+			/// Bit Test and Complement
+			void put_btc(Location dst, Location src) {
+				put_inst_btx(dst, src, 0b101110, 0b111);
 			}
 
 			/// Multiply (Unsigned)

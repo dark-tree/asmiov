@@ -354,4 +354,27 @@ TEST(writer_simple_aad) {
 
 }
 
+TEST(writer_simple_bts_btr_btc) {
+
+	BufferWriter writer;
+
+	//                    7654 3210
+	writer.put_mov(EAX, 0b1101'0001);
+
+	writer.put_bts(EAX, 3);
+	writer.put_bts(EAX, 6);
+	writer.put_btr(EAX, 4);
+	writer.put_btr(EAX, 5);
+	writer.put_btc(EAX, 0);
+	writer.put_btc(EAX, 1);
+
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call();
+
+	CHECK(output, 0b1100'1010);
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

@@ -34,6 +34,11 @@ struct LabelCommand {
 
 	Label label;
 	uint8_t size;
-	uint32_t offset;
+	long offset;
+	long shift;
 
 };
+
+Label operator ""_lb(const char* str, size_t len) {
+	return str;
+}

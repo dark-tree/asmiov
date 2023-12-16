@@ -141,10 +141,12 @@ namespace asmio::x86 {
 
 				if (mod == MOD_BYTE) {
 					put_byte(dst.offset);
+					return;
 				}
 
 				if (mod == MOD_QUAD) {
 					put_dword(dst.offset);
+					return;
 				}
 			}
 
@@ -272,11 +274,11 @@ namespace asmio::x86 {
 			}
 
 			void put_inst_16bit_address_mark() {
-				put_byte(0b01100110);
+				put_byte(0b01100111);
 			}
 
 			void put_label(Label label, uint8_t size) {
-				commands.emplace_back(label, size, buffer.size());
+				commands.emplace_back(label, size, buffer.size(), 0);
 
 				while (size --> 0) {
 					put_byte(0);
@@ -293,12 +295,13 @@ namespace asmio::x86 {
 
 		public:
 
-			void label(Label label) {
+			Label label(Label label) {
 				if (has_label(label)) {
 					throw std::runtime_error {"Invalid label, redefinition attempted!"};
 				}
 
 				labels[label] = buffer.size();
+				return label;
 			}
 
 			/// Move
@@ -393,9 +396,24 @@ namespace asmio::x86 {
 			/// Push
 			void put_push(Location src) {
 
+				// handle immediate data
+				if (src.is_immediate()) {
+					uint8_t imm_len = min_bytes(src.offset);
+
+					if (imm_len == BYTE) {
+						put_byte(0b01101010);
+						put_byte(src.offset);
+					} else {
+						put_byte(0b01101000);
+						put_dword(src.offset);
+					}
+
+					return;
+				}
+
 				// for some reason push & pop don't handle the wide flag,
 				// so we can only accept wide registers
-				if (!src.base.is_wide()) {
+				if (src.size == BYTE) {
 					throw std::runtime_error {"Invalid operands, byte register can't be used here!"};
 				}
 
@@ -411,7 +429,7 @@ namespace asmio::x86 {
 				}
 
 				if (!src.base.is(UNSET)) {
-					put_inst_std(0b111111, 0b110, src.base.reg, true, src.base.is_wide());
+					put_inst_std(0b111111, 0b110, src.base.reg, true, true);
 					return;
 				}
 
@@ -754,11 +772,37 @@ namespace asmio::x86 {
 						put_label(label, BYTE);
 						return label;
 					}
+
 				}
 
 				put_byte(0b11101001);
 				put_label(label, DWORD);
 				return label;
+			}
+
+			void put_jmp(Location dst) {
+				if (dst.is_memory()) {
+					put_inst_std(0b111111, dst, 0b100, true, true);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+			}
+
+			/// Procedure Call
+			Label put_call(Label label) {
+				put_byte(0b11101000);
+				put_label(label, DWORD);
+				return label;
+			}
+
+			void put_call(Location dst) {
+				if (dst.is_memory()) {
+					put_inst_std(0b111111, dst, 0b010, true, true);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
 			}
 
 			/// Jump on Overflow
@@ -860,6 +904,11 @@ namespace asmio::x86 {
 			/// No Operation
 			void put_nop() {
 				put_byte(0b10010000);
+			}
+
+			// Halt
+			void put_hlt() {
+				put_byte(0b11110100);
 			}
 
 			/// Push All
@@ -1071,7 +1120,7 @@ namespace asmio::x86 {
 			ExecutableBuffer bake() {
 
 				for (LabelCommand command : commands) {
-					const int imm_val = get_label(command.label) - command.offset - command.size;
+					const int imm_val = get_label(command.label) - command.offset - command.size + command.shift;
 					const uint8_t* imm_ptr = (uint8_t*) &imm_val;
 					memcpy(buffer.data() + command.offset, imm_ptr, command.size);
 				}
@@ -1094,7 +1143,7 @@ namespace asmio::x86 {
 				std::cout << std::endl;
 				#endif
 
-				return ExecutableBuffer {buffer};
+				return ExecutableBuffer {buffer, labels};
 			}
 
 	};

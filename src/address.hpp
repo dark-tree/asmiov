@@ -4,6 +4,7 @@
 #include <bit>
 #include "util.hpp"
 #include "const.hpp"
+#include "label.hpp"
 
 #define ASSERT_MUTABLE(loc) if ((loc).reference) throw std::runtime_error {"Reference can't be modified!"};
 
@@ -108,13 +109,13 @@ namespace asmio::x86 {
 			const Registry base;
 			const Registry index;
 			const uint32_t scale;
-			const int offset;
+			const long offset;
 			const bool reference;
 			const uint8_t size;
 
 		public:
 
-			Location(int offset = 0)
+			Location(long offset = 0)
 			: Location(UNSET, UNSET, 1, offset, DWORD, false) {}
 
 			Location(Registry registry)
@@ -123,16 +124,24 @@ namespace asmio::x86 {
 			Location(ScaledRegistry index)
 			: Location(UNSET, index.registry, index.scale, 0, DWORD, false) {}
 
-			explicit Location(Registry base, Registry index, uint32_t scale, int offset, int size, bool reference)
+			explicit Location(Registry base, Registry index, uint32_t scale, long offset, int size, bool reference)
 			: base(base), index(index), scale(scale), offset(offset), size(size), reference(reference) {
 				assertValidScale(index, scale);
 			}
 
 		public:
 
-			Location ref(uint8_t size_hint) {
+			Location ref() const {
 				ASSERT_MUTABLE(*this);
-				return Location {base, index, scale, offset, size_hint, true};
+				return Location {base, index, scale, offset, size, true};
+			}
+
+			Location cast(uint8_t bytes) const {
+				if (reference || is_immediate()) {
+					return Location {base, index, scale, offset, bytes, true};
+				}
+
+				throw std::runtime_error {"The result of this expression is of fixed size!"};
 			}
 
 			Location operator + (int extend) const {
@@ -153,7 +162,7 @@ namespace asmio::x86 {
 			 * Checks if this location is a simple
 			 * un-referenced constant (immediate) value
 			 */
-			bool is_immediate() {
+			bool is_immediate() const {
 				return base.is(UNSET) && index.is(UNSET) && scale == 1 && !reference;
 			}
 
@@ -161,7 +170,7 @@ namespace asmio::x86 {
 			 * Checks if this location
 			 * uses the index component
 			 */
-			bool is_indexed() {
+			bool is_indexed() const {
 				return !index.is(UNSET);
 			}
 
@@ -169,29 +178,28 @@ namespace asmio::x86 {
 			 * Checks if this location is a simple
 			 * un-referenced register
 			 */
-			bool is_simple() {
+			bool is_simple() const {
 				return !base.is(UNSET) && !is_indexed() && offset == 0 && !reference;
 			}
 
 
-			bool is_memory() {
+			bool is_memory() const {
 				return (reference && !base.is(UNSET)) || is_simple();
 			}
 
-			uint8_t get_mod_flag() {
+			uint8_t get_mod_flag() const {
 				if (offset == 0) return MOD_NONE;
 				if (min_bytes(offset) == BYTE) return MOD_BYTE;
 				return MOD_QUAD;
 			}
 
-			uint8_t get_ss_flag() {
+			uint8_t get_ss_flag() const {
 				// count trailing zeros
 				// 0001 -> 0, 0010 -> 1
 				// 0100 -> 2, 1000 -> 3
 
 				return __builtin_ctz(scale);
 			}
-
 	};
 
 	Location operator + (Registry registry, int offset) {
@@ -214,9 +222,14 @@ namespace asmio::x86 {
 		return base + (index * 1);
 	}
 
-	template<uint8_t size_hint = DWORD>
 	Location ref(Location location) {
-		return location.ref(size_hint);
+		return location.ref();
+	}
+
+	/// investigate if immediate size ever matters, if not return to the old system
+	template<uint8_t size_hint = DWORD>
+	Location cast(Location location) {
+		return location.cast(size_hint);
 	}
 
 }

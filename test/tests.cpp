@@ -444,4 +444,61 @@ TEST(writer_simple_je) {
 
 }
 
+TEST(writer_simple_labeled_entry) {
+
+	BufferWriter writer;
+
+	writer.label("foo");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("bar");
+	writer.put_mov(EAX, 2);
+	writer.put_ret();
+
+	writer.label("tar");
+	writer.put_mov(EAX, 3);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+
+	CHECK(buffer.call("foo"), 1);
+	CHECK(buffer.call("bar"), 2);
+	CHECK(buffer.call("tar"), 3);
+
+}
+
+TEST(writer_simple_functions) {
+
+	BufferWriter writer;
+
+	writer.label("add");
+	writer.put_add(EAX, ref(ESP + 4));
+	writer.put_ret();
+
+	writer.label("main");
+	writer.put_mov(EAX, 0);
+
+	// add 20 to EAX
+	writer.put_push(20);
+	writer.put_call("add");
+	writer.put_add(ESP, 4);
+
+	// add 12 to EAX
+	writer.put_push(12);
+	writer.put_call("add");
+	writer.put_add(ESP, 4);
+
+	// add 10 to EAX
+	writer.put_push(10);
+	writer.put_call("add");
+	writer.put_add(ESP, 4);
+
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call("main"), 42);
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

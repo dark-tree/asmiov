@@ -253,7 +253,7 @@ namespace vstl {
 		size_t executed = vstl::failed + vstl::successful;
 		double millis = std::chrono::duration<double, std::milli>(time).count();
 
-		out << std::endl << "Executed " << executed << " ";
+		out << std::endl << std::dec << "Executed " << executed << " ";
 		out << (executed == 1 ? "test" : "tests") << ", ";
 		out << vstl::failed << " failed, ";
 		out << vstl::successful << " succeeded.";

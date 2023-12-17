@@ -104,10 +104,18 @@ namespace asmio::x86 {
 				put_inst_sib(ss_flag, index_reg, ref.base.reg);
 			}
 
+			void put_inst_label_imm(Location imm, uint8_t size) {
+				if (imm.is_labeled()) {
+					commands.emplace_back(imm.label, size, buffer.size(), imm.offset, false);
+				}
+
+				put_inst_imm(imm.offset, size);
+				return;
+			}
+
 			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool direction, bool wide, bool longer = false) {
 				Registry dst_reg = dst.base;
 
-				// TODO test
 				if (dst.size == WORD) {
 					put_inst_16bit_operand_mark();
 				}
@@ -139,17 +147,14 @@ namespace asmio::x86 {
 					put_inst_sib(dst);
 				}
 
-				if (mod == MOD_BYTE) {
-					put_byte(dst.offset);
-					return;
-				}
-
-				if (mod == MOD_QUAD) {
-					put_dword(dst.offset);
-					return;
+				if (mod == MOD_BYTE || mod == MOD_QUAD) {
+					put_inst_label_imm(dst, mod == MOD_BYTE ? BYTE : DWORD);
 				}
 			}
 
+			/**
+			 * Used for constructing the MOV instruction
+			 */
 			void put_inst_mov(Location dst, Location src, bool direction) {
 
 				// for immediate values this will equal 0
@@ -159,10 +164,13 @@ namespace asmio::x86 {
 				put_inst_std(src.is_immediate() ? 0b110001 : 0b100010, dst, src_reg, direction, dst.base.is_wide());
 
 				if (src.is_immediate()) {
-					put_inst_imm(src.offset, dst_len);
+					put_inst_label_imm(src, dst_len);
 				}
 			}
 
+			/**
+			 * Used for constructing the MOVSX and MOVZX instructions
+			 */
 			void put_inst_movx(uint8_t opcode, Location dst, Location src) {
 				uint8_t dst_len = dst.size;
 				uint8_t src_len = src.size;
@@ -183,6 +191,9 @@ namespace asmio::x86 {
 				put_inst_std(opcode, src, dst.base.reg, true, src_len == WORD, true);
 			}
 
+			/**
+			 * Used to for constructing the shift instructions
+			 */
 			void put_inst_shift(Location dst, Location src, uint8_t inst) {
 
 				bool dst_wide = dst.base.is_wide();
@@ -224,7 +235,7 @@ namespace asmio::x86 {
 
 				if (dst.is_memory() && src.is_immediate()) {
 					put_inst_std(0b100000, dst, opcode_reg, false /* TODO: sign field (???) */, dst.size != BYTE);
-					put_inst_imm(src.offset, dst.size);
+					put_inst_label_imm(src, dst.size);
 					return;
 				}
 
@@ -232,6 +243,9 @@ namespace asmio::x86 {
 
 			}
 
+			/**
+			 * Used for constructing the Bit Test family of instructions
+			 */
 			void put_inst_btx(Location dst, Location src, uint8_t opcode, uint8_t inst) {
 
 				if (dst.size == WORD || dst.size == DWORD) {
@@ -251,6 +265,9 @@ namespace asmio::x86 {
 
 			}
 
+			/**
+			 * Used for constructing the conditional jump family of instructions
+			 */
 			void put_inst_jx(Label label, uint8_t sopcode, uint8_t lopcode) {
 
 				if (has_label(label)) {
@@ -278,7 +295,7 @@ namespace asmio::x86 {
 			}
 
 			void put_label(Label label, uint8_t size) {
-				commands.emplace_back(label, size, buffer.size(), 0);
+				commands.emplace_back(label, size, buffer.size(), 0, true);
 
 				while (size --> 0) {
 					put_byte(0);
@@ -402,10 +419,10 @@ namespace asmio::x86 {
 
 					if (imm_len == BYTE) {
 						put_byte(0b01101010);
-						put_byte(src.offset);
+						put_inst_label_imm(src, BYTE);
 					} else {
 						put_byte(0b01101000);
-						put_dword(src.offset);
+						put_inst_label_imm(src, DWORD);
 					}
 
 					return;
@@ -762,25 +779,28 @@ namespace asmio::x86 {
 			}
 
 			/// Unconditional Jump
-			Label put_jmp(Label label) {
+			void put_jmp(Location dst) {
 
-				if (has_label(label)) {
-					int offset = get_label(label) - buffer.size();
+				if (dst.is_labeled()) {
 
-					if (offset > -127) {
-						put_byte(0b11101011);
-						put_label(label, BYTE);
-						return label;
+					// TODO shift
+					Label label = dst.label;
+
+					if (has_label(label)) {
+						int offset = get_label(label) - buffer.size();
+
+						if (offset > -127) {
+							put_byte(0b11101011);
+							put_label(label, BYTE);
+						}
+
 					}
 
+					put_byte(0b11101001);
+					put_label(label, DWORD);
+					return;
 				}
 
-				put_byte(0b11101001);
-				put_label(label, DWORD);
-				return label;
-			}
-
-			void put_jmp(Location dst) {
 				if (dst.is_memory()) {
 					put_inst_std(0b111111, dst, 0b100, true, true);
 					return;
@@ -790,13 +810,17 @@ namespace asmio::x86 {
 			}
 
 			/// Procedure Call
-			Label put_call(Label label) {
-				put_byte(0b11101000);
-				put_label(label, DWORD);
-				return label;
-			}
-
 			void put_call(Location dst) {
+
+				if (dst.is_labeled()) {
+
+					// TODO shift
+					put_byte(0b11101000);
+					put_label(dst.label, DWORD);
+					return;
+
+				}
+
 				if (dst.is_memory()) {
 					put_inst_std(0b111111, dst, 0b010, true, true);
 					return;
@@ -1119,8 +1143,12 @@ namespace asmio::x86 {
 
 			ExecutableBuffer bake() {
 
+				// TODO
+				const long absolute = 0;
+
 				for (LabelCommand command : commands) {
-					const int imm_val = get_label(command.label) - command.offset - command.size + command.shift;
+					const long offset = command.relative ? command.offset + command.size : (-absolute);
+					const long imm_val = get_label(command.label) - offset + command.shift;
 					const uint8_t* imm_ptr = (uint8_t*) &imm_val;
 					memcpy(buffer.data() + command.offset, imm_ptr, command.size);
 				}

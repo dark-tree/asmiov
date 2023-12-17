@@ -20,6 +20,10 @@ struct Label {
 			return label.hash == this->hash && strcmp(label.str, this->str) == 0;
 		}
 
+		const char* c_str() {
+			return str;
+		}
+
 		struct HashFunction {
 
 			size_t operator() (const Label& label) const {
@@ -36,9 +40,6 @@ struct LabelCommand {
 	uint8_t size;
 	long offset;
 	long shift;
+	bool relative;
 
 };
-
-Label operator ""_lb(const char* str, size_t len) {
-	return str;
-}

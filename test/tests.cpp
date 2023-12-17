@@ -501,4 +501,20 @@ TEST(writer_simple_functions) {
 
 }
 
+TEST(writer_simple_label_mov) {
+
+	BufferWriter writer;
+
+	writer.put_word(0x1234);
+
+	writer.label("main");
+	writer.put_mov(EDX, 12);
+	writer.put_lea(EAX, EDX + "main");
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call("main"), 14);
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

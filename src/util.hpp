@@ -11,7 +11,15 @@ int min_bytes(uint64_t value) {
 	return 1;
 }
 
+template<typename T>
+auto get_int_or(T value) {
+	if constexpr (std::is_pointer_v<T>) return 0; else return value;
+}
 
+template<typename T>
+auto get_ptr_or(T value) {
+	if constexpr (std::is_pointer_v<T>) return value; else return nullptr;
+}
 
 uint64_t hash_djb2(const char* str) {
 	uint64_t hash = 5381;

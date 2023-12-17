@@ -112,20 +112,22 @@ namespace asmio::x86 {
 			const long offset;
 			const bool reference;
 			const uint8_t size;
+			const char* label;
 
 		public:
 
-			Location(long offset = 0)
-			: Location(UNSET, UNSET, 1, offset, DWORD, false) {}
+			template<typename T>
+			Location(T offset = 0) // can the same thing be archived with some smart overload?
+			: Location(UNSET, UNSET, 1, get_int_or(offset), get_ptr_or(offset), DWORD, false) {}
 
 			Location(Registry registry)
-			: Location(registry, UNSET, 1, 0, registry.size, false) {}
+			: Location(registry, UNSET, 1, 0, nullptr, registry.size, false) {}
 
 			Location(ScaledRegistry index)
-			: Location(UNSET, index.registry, index.scale, 0, DWORD, false) {}
+			: Location(UNSET, index.registry, index.scale, 0, nullptr, DWORD, false) {}
 
-			explicit Location(Registry base, Registry index, uint32_t scale, long offset, int size, bool reference)
-			: base(base), index(index), scale(scale), offset(offset), size(size), reference(reference) {
+			explicit Location(Registry base, Registry index, uint32_t scale, long offset, const char* label, int size, bool reference)
+			: base(base), index(index), scale(scale), offset(offset), label(label), size(size), reference(reference) {
 				assertValidScale(index, scale);
 			}
 
@@ -133,12 +135,12 @@ namespace asmio::x86 {
 
 			Location ref() const {
 				ASSERT_MUTABLE(*this);
-				return Location {base, index, scale, offset, size, true};
+				return Location {base, index, scale, offset, label, size, true};
 			}
 
 			Location cast(uint8_t bytes) const {
 				if (reference || is_immediate()) {
-					return Location {base, index, scale, offset, bytes, true};
+					return Location {base, index, scale, offset, label, bytes, true};
 				}
 
 				throw std::runtime_error {"The result of this expression is of fixed size!"};
@@ -146,12 +148,17 @@ namespace asmio::x86 {
 
 			Location operator + (int extend) const {
 				ASSERT_MUTABLE(*this);
-				return Location {base, index, scale, offset + extend, size, false};
+				return Location {base, index, scale, offset + extend, label, size, false};
 			}
 
 			Location operator - (int extend) const {
 				ASSERT_MUTABLE(*this);
-				return Location {base, index, scale, offset - extend, size, false};
+				return Location {base, index, scale, offset - extend, label, size, false};
+			}
+
+			Location operator + (const char* label) const {
+				ASSERT_MUTABLE(*this);
+				return Location {base, index, scale, offset, label, size, false};
 			}
 
 			bool get_size(Location& ref) {
@@ -179,15 +186,27 @@ namespace asmio::x86 {
 			 * un-referenced register
 			 */
 			bool is_simple() const {
-				return !base.is(UNSET) && !is_indexed() && offset == 0 && !reference;
+				return !base.is(UNSET) && !is_indexed() && offset == 0 && !reference && !is_labeled();
 			}
 
+			/**
+			 * Checks if this location requires
+			 * label resolution
+			 */
+			bool is_labeled() const {
+				return label != nullptr;
+			}
 
+			/**
+			 * Checks if this location is a simple
+			 * un-referenced register OR memory reference
+			 */
 			bool is_memory() const {
 				return (reference && !base.is(UNSET)) || is_simple();
 			}
 
 			uint8_t get_mod_flag() const {
+				if (label != nullptr) return MOD_QUAD;
 				if (offset == 0) return MOD_NONE;
 				if (min_bytes(offset) == BYTE) return MOD_BYTE;
 				return MOD_QUAD;
@@ -203,7 +222,11 @@ namespace asmio::x86 {
 	};
 
 	Location operator + (Registry registry, int offset) {
-		return Location {registry, UNSET, 1, offset, DWORD, false};
+		return Location {registry, UNSET, 1, offset, nullptr, DWORD, false};
+	}
+
+	Location operator + (Registry registry, Label label) {
+		return Location {registry, UNSET, 1, 0, label.c_str(), DWORD, false};
 	}
 
 	ScaledRegistry operator * (Registry registry, uint8_t scale) {
@@ -211,11 +234,15 @@ namespace asmio::x86 {
 	}
 
 	Location operator + (Registry base, ScaledRegistry index) {
-		return Location {base, index.registry, index.scale, 0, DWORD, false};
+		return Location {base, index.registry, index.scale, 0, nullptr, DWORD, false};
 	}
 
 	Location operator + (ScaledRegistry index, int offset) {
 		return Location {index} + offset;
+	}
+
+	Location operator + (ScaledRegistry index, Label label) {
+		return Location {index} + label.c_str();
 	}
 
 	Location operator + (Registry base, Registry index) {

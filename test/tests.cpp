@@ -513,8 +513,45 @@ TEST(writer_simple_label_mov) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	CHECK(buffer.call("main"), 14);
+	CHECK(buffer.call("main"), 14 + buffer.get_address());
 
 }
+
+TEST(writer_simple_absolute_jmp) {
+
+	BufferWriter writer;
+
+	writer.put_word(0x1234);
+	writer.put_mov(EAX, 0);
+	writer.put_ret(); // invalid
+
+	writer.label("back");
+	writer.put_mov(EAX, 42);
+	writer.put_ret(); // valid
+
+	writer.label("main");
+	writer.put_mov(EAX, 12);
+	writer.put_mov(EDX, "back");
+	writer.put_jmp(EDX);
+	writer.put_ret(); // invalid
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call("main"), 42);
+
+}
+
+TEST (writer_simple_finit_fld1) {
+
+	BufferWriter writer;
+
+	writer.put_finit();
+	writer.put_fld1();
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_float(), 1.0f);
+
+}
+
 
 BEGIN(VSTL_MODE_LENIENT)

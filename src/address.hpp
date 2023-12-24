@@ -14,18 +14,20 @@ namespace asmio::x86 {
 	constexpr const uint8_t BYTE = 1;
 	constexpr const uint8_t WORD = 2;
 	constexpr const uint8_t DWORD = 4;
+	constexpr const uint8_t QWORD = 8;
+	constexpr const uint8_t TWORD = 10;
 
 	struct Registry {
 
 		enum Flag {
-			NONE    = 0b00,
-			PSEUDO  = 0b01,
-			HIGHER  = 0b10,
-			GENERAL = 0100
+			NONE     = 0b000,
+			PSEUDO   = 0b001,
+			GENERAL  = 0b010,
+			FLOATING = 0b100
 		};
 
 		enum struct Name : uint8_t {
-			UNSET, A, B, C, D, SI, DI, BP, SP
+			UNSET, A, B, C, D, SI, DI, BP, SP, ST
 		};
 
 		const uint8_t size;
@@ -54,27 +56,28 @@ namespace asmio::x86 {
 	constexpr const Registry EAX   {DWORD, 0b000, Registry::Name::A, Registry::GENERAL};
 	constexpr const Registry AX    {WORD,  0b000, Registry::Name::A, Registry::GENERAL};
 	constexpr const Registry AL    {BYTE,  0b000, Registry::Name::A, Registry::GENERAL};
-	constexpr const Registry AH    {BYTE,  0b100, Registry::Name::A, Registry::GENERAL | Registry::HIGHER};
+	constexpr const Registry AH    {BYTE,  0b100, Registry::Name::A, Registry::GENERAL};
 	constexpr const Registry EBX   {DWORD, 0b011, Registry::Name::B, Registry::GENERAL};
 	constexpr const Registry BX    {WORD,  0b011, Registry::Name::B, Registry::GENERAL};
 	constexpr const Registry BL    {BYTE,  0b011, Registry::Name::B, Registry::GENERAL};
-	constexpr const Registry BH    {BYTE,  0b111, Registry::Name::B, Registry::GENERAL | Registry::HIGHER};
+	constexpr const Registry BH    {BYTE,  0b111, Registry::Name::B, Registry::GENERAL};
 	constexpr const Registry ECX   {DWORD, 0b001, Registry::Name::C, Registry::GENERAL};
 	constexpr const Registry CX    {WORD,  0b001, Registry::Name::C, Registry::GENERAL};
 	constexpr const Registry CL    {BYTE,  0b001, Registry::Name::C, Registry::GENERAL};
-	constexpr const Registry CH    {BYTE,  0b101, Registry::Name::C, Registry::GENERAL | Registry::HIGHER};
+	constexpr const Registry CH    {BYTE,  0b101, Registry::Name::C, Registry::GENERAL};
 	constexpr const Registry EDX   {DWORD, 0b010, Registry::Name::D, Registry::GENERAL};
 	constexpr const Registry DX    {WORD,  0b010, Registry::Name::D, Registry::GENERAL};
 	constexpr const Registry DL    {BYTE,  0b010, Registry::Name::D, Registry::GENERAL};
-	constexpr const Registry DH    {BYTE,  0b110, Registry::Name::D, Registry::GENERAL | Registry::HIGHER};
-	constexpr const Registry ESI   {DWORD, 0b110, Registry::Name::SI, Registry::NONE};
-	constexpr const Registry SI    {WORD,  0b110, Registry::Name::SI, Registry::NONE};
-	constexpr const Registry EDI   {DWORD, 0b111, Registry::Name::DI, Registry::NONE};
-	constexpr const Registry DI    {WORD,  0b111, Registry::Name::DI, Registry::NONE};
-	constexpr const Registry EBP   {DWORD, 0b101, Registry::Name::BP, Registry::NONE};
-	constexpr const Registry BP    {WORD,  0b101, Registry::Name::BP, Registry::NONE};
-	constexpr const Registry ESP   {DWORD, 0b100, Registry::Name::SP, Registry::NONE};
-	constexpr const Registry SP    {WORD,  0b100, Registry::Name::SP, Registry::NONE};
+	constexpr const Registry DH    {BYTE,  0b110, Registry::Name::D, Registry::GENERAL};
+	constexpr const Registry ESI   {DWORD, 0b110, Registry::Name::SI, Registry::GENERAL};
+	constexpr const Registry SI    {WORD,  0b110, Registry::Name::SI, Registry::GENERAL};
+	constexpr const Registry EDI   {DWORD, 0b111, Registry::Name::DI, Registry::GENERAL};
+	constexpr const Registry DI    {WORD,  0b111, Registry::Name::DI, Registry::GENERAL};
+	constexpr const Registry EBP   {DWORD, 0b101, Registry::Name::BP, Registry::GENERAL};
+	constexpr const Registry BP    {WORD,  0b101, Registry::Name::BP, Registry::GENERAL};
+	constexpr const Registry ESP   {DWORD, 0b100, Registry::Name::SP, Registry::GENERAL};
+	constexpr const Registry SP    {WORD,  0b100, Registry::Name::SP, Registry::GENERAL};
+	constexpr const Registry ST    {TWORD, 0b000, Registry::Name::ST, Registry::FLOATING};
 
 	void assertValidScale(Registry registry, uint8_t multiplier) {
 		if (registry.name == Registry::Name::SP && registry.size == DWORD) {
@@ -186,7 +189,7 @@ namespace asmio::x86 {
 			 * un-referenced register
 			 */
 			bool is_simple() const {
-				return !base.is(UNSET) && !is_indexed() && offset == 0 && !reference && !is_labeled();
+				return (base.flag & Registry::GENERAL) && !is_indexed() && offset == 0 && !reference && !is_labeled();
 			}
 
 			/**
@@ -198,11 +201,27 @@ namespace asmio::x86 {
 			}
 
 			/**
+			 * Checks if this location is a
+			 * memory reference
+			 */
+			bool is_memory() const {
+				return (reference && (base.flag & Registry::GENERAL));
+			}
+
+			/**
 			 * Checks if this location is a simple
 			 * un-referenced register OR memory reference
 			 */
-			bool is_memory() const {
-				return (reference && !base.is(UNSET)) || is_simple();
+			bool is_memreg() const {
+				return is_memory() || is_simple();
+			}
+
+			bool is_floating() const {
+				return (base.flag & Registry::FLOATING) && !is_indexed() && !reference && !is_labeled() && (offset >= 0) && (offset <=7);
+			}
+
+			bool is_st0() const {
+				return is_floating() && (offset == 0);
 			}
 
 			uint8_t get_mod_flag() const {

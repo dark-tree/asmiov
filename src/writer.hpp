@@ -17,7 +17,7 @@ namespace asmio::x86 {
 			std::vector<uint8_t> buffer;
 			std::vector<LabelCommand> commands;
 
-			void put_inst_dw(uint8_t opcode, bool d, bool w) {
+			uint8_t pack_opcode_dw(uint8_t opcode, bool d, bool w) {
 
 				//   7 6 5 4 3 2   1   0
 				// + ----------- + - + - +
@@ -37,7 +37,7 @@ namespace asmio::x86 {
 				// Some operations expect direction to be set to a specific value,
 				// so it is sometimes considered to be a part of the opcode itself
 
-				put_byte(opcode << 2 | (d << 1) | w);
+				return (opcode << 2 | (d << 1) | w);
 			}
 
 			void put_inst_mod_reg_rm(uint8_t mod, uint8_t reg, uint8_t r_m) {
@@ -113,7 +113,7 @@ namespace asmio::x86 {
 				return;
 			}
 
-			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool direction, bool wide, bool longer = false) {
+			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool longer = false) {
 				Registry dst_reg = dst.base;
 
 				if (dst.size == WORD) {
@@ -126,7 +126,7 @@ namespace asmio::x86 {
 				}
 
 				if (dst.is_simple()) {
-					put_inst_dw(opcode, direction, wide);
+					put_byte(opcode);
 					put_inst_mod_reg_rm(MOD_SHORT, reg, dst_reg.reg);
 					return;
 				}
@@ -140,7 +140,7 @@ namespace asmio::x86 {
 					mod = MOD_BYTE;
 				}
 
-				put_inst_dw(opcode, direction, wide);
+				put_byte(opcode);
 				put_inst_mod_reg_rm(mod, reg, sib ? RM_SIB : dst_reg.reg);
 
 				if (sib) {
@@ -150,6 +150,18 @@ namespace asmio::x86 {
 				if (mod == MOD_BYTE || mod == MOD_QUAD) {
 					put_inst_label_imm(dst, mod == MOD_BYTE ? BYTE : DWORD);
 				}
+			}
+
+			/*
+			 * FIXME: Do not use this method if the 'direction' and 'wide' flags given are set to a constant value!
+			 */
+			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool direction, bool wide, bool longer = false) {
+				put_inst_std(pack_opcode_dw(opcode, direction, wide), dst, reg, longer);
+			}
+
+			void put_inst_fpu(uint8_t opcode, uint8_t base, uint8_t sti = 0) {
+				put_byte(opcode);
+				put_byte(base + sti);
 			}
 
 			/**
@@ -223,7 +235,7 @@ namespace asmio::x86 {
 
 			void put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_reg) {
 
-				if (dst.is_simple() && src.is_memory()) {
+				if (dst.is_simple() && src.is_memreg()) {
 					put_inst_std(opcode_rmr, src, dst.base.reg, true, dst.base.is_wide());
 					return;
 				}
@@ -233,7 +245,7 @@ namespace asmio::x86 {
 					return;
 				}
 
-				if (dst.is_memory() && src.is_immediate()) {
+				if (dst.is_memreg() && src.is_immediate()) {
 					put_inst_std(0b100000, dst, opcode_reg, false /* TODO: sign field (???) */, dst.size != BYTE);
 					put_inst_label_imm(src, dst.size);
 					return;
@@ -249,12 +261,12 @@ namespace asmio::x86 {
 			void put_inst_btx(Location dst, Location src, uint8_t opcode, uint8_t inst) {
 
 				if (dst.size == WORD || dst.size == DWORD) {
-					if (dst.is_memory() && src.is_simple()) {
+					if (dst.is_memreg() && src.is_simple()) {
 						put_inst_std(opcode, dst, src.base.reg, true, true, true);
 						return;
 					}
 
-					if (dst.is_memory() && src.is_immediate()) {
+					if (dst.is_memreg() && src.is_immediate()) {
 						put_inst_std(0b101110, dst, inst, true, false, true);
 						put_byte(src.offset);
 						return;
@@ -334,14 +346,13 @@ namespace asmio::x86 {
 				// short form, VAL to REG
 				if (src.is_immediate() && dst.is_simple()) {
 					Registry dst_reg = dst.base;
-					uint32_t src_val = src.offset;
 
 					if (dst.base.size == WORD) {
 						put_inst_16bit_operand_mark();
 					}
 
 					put_byte((0b1011 << 4) | (dst_reg.is_wide() << 3) | dst_reg.reg);
-					put_inst_imm(src_val, dst.base.size);
+					put_inst_label_imm(src, dst.base.size);
 					return;
 				}
 
@@ -612,12 +623,12 @@ namespace asmio::x86 {
 
 				// TODO: This requires a change to the size system to work
 				// short form
-				// if (dst.is_simple() && src.is_memory() && dst.base.name == Registry::Name::A) {
+				// if (dst.is_simple() && src.is_memreg() && dst.base.name == Registry::Name::A) {
 				// 	put_inst_std(0b111101, src, 0b101, true, dst.base.is_wide());
 				// 	return;
 				// }
 
-				if (dst.is_simple() && src.is_memory() && dst.base.size != BYTE) {
+				if (dst.is_simple() && src.is_memreg() && dst.base.size != BYTE) {
 					put_inst_std(0b101011, src, dst.base.reg, true, true, true);
 					return;
 				}
@@ -632,7 +643,7 @@ namespace asmio::x86 {
 
 			/// Integer multiply (Signed), triple arg version
 			void put_imul(Location dst, Location src, Location val) {
-				if (dst.is_simple() && src.is_memory() && val.is_immediate() && dst.base.size != BYTE) {
+				if (dst.is_simple() && src.is_memreg() && val.is_immediate() && dst.base.size != BYTE) {
 					put_inst_std(0b011010, src, dst.base.reg, true /* TODO: sign flag */, true);
 
 					// not sure why but it looks like IMUL uses 8bit immediate values
@@ -645,7 +656,7 @@ namespace asmio::x86 {
 
 			/// Divide (Unsigned)
 			void put_div(Location src) {
-				if (src.is_memory()) {
+				if (src.is_memreg()) {
 					put_inst_std(0b111101, src, 0b110, true, src.size != BYTE);
 					return;
 				}
@@ -655,7 +666,7 @@ namespace asmio::x86 {
 
 			/// Integer divide (Signed)
 			void put_idiv(Location src) {
-				if (src.is_memory()) {
+				if (src.is_memreg()) {
 					put_inst_std(0b111101, src, 0b111, true, src.size != BYTE);
 					return;
 				}
@@ -665,7 +676,7 @@ namespace asmio::x86 {
 
 			/// Invert
 			void put_not(Location dst) {
-				if (dst.is_memory()) {
+				if (dst.is_memreg()) {
 					put_inst_std(0b111101, dst, 0b010, true, dst.base.is_wide());
 					return;
 				}
@@ -801,7 +812,7 @@ namespace asmio::x86 {
 					return;
 				}
 
-				if (dst.is_memory()) {
+				if (dst.is_memreg()) {
 					put_inst_std(0b111111, dst, 0b100, true, true);
 					return;
 				}
@@ -821,7 +832,7 @@ namespace asmio::x86 {
 
 				}
 
-				if (dst.is_memory()) {
+				if (dst.is_memreg()) {
 					put_inst_std(0b111111, dst, 0b010, true, true);
 					return;
 				}
@@ -930,9 +941,14 @@ namespace asmio::x86 {
 				put_byte(0b10010000);
 			}
 
-			// Halt
+			/// Halt
 			void put_hlt() {
 				put_byte(0b11110100);
+			}
+
+			/// Wait
+			void put_wait() {
+				put_byte(0b10011011);
 			}
 
 			/// Push All
@@ -1121,6 +1137,176 @@ namespace asmio::x86 {
 				put_byte(0b11000011);
 			}
 
+			/// No Operation
+			void put_fnop() {
+				put_inst_fpu(0xD9, 0xD0);
+			}
+
+			/// Initialize FPU
+			void put_finit() {
+				put_wait();
+				put_fninit();
+			}
+
+			/// Initialize FPU (without checking for pending unmasked exceptions)
+			void put_fninit() {
+				put_byte(0xDB);
+				put_byte(0xE3);
+			}
+
+			/// Load +1.0 Constant onto the stack
+			void put_fld1() {
+				put_inst_fpu(0xD9, 0xE8);
+			}
+
+			/// Load +0.0 Constant onto the stack
+			void put_fld0() {
+				put_inst_fpu(0xD9, 0xEE);
+			}
+
+			/// Load PI Constant onto the stack
+			void put_fldpi() {
+				put_inst_fpu(0xD9, 0xEB);
+			}
+
+			/// Load Log{2}(10) Constant onto the stack
+			void put_fldl2t() {
+				put_inst_fpu(0xD9, 0xE9);
+			}
+
+			/// Load Log{2}(e) Constant onto the stack
+			void put_fldl2e() {
+				put_inst_fpu(0xD9, 0xEA);
+			}
+
+			/// Load Log{10}(2) Constant onto the stack
+			void put_fldlt2() {
+				put_inst_fpu(0xD9, 0xEC);
+			}
+
+			/// Load Log{e}(2) Constant onto the stack
+			void put_fldle2() {
+				put_inst_fpu(0xD9, 0xED);
+			}
+
+			/// Load x87 FPU Control Word
+			void put_fldcw(Location src) {
+
+				// fldcw src:m2byte
+				if (src.is_memory()) {
+					put_inst_std(0xD9, src, 5);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Load Floating-Point Value
+			void put_fld(Location src) {
+
+				// fld src:m32fp
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xD9, src, 0);
+					return;
+				}
+
+				// fld src:m64fp
+				if (src.is_memory() && src.size == QWORD) {
+					put_inst_std(0xDD, src, 0);
+					return;
+				}
+
+				// fld src:m80fp
+				if (src.is_memory() && src.size == TWORD) {
+					put_inst_std(0xDB, src, 5);
+					return;
+				}
+
+				// fld src:st(i)
+				if (src.is_floating()) {
+					put_inst_fpu(0xD9, 0xC0, src.offset);
+					return;
+				}
+
+				if (src.is_memory()) {
+					throw std::runtime_error {"Invalid operand size!"};
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Multiply By Memory Float
+			void put_fmul(Location src) {
+
+				// fmul src:m32fp
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xD8, src, 1);
+					return;
+				}
+
+				// fmul src:m64fp
+				if (src.is_memory() && src.size == QWORD) {
+					put_inst_std(0xDC, src, 1);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Multiply By Memory Integer
+			void put_fimul(Location src) {
+
+				// fmul src:m32int
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xDA, src, 1);
+					return;
+				}
+
+				// fmul src:m16int
+				if (src.is_memory() && src.size == WORD) {
+					put_inst_std(0xDE, src, 1);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Multiply
+			void put_fmul(Location dst, Location src) {
+
+				// fmul dst:st(0), src:st(i)
+				if (dst.is_st0() && src.is_floating()) {
+					put_inst_fpu(0xD8, 0xC8, src.offset);
+					return;
+				}
+
+				// fmul dst:st(i), src:st(0)
+				if (dst.is_floating() && src.is_st0()) {
+					put_inst_fpu(0xDC, 0xC8, dst.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+
+			}
+
+			/// Multiply And Pop
+			void put_fmulp(Location dst) {
+
+				// fmulp dst:st(i), st(0)
+				if (dst.is_floating()) {
+					put_inst_fpu(0xDE, 0xC8, dst.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
 			void put_byte(uint8_t byte) {
 				buffer.push_back(byte);
 			}
@@ -1143,8 +1329,8 @@ namespace asmio::x86 {
 
 			ExecutableBuffer bake() {
 
-				// TODO
-				const long absolute = 0;
+				ExecutableBuffer result {buffer.size(), labels};
+				size_t absolute = result.get_address();
 
 				for (LabelCommand command : commands) {
 					const long offset = command.relative ? command.offset + command.size : (-absolute);
@@ -1152,6 +1338,8 @@ namespace asmio::x86 {
 					const uint8_t* imm_ptr = (uint8_t*) &imm_val;
 					memcpy(buffer.data() + command.offset, imm_ptr, command.size);
 				}
+
+				result.write(buffer);
 
 				#if DEBUG_MODE
 				int i = 0;
@@ -1171,7 +1359,7 @@ namespace asmio::x86 {
 				std::cout << std::endl;
 				#endif
 
-				return ExecutableBuffer {buffer, labels};
+				return result;
 			}
 
 	};

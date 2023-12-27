@@ -65,8 +65,9 @@ namespace asmio::x86 {
 				x86_switch_mode(cs, reinterpret_cast<uint32_t (*)()>(buffer + offset));
 
 				// pray to the compiler gods this works
-				asm ("leave");
-				asm ("ret");
+				volatile float tmp;
+				asm ("" : "=t" (tmp));
+				return tmp;
 			}
 
 			uint32_t call(Label label) {

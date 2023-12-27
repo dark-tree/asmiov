@@ -1342,21 +1342,27 @@ namespace asmio::x86 {
 				result.write(buffer);
 
 				#if DEBUG_MODE
-				int i = 0;
+//				int i = 0;
+//
+//				for (uint8_t byte : buffer) {
+//					std::bitset<8> bin(byte);
+//					std::cout << std::setfill ('0') << std::setw(4) << i << " | " << std::setfill ('0') << std::setw(2) << std::hex << ((int) byte) << ' ' << bin << std::endl;
+//					i ++;
+//				}
+
+				std::cout << "./unasm.sh \"db ";
+				bool first = true;
 
 				for (uint8_t byte : buffer) {
-					std::bitset<8> bin(byte);
-					std::cout << std::setfill ('0') << std::setw(4) << i << " | " << std::setfill ('0') << std::setw(2) << std::hex << ((int) byte) << ' ' << bin << std::endl;
-					i ++;
+					if (!first) {
+						std::cout << ", ";
+					}
+
+					first = false;
+					std::cout << '0' << std::setfill ('0') << std::setw(2) << std::hex << ((int) byte) << "h";
 				}
 
-				std::cout << "db ";
-
-				for (uint8_t byte : buffer) {
-					std::cout << '0' << std::setfill ('0') << std::setw(2) << std::hex << ((int) byte) << "h, ";
-				}
-
-				std::cout << std::endl;
+				std::cout << '"' << std::endl;
 				#endif
 
 				return result;

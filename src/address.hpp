@@ -204,8 +204,9 @@ namespace asmio::x86 {
 			 * Checks if this location is a
 			 * memory reference
 			 */
+			[[deprecated]]
 			bool is_memory() const {
-				return (reference && (base.flag & Registry::GENERAL));
+				return reference;
 			}
 
 			/**

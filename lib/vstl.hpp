@@ -78,7 +78,7 @@
 #define CATCH_PTR                     try { if(ptr) std::rethrow_exception(ptr); } catch
 
 /// failes the test with the given [reason] when called
-#define FAIL(reason)                  vstl::fail((reason));
+#define FAIL(reason)                  vstl::fail((reason))
 
 /// asserts the [condition] is true, otherwise failes the test with the custom [reason]
 #define ASSERT_MSG(condition, reason) if(!(condition)) FAIL(reason)

@@ -13,10 +13,10 @@ echo "_start:" >> $txt
 echo "$@" >> $txt
 
 echo "[1] nasm $txt"
-nasm -f elf64 $txt -o $obj
+nasm -f elf32 $txt -o $obj
 
 echo "[2] link $obj"
-ld $obj -o $elf
+ld -melf_i386 $obj -o $elf
 
 echo "[3] dump $elf"
 objdump -Mintel -D $elf

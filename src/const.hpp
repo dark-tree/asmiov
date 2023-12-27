@@ -46,4 +46,7 @@ namespace asmio::x86 {
 	// arithmetic shift right (preserve sign)
 	constexpr const uint8_t INST_SAR     = 0b111;
 
+	// used for an absolute value reference
+	constexpr const uint8_t NO_BASE      = 0b101;
+
 }

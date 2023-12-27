@@ -77,8 +77,8 @@ namespace asmio::x86 {
 				// |     \_ index registry
 				// \_ scaling factor
 
-				// Index register can be omitted from SIB by setting 'index' to NO_SIB_INDEX and
-				// 'ss' to NO_SIB_SCALE, this is useful for encoding the ESP registry
+				// Index register can be omitted from SIB by setting 'index' to NO_SIB_INDEX (0b100) and
+				// 'ss' to NO_SIB_SCALE (0b00), this is useful for encoding the ESP registry
 
 				put_byte(base | (index << 3) | (ss << 6));
 			}
@@ -114,7 +114,7 @@ namespace asmio::x86 {
 			}
 
 			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool longer = false) {
-				Registry dst_reg = dst.base;
+				uint8_t dst_reg = dst.base.reg;
 
 				if (dst.size == WORD) {
 					put_inst_16bit_operand_mark();
@@ -127,7 +127,7 @@ namespace asmio::x86 {
 
 				if (dst.is_simple()) {
 					put_byte(opcode);
-					put_inst_mod_reg_rm(MOD_SHORT, reg, dst_reg.reg);
+					put_inst_mod_reg_rm(MOD_SHORT, reg, dst_reg);
 					return;
 				}
 
@@ -136,12 +136,17 @@ namespace asmio::x86 {
 				uint8_t mod = dst.get_mod_flag();
 
 				// special case for [EBP + (any indexed) + 0]
-				if (dst_reg.is(EBP)) {
+				if (dst.base.is(EBP)) {
 					mod = MOD_BYTE;
 				}
 
+				// TODO: cleanup
+				if (dst.base.is(UNSET)) {
+					dst_reg = NO_BASE;
+				}
+
 				put_byte(opcode);
-				put_inst_mod_reg_rm(mod, reg, sib ? RM_SIB : dst_reg.reg);
+				put_inst_mod_reg_rm(dst_reg == NO_BASE ? MOD_NONE : mod, reg, sib ? RM_SIB : dst_reg);
 
 				if (sib) {
 					put_inst_sib(dst);
@@ -1327,7 +1332,42 @@ namespace asmio::x86 {
 				buffer.push_back(imm_ptr[3]);
 			}
 
-			ExecutableBuffer bake() {
+			void put_dword(float dword) {
+				const uint8_t* imm_ptr = (uint8_t*) &dword;
+
+				buffer.push_back(imm_ptr[0]);
+				buffer.push_back(imm_ptr[1]);
+				buffer.push_back(imm_ptr[2]);
+				buffer.push_back(imm_ptr[3]);
+			}
+
+			void put_qword(uint64_t dword) {
+				const uint8_t* imm_ptr = (uint8_t*) &dword;
+
+				buffer.push_back(imm_ptr[0]);
+				buffer.push_back(imm_ptr[1]);
+				buffer.push_back(imm_ptr[2]);
+				buffer.push_back(imm_ptr[3]);
+				buffer.push_back(imm_ptr[4]);
+				buffer.push_back(imm_ptr[5]);
+				buffer.push_back(imm_ptr[6]);
+				buffer.push_back(imm_ptr[7]);
+			}
+
+			void put_qword(double dword) {
+				const uint8_t* imm_ptr = (uint8_t*) &dword;
+
+				buffer.push_back(imm_ptr[0]);
+				buffer.push_back(imm_ptr[1]);
+				buffer.push_back(imm_ptr[2]);
+				buffer.push_back(imm_ptr[3]);
+				buffer.push_back(imm_ptr[4]);
+				buffer.push_back(imm_ptr[5]);
+				buffer.push_back(imm_ptr[6]);
+				buffer.push_back(imm_ptr[7]);
+			}
+
+			ExecutableBuffer bake(bool debug = false) {
 
 				ExecutableBuffer result {buffer.size(), labels};
 				size_t absolute = result.get_address();
@@ -1342,28 +1382,32 @@ namespace asmio::x86 {
 				result.write(buffer);
 
 				#if DEBUG_MODE
-//				int i = 0;
-//
-//				for (uint8_t byte : buffer) {
-//					std::bitset<8> bin(byte);
-//					std::cout << std::setfill ('0') << std::setw(4) << i << " | " << std::setfill ('0') << std::setw(2) << std::hex << ((int) byte) << ' ' << bin << std::endl;
-//					i ++;
-//				}
+				debug = true;
+				#endif
 
-				std::cout << "./unasm.sh \"db ";
-				bool first = true;
+				if (debug) {
+					int i = 0;
 
-				for (uint8_t byte : buffer) {
-					if (!first) {
-						std::cout << ", ";
+					for (uint8_t byte : buffer) {
+						std::bitset<8> bin(byte);
+						std::cout << std::setfill ('0') << std::setw(4) << i << " | " << std::setfill ('0') << std::setw(2) << std::hex << ((int) byte) << ' ' << bin << std::endl;
+						i ++;
 					}
 
-					first = false;
-					std::cout << '0' << std::setfill ('0') << std::setw(2) << std::hex << ((int) byte) << "h";
-				}
+					std::cout << "./unasm.sh \"db ";
+					bool first = true;
 
-				std::cout << '"' << std::endl;
-				#endif
+					for (uint8_t byte: buffer) {
+						if (!first) {
+							std::cout << ", ";
+						}
+
+						first = false;
+						std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << "h";
+					}
+
+					std::cout << '"' << std::endl;
+				}
 
 				return result;
 			}

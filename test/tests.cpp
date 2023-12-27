@@ -6,7 +6,7 @@
 
 using namespace asmio::x86;
 
-TEST(writer_simple_mov_ret_nop) {
+TEST(writer_exec_mov_ret_nop) {
 
 	BufferWriter writer;
 
@@ -15,13 +15,13 @@ TEST(writer_simple_mov_ret_nop) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int eax = buffer.call();
+	uint32_t eax = buffer.call_u32();
 
 	CHECK(eax, 5);
 
 }
 
-TEST(writer_simple_rol_inc_neg_sar) {
+TEST(writer_exec_rol_inc_neg_sar) {
 
 	BufferWriter writer;
 
@@ -39,7 +39,7 @@ TEST(writer_simple_rol_inc_neg_sar) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int eax = buffer.call();
+	uint32_t eax = buffer.call_u32();
 
 	CHECK(eax, 11);
 
@@ -56,13 +56,13 @@ TEST(writer_simple_xchg) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int eax = buffer.call();
+	uint32_t eax = buffer.call_u32();
 
 	CHECK(eax, 0xD);
 
 }
 
-TEST(writer_simple_push_pop) {
+TEST(writer_exec_push_pop) {
 
 	BufferWriter writer;
 
@@ -74,13 +74,13 @@ TEST(writer_simple_push_pop) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int eax = buffer.call();
+	uint32_t eax = buffer.call_u32();
 
 	CHECK(eax, 9);
 
 }
 
-TEST(writer_simple_movsx_movzx) {
+TEST(writer_exec_movsx_movzx) {
 
 	BufferWriter writer;
 
@@ -91,13 +91,13 @@ TEST(writer_simple_movsx_movzx) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int eax = buffer.call();
+	int eax = buffer.call_i32();
 
 	CHECK(eax, -9);
 
 }
 
-TEST(writer_simple_lea) {
+TEST(writer_exec_lea) {
 
 	int eax = 12, edx = 56, ecx = 60;
 
@@ -111,12 +111,12 @@ TEST(writer_simple_lea) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, (edx + eax * 2 - 5) + eax);
 }
 
-TEST(writer_simple_add) {
+TEST(writer_exec_add) {
 
 	int eax = 12, edx = 56, ecx = 60;
 
@@ -131,13 +131,13 @@ TEST(writer_simple_add) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, eax + edx + ecx + 5);
 
 }
 
-TEST(writer_simple_add_adc) {
+TEST(writer_exec_add_adc) {
 
 	BufferWriter writer;
 
@@ -149,13 +149,13 @@ TEST(writer_simple_add_adc) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 0x1);
 
 }
 
-TEST(writer_simple_sub) {
+TEST(writer_exec_sub) {
 
 	BufferWriter writer;
 
@@ -165,13 +165,13 @@ TEST(writer_simple_sub) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 0xF - 0xA);
 
 }
 
-TEST(writer_simple_sub_sbb) {
+TEST(writer_exec_sub_sbb) {
 
 	BufferWriter writer;
 
@@ -183,13 +183,13 @@ TEST(writer_simple_sub_sbb) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, -1);
 
 }
 
-TEST(writer_simple_stc_lahf_sahf) {
+TEST(writer_exec_stc_lahf_sahf) {
 
 	BufferWriter writer;
 
@@ -200,7 +200,7 @@ TEST(writer_simple_stc_lahf_sahf) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = (buffer.call() & 0xFF00) >> 8;
+	uint32_t output = (buffer.call_u32() & 0xFF00) >> 8;
 
 	ASSERT(!(output & 0b1000'0000)); // ZF
 	ASSERT( (output & 0b0000'0001)); // CF
@@ -208,7 +208,7 @@ TEST(writer_simple_stc_lahf_sahf) {
 
 }
 
-TEST (writer_simple_cmp_lahf) {
+TEST (writer_exec_cmp_lahf) {
 
 	BufferWriter writer;
 
@@ -219,7 +219,7 @@ TEST (writer_simple_cmp_lahf) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = (buffer.call() & 0xFF00) >> 8;
+	uint32_t output = (buffer.call_u32() & 0xFF00) >> 8;
 
 	ASSERT(output & 0b1000'0000); // ZF
 	ASSERT(output & 0b0000'0001); // CF
@@ -227,7 +227,7 @@ TEST (writer_simple_cmp_lahf) {
 
 }
 
-TEST(writer_simple_mul) {
+TEST(writer_exec_mul) {
 
 	BufferWriter writer;
 
@@ -237,13 +237,13 @@ TEST(writer_simple_mul) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 0xA * 0xB);
 
 }
 
-TEST(writer_simple_mul_imul) {
+TEST(writer_exec_mul_imul) {
 
 	BufferWriter writer;
 
@@ -257,13 +257,13 @@ TEST(writer_simple_mul_imul) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 7 * 5 * 3 * 2 * 11);
 
 }
 
-TEST(writer_simple_div_idiv) {
+TEST(writer_exec_div_idiv) {
 
 	BufferWriter writer;
 
@@ -280,13 +280,13 @@ TEST(writer_simple_div_idiv) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 50 / 5 / -2);
 
 }
 
-TEST(writer_simple_or) {
+TEST(writer_exec_or) {
 
 	BufferWriter writer;
 
@@ -297,13 +297,13 @@ TEST(writer_simple_or) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 0b0101'1110);
 
 }
 
-TEST(writer_simple_and_not_xor_or) {
+TEST(writer_exec_and_not_xor_or) {
 
 	BufferWriter writer;
 
@@ -319,13 +319,13 @@ TEST(writer_simple_and_not_xor_or) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 0b1100'0100'1111);
 
 }
 
-TEST(writer_simple_aam) {
+TEST(writer_exec_aam) {
 
 	BufferWriter writer;
 
@@ -334,13 +334,13 @@ TEST(writer_simple_aam) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 0x0207);
 
 }
 
-TEST(writer_simple_aad) {
+TEST(writer_exec_aad) {
 
 	BufferWriter writer;
 
@@ -349,13 +349,13 @@ TEST(writer_simple_aad) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 59);
 
 }
 
-TEST(writer_simple_bts_btr_btc) {
+TEST(writer_exec_bts_btr_btc) {
 
 	BufferWriter writer;
 
@@ -372,13 +372,13 @@ TEST(writer_simple_bts_btr_btc) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 0b1100'1010);
 
 }
 
-TEST(writer_simple_jmp_forward) {
+TEST(writer_exec_jmp_forward) {
 
 	BufferWriter writer;
 
@@ -389,13 +389,13 @@ TEST(writer_simple_jmp_forward) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 1);
 
 }
 
-TEST(writer_simple_jmp_back) {
+TEST(writer_exec_jmp_back) {
 
 	BufferWriter writer;
 
@@ -417,13 +417,13 @@ TEST(writer_simple_jmp_back) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 3);
 
 }
 
-TEST(writer_simple_je) {
+TEST(writer_exec_je) {
 
 	BufferWriter writer;
 
@@ -438,13 +438,13 @@ TEST(writer_simple_je) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call();
+	int output = buffer.call_i32();
 
 	CHECK(output, 5);
 
 }
 
-TEST(writer_simple_labeled_entry) {
+TEST(writer_exec_labeled_entry) {
 
 	BufferWriter writer;
 
@@ -462,13 +462,13 @@ TEST(writer_simple_labeled_entry) {
 
 	ExecutableBuffer buffer = writer.bake();
 
-	CHECK(buffer.call("foo"), 1);
-	CHECK(buffer.call("bar"), 2);
-	CHECK(buffer.call("tar"), 3);
+	CHECK(buffer.call_u32("foo"), 1);
+	CHECK(buffer.call_u32("bar"), 2);
+	CHECK(buffer.call_u32("tar"), 3);
 
 }
 
-TEST(writer_simple_functions) {
+TEST(writer_exec_functions) {
 
 	BufferWriter writer;
 
@@ -497,11 +497,11 @@ TEST(writer_simple_functions) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	CHECK(buffer.call("main"), 42);
+	CHECK(buffer.call_u32("main"), 42);
 
 }
 
-TEST(writer_simple_label_mov) {
+TEST(writer_exec_label_mov) {
 
 	BufferWriter writer;
 
@@ -513,11 +513,11 @@ TEST(writer_simple_label_mov) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	CHECK(buffer.call("main"), 14 + buffer.get_address());
+	CHECK(buffer.call_u32("main"), 14 + buffer.get_address());
 
 }
 
-TEST(writer_simple_absolute_jmp) {
+TEST(writer_exec_absolute_jmp) {
 
 	BufferWriter writer;
 
@@ -536,11 +536,11 @@ TEST(writer_simple_absolute_jmp) {
 	writer.put_ret(); // invalid
 
 	ExecutableBuffer buffer = writer.bake();
-	CHECK(buffer.call("main"), 42);
+	CHECK(buffer.call_u32("main"), 42);
 
 }
 
-TEST (writer_simple_finit_fld1) {
+TEST (writer_exec_finit_fld1) {
 
 	BufferWriter writer;
 
@@ -549,9 +549,30 @@ TEST (writer_simple_finit_fld1) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	CHECK(buffer.call_float(), 1.0f);
+	CHECK(buffer.call_f32(), 1.0f);
 
 }
 
+TEST (writer_exec_fmul) {
+
+	BufferWriter writer;
+
+	writer.label("x");
+	writer.put_dword(6.0f);
+
+	writer.label("y");
+	writer.put_dword(0.5f);
+
+	writer.label("main");
+	writer.put_finit();
+	writer.put_fld(ref("x"));
+	writer.put_fld(ref("y"));
+	writer.put_fmul(ST + 0, ST + 1);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_f32("main"), 3.0f);
+
+}
 
 BEGIN(VSTL_MODE_LENIENT)

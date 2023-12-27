@@ -18,6 +18,11 @@ namespace asmio::x86 {
 			uint8_t* buffer;
 			size_t length;
 
+			__attribute__((__always_inline__)) void raw_call(uint32_t offset) {
+				// don't touch, magic. 0x23 refers to the 32bit code & data segment
+				x86_switch_mode(0x23, reinterpret_cast<uint32_t (*)()>(buffer + offset));
+			}
+
 		public:
 
 			explicit ExecutableBuffer(size_t length, const std::unordered_map<Label, size_t, Label::HashFunction>& labels)
@@ -31,10 +36,6 @@ namespace asmio::x86 {
 				if (buffer == nullptr || errno) {
 					throw std::runtime_error{"Failed to allocate an executable buffer!"};
 				}
-
-				#if DEBUG_MODE
-				std::cout << "Executable buffer made, using " << size << " bytes" << std::endl;
-				#endif
 			}
 
 			void write(const std::vector<uint8_t>& data) {
@@ -55,27 +56,31 @@ namespace asmio::x86 {
 
 		public:
 
-			uint32_t call(uint32_t offset = 0) {
-				const int cs = 0x23; // don't touch, magic. refers to the 32bit code segment (?)
-				return x86_switch_mode(cs, reinterpret_cast<uint32_t (*)()>(buffer + offset));
+			uint32_t call_u32(uint32_t offset = 0) {
+				raw_call(offset);
+				RETURN_TRANSIENT(uint32_t, "=r");
 			}
 
-			float call_float(uint32_t offset = 0) {
-				const int cs = 0x23; // don't touch, magic. refers to the 32bit code segment (?)
-				x86_switch_mode(cs, reinterpret_cast<uint32_t (*)()>(buffer + offset));
-
-				// pray to the compiler gods this works
-				volatile float tmp;
-				asm ("" : "=t" (tmp));
-				return tmp;
+			int32_t call_i32(uint32_t offset = 0) {
+				raw_call(offset);
+				RETURN_TRANSIENT(int32_t, "=r");
 			}
 
-			uint32_t call(Label label) {
-				return call(labels.at(label));
+			float call_f32(uint32_t offset = 0) {
+				raw_call(offset);
+				RETURN_TRANSIENT(float, "=t");
 			}
 
-			float call_float(Label label) {
-				return call(labels.at(label));
+			uint32_t call_u32(Label label) {
+				return call_u32(labels.at(label));
+			}
+
+			int32_t call_i32(Label label) {
+				return call_i32(labels.at(label));
+			}
+
+			float call_f32(Label label) {
+				return call_f32(labels.at(label));
 			}
 
 	};

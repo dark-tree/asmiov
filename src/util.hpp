@@ -2,6 +2,7 @@
 
 #define UDIV_UP(a, b) (((a) + (b) - 1) / (b))
 #define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
+#define RETURN_TRANSIENT(T, format) {volatile T tmp; asm("" : format (tmp)); return tmp;}
 
 int min_bytes(uint64_t value) {
 	if (value > 0xFFFFFFFF) return 8;

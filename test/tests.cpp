@@ -754,7 +754,7 @@ TEST (writer_exec_fcomi_fcomip) {
 
 }
 
-TEST (writer_exec_fcos) {
+TEST (writer_exec_fldpi_fcos) {
 
 	BufferWriter writer;
 
@@ -863,6 +863,200 @@ TEST (writer_exec_ficom_ficomp) {
 
 	ExecutableBuffer buffer = writer.bake();
 	CHECK(buffer.call_f32("main"), 1);
+
+}
+
+TEST (writer_exec_fdecstp_fincstp) {
+
+	BufferWriter writer;
+
+	writer.put_finit();
+	writer.put_fld1();
+	writer.put_fdecstp();
+	writer.put_fincstp();
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_f32(), 1);
+
+}
+
+TEST (writer_exec_fild) {
+
+	BufferWriter writer;
+
+	writer.label("a");
+	writer.put_word(1);
+
+	writer.label("b");
+	writer.put_dword(2);
+
+	writer.label("c");
+	writer.put_qword(3);
+
+	writer.label("main");
+	writer.put_finit();
+	writer.put_fild(cast<WORD>(ref("a")));  // fpu stack: [1.0]
+	writer.put_fild(cast<DWORD>(ref("b"))); // fpu stack: [2.0, 1.0]
+	writer.put_fild(cast<QWORD>(ref("c"))); // fpu stack: [3.0, 2.0, 1.0]
+	writer.put_faddp(ST + 1);               // fpu stack: [3.0+2.0, 1.0]
+	writer.put_faddp(ST + 1);               // fpu stack: [3.0+2.0+1.0]
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_f32("main"), 6);
+
+}
+
+TEST (writer_exec_fist_fistp) {
+
+	BufferWriter writer;
+
+	writer.label("a");
+	writer.put_dword(0);
+
+	writer.label("b");
+	writer.put_dword(0);
+
+	writer.label("init");
+	writer.put_finit();
+	writer.put_fld1();          // fpu stack: [1.0]
+	writer.put_fld1();          // fpu stack: [1.0, 1.0]
+	writer.put_fld1();          // fpu stack: [1.0, 1.0, 1.0]
+	writer.put_faddp(ST + 1);   // fpu stack: [2.0, 1.0]
+	writer.put_fist(ref("a"));  // fpu stack: [2.0, 1.0]
+	writer.put_fld1();          // fpu stack: [1.0, 2.0, 1.0]
+	writer.put_fld1();          // fpu stack: [1.0, 1.0, 2.0, 1.0]
+	writer.put_faddp(ST + 1);   // fpu stack: [2.0, 2.0, 1.0]
+	writer.put_faddp(ST + 1);   // fpu stack: [4.0, 1.0]
+	writer.put_fistp(ref("b")); // fpu stack: [1.0]
+	writer.put_ret();
+
+	writer.label("main");
+	writer.put_mov(EAX, ref("a"));
+	writer.put_add(EAX, ref("b"));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_f32("init"), 1.0f);
+	CHECK(buffer.call_i32("main"), 6);
+
+}
+
+TEST (writer_exec_fisttp) {
+
+	BufferWriter writer;
+
+	writer.label("a");
+	writer.put_dword_f(3.9);
+
+	writer.label("b");
+	writer.put_dword(0);
+
+	writer.label("init");
+	writer.put_finit();
+	writer.put_fld1();           // fpu stack: [1.0]
+	writer.put_fld(ref("a"));    // fpu stack: [3.9, 1.0]
+	writer.put_fisttp(ref("b")); // fpu stack: [1.0]
+	writer.put_ret();
+
+	writer.label("main");
+	writer.put_mov(EAX, ref("b"));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_f32("init"), 1.0f);
+	CHECK(buffer.call_i32("main"), 3);
+
+}
+
+TEST (writer_exec_fldpi_frndint) {
+
+	BufferWriter writer;
+
+	writer.label("main");
+	writer.put_finit();
+	writer.put_fldpi();   // fpu stack: [3.1415]
+	writer.put_frndint(); // fpu stack: [3.0]
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_f32("main"), 3.0f);
+
+}
+
+TEST (writer_exec_fsqrt) {
+
+	BufferWriter writer;
+
+	writer.label("a");
+	writer.put_dword_f(16.0f);
+
+	writer.label("main");
+	writer.put_finit();
+	writer.put_fld(ref("a")); // fpu stack: [16.0]
+	writer.put_fsqrt();       // fpu stack: [4.0]
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_f32("main"), 4.0f);
+
+}
+
+TEST (writer_exec_fst) {
+
+	BufferWriter writer;
+
+	writer.label("dword_a");
+	writer.put_dword_f(0); // => 2
+
+	writer.label("dword_b");
+	writer.put_dword_f(0); // => 3
+
+	writer.label("qword_c");
+	writer.put_qword_f(0); // => 6
+
+	writer.label("set_a");
+	writer.put_finit();
+	writer.put_fld1();                            // fpu stack: [1.0]
+	writer.put_fld1();                            // fpu stack: [1.0, 1.0]
+	writer.put_faddp(ST + 1);                     // fpu stack: [2.0]
+	writer.put_fst(ref("dword_a"));               // fpu stack: [2.0]
+	writer.put_ret();
+
+	writer.label("set_b");
+	writer.put_finit();
+	writer.put_fld1();                            // fpu stack: [1.0]
+	writer.put_fld1();                            // fpu stack: [1.0, 1.0]
+	writer.put_fld(ref("dword_a"));               // fpu stack: [2.0, 1.0, 1.0]
+	writer.put_faddp(ST + 1);                     // fpu stack: [3.0, 1.0]
+	writer.put_fstp(ref("dword_b"));              // fpu stack: [1.0]
+	writer.put_ret();
+
+	writer.label("set_c");
+	writer.put_finit();
+	writer.put_fld0();                            // fpu stack: [0.0]
+	writer.put_fld(ref("dword_a"));               // fpu stack: [2.0, 0.0]
+	writer.put_fld(ref("dword_b"));               // fpu stack: [3.0, 2.0, 0.0]
+	writer.put_fst(ST + 1);                       // fpu stack: [3.0, 3.0, 0.0]
+	writer.put_faddp(ST + 1);                     // fpu stack: [6.0, 0.0]
+	writer.put_fstp(cast<TWORD>(ref("qword_c"))); // fpu stack: [0.0]
+	writer.put_ret();
+
+	writer.label("ctrl_sum");
+	writer.put_finit();
+	writer.put_fld(ref("dword_a"));               // fpu stack: [2.0]
+	writer.put_fld(ref("dword_b"));               // fpu stack: [3.0, 2.0]
+	writer.put_fld(cast<TWORD>(ref("qword_c")));  // fpu stack: [6.0, 3.0, 2.0]
+	writer.put_faddp(ST + 1);                     // fpu stack: [9.0, 2.0]
+	writer.put_faddp(ST + 1);                     // fpu stack: [11.0]
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_f32("set_a"), 2.0f);
+	CHECK(buffer.call_f32("set_b"), 1.0f);
+	CHECK(buffer.call_f32("set_c"), 0.0f);
+	CHECK(buffer.call_f32("ctrl_sum"), 11.0f);
 
 }
 

@@ -17,11 +17,12 @@ x86_switch_mode:
         mov     [rbx+4], edi
 
         // save value of DS
-        mov rcx, ds
-        push rcx
+        mov     rcx, ds
+        push    rcx
 
-        // set DS to the same value we set CS to
-        mov ds, edi
+        // set DS to segment 0x2B
+        mov     ecx, 0x2B
+        mov     ds, ecx
 
         // before the lcall, switch to a stack below 4GB
         // this assumes that the data segment is below 4GB
@@ -30,8 +31,8 @@ x86_switch_mode:
         movsxd  rax, eax
 
         // restore value of DS
-        pop rcx
-        mov ds, rcx
+        pop     rcx
+        mov     ds, rcx
 
         // restore rsp to the original stack
         leave

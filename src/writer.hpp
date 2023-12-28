@@ -361,15 +361,15 @@ namespace asmio::x86 {
 					return;
 				}
 
-				// handle REG to REG/MEM
-				if (dst.is_simple() && !src.base.is(UNSET)) {
+				// handle REG/MEM to REG
+				if (dst.is_simple() && src.is_memreg()) {
 					put_inst_mov(src, dst, true);
 
 					return;
 				}
 
-				// handle REG/VAL to MEM
-				if ((src.is_immediate() || src.is_simple()) && !dst.base.is(UNSET)) {
+				// handle REG/VAL to REG/MEM
+				if ((src.is_immediate() || src.is_simple()) && dst.is_memreg()) {
 					put_inst_mov(dst, src, src.is_immediate());
 
 					return;
@@ -1193,6 +1193,24 @@ namespace asmio::x86 {
 
 			}
 
+			/// Store FPU Control Word
+			void put_fstcw(Location dst) {
+				put_wait();
+				put_fnstcw(dst);
+			}
+
+			/// Store FPU Control Word (without checking for pending unmasked exceptions)
+			void put_fnstcw(Location dst) {
+
+				if (dst.is_memory() && dst.size == WORD) {
+					put_inst_std(0xD9, dst, 7);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
 			/// Load +1.0 Constant onto the stack
 			void put_fld1() {
 				put_inst_fpu(0xD9, 0xE8);
@@ -1261,9 +1279,59 @@ namespace asmio::x86 {
 				put_inst_fpu(0xD9, 0xFF);
 			}
 
+			/// Compute Sine
+			void put_fsin() {
+				put_inst_fpu(0xD9, 0xFE);
+			}
+
+			/// Compute Sine and Cosine, sets ST(0) to sin(ST(0)), and pushes cos(ST(0)) onto the stack
+			void put_fsincos() {
+				put_inst_fpu(0xD9, 0xFB);
+			}
+
 			/// Decrement Stack Pointer
 			void put_fdecstp() {
 				put_inst_fpu(0xD9, 0xF6);
+			}
+
+			/// Increment Stack Pointer
+			void put_fincstp() {
+				put_inst_fpu(0xD9, 0xF7);
+			}
+
+			/// Partial Arctangent, sets ST(1) to arctan(ST(1) / ST(0)), and pops the stack
+			void put_fpatan() {
+				put_inst_fpu(0xD9, 0xF3);
+			}
+
+			/// Partial Remainder, sets ST(0) to ST(0) % ST(1)
+			void put_fprem() {
+				put_inst_fpu(0xD9, 0xF8);
+			}
+
+			/// Partial IEEE Remainder, sets ST(0) to ST(0) % ST(1)
+			void put_fprem1() {
+				put_inst_fpu(0xD9, 0xF5);
+			}
+
+			/// Partial Tangent, sets ST(0) to tan(ST(0)), and pushes 1 onto the stack
+			void put_fptan() {
+				put_inst_fpu(0xD9, 0xF2);
+			}
+
+			/// Round to Integer, Rounds ST(0) to an integer
+			void put_frndint() {
+				put_inst_fpu(0xD9, 0xFC);
+			}
+
+			/// Scale, ST(0) by ST(1), Sets ST(0) to ST(0)*2^floor(ST(1))
+			void put_fscale() {
+				put_inst_fpu(0xD9, 0xFD);
+			}
+
+			/// Square Root, sets ST(0) to sqrt(ST(0))
+			void put_fsqrt() {
+				put_inst_fpu(0xD9, 0xFA);
 			}
 
 			/// Load Floating-Point Value
@@ -1294,6 +1362,180 @@ namespace asmio::x86 {
 				}
 
 				if (src.is_memory()) {
+					throw std::runtime_error {"Invalid operand size!"};
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Load Integer Value
+			void put_fild(Location src) {
+
+				// fild src:m16int
+				if (src.is_memory() && src.size == WORD) {
+					put_inst_std(0xDF, src, 0);
+					return;
+				}
+
+				// fild src:m32int
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xDB, src, 0);
+					return;
+				}
+
+				// fild src:m64int
+				if (src.is_memory() && src.size == QWORD) {
+					put_inst_std(0xDF, src, 5);
+					return;
+				}
+
+				if (src.is_memory()) {
+					throw std::runtime_error {"Invalid operand size!"};
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Store Floating-Point Value
+			void put_fst(Location dst) {
+
+				// fst dst:m32fp
+				if (dst.is_memory() && dst.size == DWORD) {
+					put_inst_std(0xD9, dst, 2);
+					return;
+				}
+
+				// fst dst:m64fp
+				if (dst.is_memory() && dst.size == QWORD) {
+					put_inst_std(0xDD, dst, 2);
+					return;
+				}
+
+				// fst src:st(i)
+				if (dst.is_floating()) {
+					put_inst_fpu(0xDD, 0xD0, dst.offset);
+					return;
+				}
+
+				if (dst.is_memory()) {
+					throw std::runtime_error {"Invalid operand size!"};
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Store Floating-Point Value and Pop
+			void put_fstp(Location dst) {
+
+				// fstp dst:m32fp
+				if (dst.is_memory() && dst.size == DWORD) {
+					put_inst_std(0xD9, dst, 3);
+					return;
+				}
+
+				// fstp dst:m64fp
+				if (dst.is_memory() && dst.size == QWORD) {
+					put_inst_std(0xDD, dst, 3);
+					return;
+				}
+
+				// fstp dst:m80fp
+				if (dst.is_memory() && dst.size == TWORD) {
+					put_inst_std(0xDB, dst, 7);
+					return;
+				}
+
+				// fstp src:st(i)
+				if (dst.is_floating()) {
+					put_inst_fpu(0xDD, 0xD8, dst.offset);
+					return;
+				}
+
+				if (dst.is_memory()) {
+					throw std::runtime_error {"Invalid operand size!"};
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Store Floating-Point Value As Integer
+			void put_fist(Location dst) {
+
+				// fist src:m16int
+				if (dst.is_memory() && dst.size == WORD) {
+					put_inst_std(0xDF, dst, 2);
+					return;
+				}
+
+				// fist src:m32int
+				if (dst.is_memory() && dst.size == DWORD) {
+					put_inst_std(0xDB, dst, 2);
+					return;
+				}
+
+				if (dst.is_memory()) {
+					throw std::runtime_error {"Invalid operand size!"};
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Store Floating-Point Value As Integer And Pop
+			void put_fistp(Location dst) {
+
+				// fist src:m16int
+				if (dst.is_memory() && dst.size == WORD) {
+					put_inst_std(0xDF, dst, 3);
+					return;
+				}
+
+				// fist src:m32int
+				if (dst.is_memory() && dst.size == DWORD) {
+					put_inst_std(0xDB, dst, 3);
+					return;
+				}
+
+				// fist src:m64int
+				if (dst.is_memory() && dst.size == QWORD) {
+					put_inst_std(0xDF, dst, 7);
+					return;
+				}
+
+				if (dst.is_memory()) {
+					throw std::runtime_error {"Invalid operand size!"};
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Store Floating-Point Value As Integer With Truncation And Pop
+			void put_fisttp(Location dst) {
+
+				// fist src:m16int
+				if (dst.is_memory() && dst.size == WORD) {
+					put_inst_std(0xDF, dst, 1);
+					return;
+				}
+
+				// fist src:m32int
+				if (dst.is_memory() && dst.size == DWORD) {
+					put_inst_std(0xDB, dst, 1);
+					return;
+				}
+
+				// fist src:m64int
+				if (dst.is_memory() && dst.size == QWORD) {
+					put_inst_std(0xDD, dst, 1);
+					return;
+				}
+
+				if (dst.is_memory()) {
 					throw std::runtime_error {"Invalid operand size!"};
 				}
 

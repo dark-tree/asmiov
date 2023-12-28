@@ -1159,6 +1159,40 @@ namespace asmio::x86 {
 				put_byte(0xE3);
 			}
 
+			/// Clear Exceptions
+			void put_fclex() {
+				put_wait();
+				put_fnclex();
+			}
+
+			/// Clear Exceptions (without checking for pending unmasked exceptions)
+			void put_fnclex() {
+				put_inst_fpu(0xDB, 0xE2);
+			}
+
+			/// Store FPU State Word
+			void put_fstsw(Location dst) {
+				put_wait();
+				put_fnstsw(dst);
+			}
+
+			/// Store FPU State Word (without checking for pending unmasked exceptions)
+			void put_fnstsw(Location dst) {
+
+				if (dst.is_simple() && dst.base.is(AX)) {
+					put_inst_fpu(0xDF, 0xE0);
+					return;
+				}
+
+				if (dst.is_memory() && dst.size == WORD) {
+					put_inst_std(0xDD, dst, 7);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
 			/// Load +1.0 Constant onto the stack
 			void put_fld1() {
 				put_inst_fpu(0xD9, 0xE8);
@@ -1198,13 +1232,38 @@ namespace asmio::x86 {
 			void put_fldcw(Location src) {
 
 				// fldcw src:m2byte
-				if (src.is_memory()) {
+				if (src.is_memory() && src.size == WORD) {
 					put_inst_std(0xD9, src, 5);
 					return;
 				}
 
 				throw std::runtime_error {"Invalid operand!"};
 
+			}
+
+			/// Compute 2^x - 1
+			void put_f2xm1() {
+				put_inst_fpu(0xD9, 0xF0);
+			}
+
+			/// Absolute Value
+			void put_fabs() {
+				put_inst_fpu(0xD9, 0xE1);
+			}
+
+			/// Change Sign
+			void put_fchs() {
+				put_inst_fpu(0xD9, 0xE0);
+			}
+
+			/// Compute Cosine
+			void put_fcos() {
+				put_inst_fpu(0xD9, 0xFF);
+			}
+
+			/// Decrement Stack Pointer
+			void put_fdecstp() {
+				put_inst_fpu(0xD9, 0xF6);
 			}
 
 			/// Load Floating-Point Value
@@ -1236,6 +1295,259 @@ namespace asmio::x86 {
 
 				if (src.is_memory()) {
 					throw std::runtime_error {"Invalid operand size!"};
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Free Floating-Point Register
+			void put_ffree(Location src) {
+
+				if (src.is_floating()) {
+					put_inst_fpu(0xDD, 0xC0, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Move SRC, if below, into ST+0
+			void put_fcmovb(Location src) {
+
+				if (src.is_floating()) {
+					put_inst_fpu(0xDA, 0xC0, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Move SRC, if equal, into ST+0
+			void put_fcmove(Location src) {
+
+				if (src.is_floating()) {
+					put_inst_fpu(0xDA, 0xC8, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Move SRC, if below or equal, into ST+0
+			void put_fcmovbe(Location src) {
+
+				if (src.is_floating()) {
+					put_inst_fpu(0xDA, 0xD0, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Move SRC, if unordered with, into ST+0
+			void put_fcmovu(Location src) {
+
+				if (src.is_floating()) {
+					put_inst_fpu(0xDA, 0xD8, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Move SRC, if not below, into ST+0
+			void put_fcmovnb(Location src) {
+
+				if (src.is_floating()) {
+					put_inst_fpu(0xDB, 0xC0, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Move SRC, if not equal, into ST+0
+			void put_fcmovne(Location src) {
+
+				if (src.is_floating()) {
+					put_inst_fpu(0xDB, 0xC8, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Move SRC, if not below or equal, into ST+0
+			void put_fcmovnbe(Location src) {
+
+				if (src.is_floating()) {
+					put_inst_fpu(0xDB, 0xD0, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Move SRC, if not unordered with, into ST+0
+			void put_fcmovnu(Location src) {
+
+				if (src.is_floating()) {
+					put_inst_fpu(0xDB, 0xD8, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Compare ST+0 with SRC
+			void put_fcom(Location src) {
+
+				// fcom src:m32fp
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xD8, src, 2);
+					return;
+				}
+
+				// fcom src:m64fp
+				if (src.is_memory() && src.size == QWORD) {
+					put_inst_std(0xDC, src, 2);
+					return;
+				}
+
+				// fcom st(0), src:st(i)
+				if (src.is_floating()) {
+					put_inst_fpu(0xD8, 0xD0, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Compare ST+0 with SRC And Pop
+			void put_fcomp(Location src) {
+
+				// fcomp src:m32fp
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xD8, src, 3);
+					return;
+				}
+
+				// fcomp src:m64fp
+				if (src.is_memory() && src.size == QWORD) {
+					put_inst_std(0xDC, src, 3);
+					return;
+				}
+
+				// fcomp st(0), src:st(i)
+				if (src.is_floating()) {
+					put_inst_fpu(0xD8, 0xD8, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Compare ST+0 with ST+1 And Pop Both
+			void put_fcompp() {
+				put_inst_fpu(0xDE, 0xD9);
+			}
+
+			/// Compare ST+0 with Integer SRC
+			void put_ficom(Location src) {
+
+				// ficom src:m16int
+				if (src.is_memory() && src.size == WORD) {
+					put_inst_std(0xDE, src, 2);
+					return;
+				}
+
+				// ficom src:m32int
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xDA, src, 2);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Compare ST+0 with Integer SRC, And Pop
+			void put_ficomp(Location src) {
+
+				// ficom src:m16int
+				if (src.is_memory() && src.size == WORD) {
+					put_inst_std(0xDE, src, 3);
+					return;
+				}
+
+				// ficom src:m32int
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xDA, src, 3);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Compare ST+0 with SRC and set EFLAGS
+			void put_fcomi(Location src) {
+
+				// fcomi st(0), src:st(i)
+				if (src.is_floating()) {
+					put_inst_fpu(0xDB, 0xF0, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Compare ST+0 with SRC, Pop, and set EFLAGS
+			void put_fcomip(Location src) {
+
+				// fcomip st(0), src:st(i)
+				if (src.is_floating()) {
+					put_inst_fpu(0xDF, 0xF0, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Compare, and check for ordered values, ST+0 with SRC and set EFLAGS
+			void put_fucomi(Location src) {
+
+				// fcomi st(0), src:st(i)
+				if (src.is_floating()) {
+					put_inst_fpu(0xDB, 0xF8, src.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Compare, and check for ordered values, ST+0 with SRC, Pop, and set EFLAGS
+			void put_fucomip(Location src) {
+
+				// fcomip st(0), src:st(i)
+				if (src.is_floating()) {
+					put_inst_fpu(0xDF, 0xF8, src.offset);
+					return;
 				}
 
 				throw std::runtime_error {"Invalid operand!"};
@@ -1312,6 +1624,216 @@ namespace asmio::x86 {
 
 			}
 
+			/// Add Memory Float
+			void put_fadd(Location src) {
+
+				// fadd src:m32fp
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xD8, src, 0);
+					return;
+				}
+
+				// fadd src:m64fp
+				if (src.is_memory() && src.size == QWORD) {
+					put_inst_std(0xDC, src, 0);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Add Memory Integer
+			void put_fiadd(Location src) {
+
+				// fadd src:m32int
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xDA, src, 0);
+					return;
+				}
+
+				// fadd src:m16int
+				if (src.is_memory() && src.size == WORD) {
+					put_inst_std(0xDE, src, 0);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Add
+			void put_fadd(Location dst, Location src) {
+
+				// fadd dst:st(0), src:st(i)
+				if (dst.is_st0() && src.is_floating()) {
+					put_inst_fpu(0xD8, 0xC0, src.offset);
+					return;
+				}
+
+				// fadd dst:st(i), src:st(0)
+				if (dst.is_floating() && src.is_st0()) {
+					put_inst_fpu(0xDC, 0xC0, dst.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+
+			}
+
+			/// Add And Pop
+			void put_faddp(Location dst) {
+
+				// faddp dst:st(i), st(0)
+				if (dst.is_floating()) {
+					put_inst_fpu(0xDE, 0xC0, dst.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Divide By Memory Float
+			void put_fdiv(Location src) {
+
+				// fdiv src:m32fp
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xD8, src, 6);
+					return;
+				}
+
+				// fdiv src:m64fp
+				if (src.is_memory() && src.size == QWORD) {
+					put_inst_std(0xDC, src, 6);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Divide By Memory Integer
+			void put_fidiv(Location src) {
+
+				// fidiv src:m32int
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xDA, src, 6);
+					return;
+				}
+
+				// fidiv src:m16int
+				if (src.is_memory() && src.size == WORD) {
+					put_inst_std(0xDE, src, 6);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Divide
+			void put_fdiv(Location dst, Location src) {
+
+				// fdiv dst:st(0), src:st(i)
+				if (dst.is_st0() && src.is_floating()) {
+					put_inst_fpu(0xD8, 0xF0, src.offset);
+					return;
+				}
+
+				// fdiv dst:st(i), src:st(0)
+				if (dst.is_floating() && src.is_st0()) {
+					put_inst_fpu(0xDC, 0xF8, dst.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+
+			}
+
+			/// Divide And Pop
+			void put_fdivp(Location dst) {
+
+				// fdivp dst:st(i), st(0)
+				if (dst.is_floating()) {
+					put_inst_fpu(0xDE, 0xF8, dst.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Divide Memory Float
+			void put_fdivr(Location src) {
+
+				// fdivr src:m32fp
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xD8, src, 7);
+					return;
+				}
+
+				// fdivr src:m64fp
+				if (src.is_memory() && src.size == QWORD) {
+					put_inst_std(0xDC, src, 7);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Divide Memory Integer
+			void put_fidivr(Location src) {
+
+				// fidivr src:m32int
+				if (src.is_memory() && src.size == DWORD) {
+					put_inst_std(0xDA, src, 7);
+					return;
+				}
+
+				// fidivr src:m16int
+				if (src.is_memory() && src.size == WORD) {
+					put_inst_std(0xDE, src, 7);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
+			/// Reverse Divide
+			void put_fdivr(Location dst, Location src) {
+
+				// fdivr dst:st(0), src:st(i)
+				if (dst.is_st0() && src.is_floating()) {
+					put_inst_fpu(0xD8, 0xF8, src.offset);
+					return;
+				}
+
+				// fdivr dst:st(i), src:st(0)
+				if (dst.is_floating() && src.is_st0()) {
+					put_inst_fpu(0xDC, 0xF0, dst.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operands!"};
+
+			}
+
+			/// Reverse Divide And Pop
+			void put_fdivrp(Location dst) {
+
+				// fdivrp dst:st(i), st(0)
+				if (dst.is_floating()) {
+					put_inst_fpu(0xDE, 0xF0, dst.offset);
+					return;
+				}
+
+				throw std::runtime_error {"Invalid operand!"};
+
+			}
+
 			void put_byte(uint8_t byte) {
 				buffer.push_back(byte);
 			}
@@ -1332,7 +1854,7 @@ namespace asmio::x86 {
 				buffer.push_back(imm_ptr[3]);
 			}
 
-			void put_dword(float dword) {
+			void put_dword_f(float dword) {
 				const uint8_t* imm_ptr = (uint8_t*) &dword;
 
 				buffer.push_back(imm_ptr[0]);
@@ -1354,7 +1876,7 @@ namespace asmio::x86 {
 				buffer.push_back(imm_ptr[7]);
 			}
 
-			void put_qword(double dword) {
+			void put_qword_f(double dword) {
 				const uint8_t* imm_ptr = (uint8_t*) &dword;
 
 				buffer.push_back(imm_ptr[0]);

@@ -6,7 +6,7 @@
 
 using namespace asmio::x86;
 
-TEST(writer_exec_mov_ret_nop) {
+TEST (writer_exec_mov_ret_nop) {
 
 	BufferWriter writer;
 
@@ -21,7 +21,47 @@ TEST(writer_exec_mov_ret_nop) {
 
 }
 
-TEST(writer_exec_rol_inc_neg_sar) {
+TEST (writer_exec_mem_moves) {
+
+	BufferWriter writer;
+
+	writer.label("a").put_dword();
+	writer.label("b").put_dword();
+	writer.label("c").put_dword(34);
+
+	writer.label("main");
+
+	// test 1
+	writer.put_mov(EAX, 12);
+	writer.put_mov(ref("a"), EAX);
+	writer.put_mov(EDX, ref("a"));
+	writer.put_cmp(EDX, 12);
+	writer.put_jne("fail");
+
+	// test 2
+	writer.put_mov(ref("b"), 121);
+	writer.put_mov(EDX, ref("b"));
+	writer.put_cmp(EDX, 121);
+	writer.put_jne("fail");
+
+	// test 3
+	writer.put_mov(EDX, ref("c"));
+	writer.put_cmp(EDX, 34);
+	writer.put_jne("fail");
+
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("fail");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32("main"), 1);
+
+}
+
+TEST (writer_exec_rol_inc_neg_sar) {
 
 	BufferWriter writer;
 
@@ -540,7 +580,7 @@ TEST(writer_exec_absolute_jmp) {
 
 }
 
-TEST (writer_exec_fnop_finit_fld1) {
+TEST (writer_exec_fpu_fnop_finit_fld1) {
 
 	BufferWriter writer;
 
@@ -554,7 +594,7 @@ TEST (writer_exec_fnop_finit_fld1) {
 
 }
 
-TEST (writer_exec_fmul_fimul_fmulp) {
+TEST (writer_exec_fpu_fmul_fimul_fmulp) {
 
 	BufferWriter writer;
 
@@ -585,7 +625,7 @@ TEST (writer_exec_fmul_fimul_fmulp) {
 
 }
 
-TEST(writer_exec_f2xm1_fabs_fchs) {
+TEST(writer_exec_fpu_f2xm1_fabs_fchs) {
 
 	BufferWriter writer;
 
@@ -609,7 +649,7 @@ TEST(writer_exec_f2xm1_fabs_fchs) {
 
 }
 
-TEST (writer_exec_fadd_fiadd_faddp) {
+TEST (writer_exec_fpu_fadd_fiadd_faddp) {
 
 	BufferWriter writer;
 
@@ -640,7 +680,7 @@ TEST (writer_exec_fadd_fiadd_faddp) {
 
 }
 
-TEST (writer_exec_fcom_fstsw_fcomp_fcmove_fcmovb) {
+TEST (writer_exec_fpu_fcom_fstsw_fcomp_fcmove_fcmovb) {
 
 	BufferWriter writer;
 
@@ -676,7 +716,7 @@ TEST (writer_exec_fcom_fstsw_fcomp_fcmove_fcmovb) {
 
 }
 
-TEST (writer_exec_fcompp) {
+TEST (writer_exec_fpu_fcompp) {
 
 	BufferWriter writer;
 
@@ -710,7 +750,7 @@ TEST (writer_exec_fcompp) {
 
 }
 
-TEST (writer_exec_fcomi_fcomip) {
+TEST (writer_exec_fpu_fcomi_fcomip) {
 
 	BufferWriter writer;
 
@@ -754,7 +794,7 @@ TEST (writer_exec_fcomi_fcomip) {
 
 }
 
-TEST (writer_exec_fldpi_fcos) {
+TEST (writer_exec_fpu_fldpi_fcos) {
 
 	BufferWriter writer;
 
@@ -769,7 +809,7 @@ TEST (writer_exec_fldpi_fcos) {
 
 }
 
-TEST (writer_exec_fdiv_fdivp) {
+TEST (writer_exec_fpu_fdiv_fdivp) {
 
 	BufferWriter writer;
 
@@ -797,7 +837,7 @@ TEST (writer_exec_fdiv_fdivp) {
 
 }
 
-TEST (writer_exec_fdivr_fdivrp) {
+TEST (writer_exec_fpu_fdivr_fdivrp) {
 
 	BufferWriter writer;
 
@@ -822,7 +862,7 @@ TEST (writer_exec_fdivr_fdivrp) {
 
 }
 
-TEST (writer_exec_ficom_ficomp) {
+TEST (writer_exec_fpu_ficom_ficomp) {
 
 	BufferWriter writer;
 
@@ -866,7 +906,7 @@ TEST (writer_exec_ficom_ficomp) {
 
 }
 
-TEST (writer_exec_fdecstp_fincstp) {
+TEST (writer_exec_fpu_fdecstp_fincstp) {
 
 	BufferWriter writer;
 
@@ -881,7 +921,7 @@ TEST (writer_exec_fdecstp_fincstp) {
 
 }
 
-TEST (writer_exec_fild) {
+TEST (writer_exec_fpu_fild) {
 
 	BufferWriter writer;
 
@@ -908,7 +948,7 @@ TEST (writer_exec_fild) {
 
 }
 
-TEST (writer_exec_fist_fistp) {
+TEST (writer_exec_fpu_fist_fistp) {
 
 	BufferWriter writer;
 
@@ -943,7 +983,7 @@ TEST (writer_exec_fist_fistp) {
 
 }
 
-TEST (writer_exec_fisttp) {
+TEST (writer_exec_fpu_fisttp) {
 
 	BufferWriter writer;
 
@@ -970,7 +1010,7 @@ TEST (writer_exec_fisttp) {
 
 }
 
-TEST (writer_exec_fldpi_frndint) {
+TEST (writer_exec_fpu_fldpi_frndint) {
 
 	BufferWriter writer;
 
@@ -985,7 +1025,7 @@ TEST (writer_exec_fldpi_frndint) {
 
 }
 
-TEST (writer_exec_fsqrt) {
+TEST (writer_exec_fpu_fsqrt) {
 
 	BufferWriter writer;
 
@@ -1003,7 +1043,7 @@ TEST (writer_exec_fsqrt) {
 
 }
 
-TEST (writer_exec_fst) {
+TEST (writer_exec_fpu_fst) {
 
 	BufferWriter writer;
 
@@ -1057,6 +1097,119 @@ TEST (writer_exec_fst) {
 	CHECK(buffer.call_f32("set_b"), 1.0f);
 	CHECK(buffer.call_f32("set_c"), 0.0f);
 	CHECK(buffer.call_f32("ctrl_sum"), 11.0f);
+
+}
+
+TEST (writer_exec_bt_dec) {
+
+	BufferWriter writer;
+
+	writer.label("var").put_dword();
+
+	writer.label("main");
+	writer.put_mov(ref("var"), 17); // 10001
+	writer.put_dec(ref("var"));     // 10000
+
+	writer.put_bt(ref("var"), 4);
+	writer.put_jnc("invalid_1");
+
+	writer.put_bt(ref("var"), 0);
+	writer.put_jc("invalid_2");
+
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	writer.label("invalid_1");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("invalid_2");
+	writer.put_mov(EAX, 2);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_i32("main"), 0);
+
+}
+
+TEST (writer_fail_redefinition) {
+
+	BufferWriter writer;
+
+	writer.label("a").put_byte(1);
+	writer.label("b").put_byte(2);
+	writer.label("main");
+	writer.put_ret();
+
+	EXPECT(std::runtime_error, {
+		writer.label("main");
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.label("a");
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.label("b");
+	});
+
+}
+
+TEST (writer_fail_invalid_reg_size) {
+
+	BufferWriter writer;
+
+	writer.put_movsx(AX, DL);  // valid
+	writer.put_movsx(EAX, BH); // valid
+	writer.put_movsx(EDX, AX); // valid
+
+	EXPECT(std::runtime_error, {
+		writer.put_mov(EAX, AX);
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.put_mov(AX, EAX);
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.put_movsx(AX, AX);
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.put_movsx(AL, AX);
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.put_movsx(BH, EDX);
+	});
+
+}
+
+TEST (writer_fail_invalid_mem_size) {
+
+	BufferWriter writer;
+
+	writer.label("a");
+	writer.put_dword(0);
+
+	writer.put_mov(AL, cast<BYTE>(ref("a"))); // valid
+	writer.put_mov(AL, 0xFFFFFFFF);           // stupid, but valid
+
+	EXPECT(std::runtime_error, {
+		writer.put_fst(cast<TWORD>(ref("a")));
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.put_fst(cast<WORD>(ref("a")));
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.put_fst(cast<BYTE>(ref("a")));
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.put_mov(EAX, cast<BYTE>(ref("a")));
+	});
 
 }
 

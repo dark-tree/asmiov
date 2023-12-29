@@ -1,11 +1,6 @@
 #pragma once
 
-#include <cinttypes>
-#include <cstdlib>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <cstring>
-
+#include "external.hpp"
 #include "util.hpp"
 
 namespace asmio::x86 {
@@ -19,8 +14,7 @@ namespace asmio::x86 {
 			size_t length;
 
 			__attribute__((__always_inline__)) void raw_call(uint32_t offset) {
-				// don't touch, magic. 0x23 refers to the 32bit code & data segment
-				x86_switch_mode(0x23, reinterpret_cast<uint32_t (*)()>(buffer + offset));
+				x86_switch_mode(reinterpret_cast<uint32_t (*)()>(buffer + offset));
 			}
 
 		public:

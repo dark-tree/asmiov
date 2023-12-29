@@ -10,6 +10,13 @@ set(ASM_SOURCES
         src/switch.s
 )
 
+set(CPP_SOURCES
+        src/writer.cpp
+        src/address.cpp
+        src/instructions/cpu.cpp
+        src/instructions/fpu.cpp
+)
+
 include_directories(LAIO
         src/
         .
@@ -18,6 +25,7 @@ include_directories(LAIO
 add_executable(LAIO
         test/tests.cpp
         ${ASM_SOURCES}
+        ${CPP_SOURCES}
 )
 
 set_source_files_properties(${ASM_SOURCES} PROPERTIES LANGUAGE ASM)

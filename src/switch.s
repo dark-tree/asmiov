@@ -1,8 +1,12 @@
 .intel_syntax noprefix
 // https://stackoverflow.com/a/48855022
 
-.code64
+.data
+data_segment: .long 0x2B
+code_segment: .long 0x23
+
 .text
+.code64
 .global x86_switch_mode
 
 // executes the given callback in 32 bit mode
@@ -14,14 +18,16 @@ x86_switch_mode:
 
         mov     rbx, rsp
         movq    [rbx], offset .L1
-        mov     [rbx+4], edi
+
+        mov     ecx, [code_segment]
+        mov     [rbx+4], ecx
 
         // save value of DS
         mov     rcx, ds
         push    rcx
 
-        // set DS to segment 0x2B
-        mov     ecx, 0x2B
+        // set DS to the selected segment
+        mov     ecx, [data_segment]
         mov     ds, ecx
 
         // before the lcall, switch to a stack below 4GB
@@ -42,7 +48,7 @@ x86_switch_mode:
 .code32
 .L1:
         // execute the callback in compatibility mode
-        call    esi
+        call    edi
         lret
 
 .code64

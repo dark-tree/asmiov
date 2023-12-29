@@ -1,45 +1,49 @@
 #pragma once
 
-#include <cstring>
+#include "external.hpp"
 #include "util.hpp"
 #include "const.hpp"
 
-struct Label {
+namespace asmio::x86 {
 
-	private:
+	struct Label {
 
-		const char* str;
-		uint64_t hash;
+		private:
 
-	public:
+			const char *str;
+			uint64_t hash;
 
-		Label(const char* str)
-		: str(str), hash(hash_djb2(str)) {}
+		public:
 
-		bool operator == (Label label) const {
-			return label.hash == this->hash && strcmp(label.str, this->str) == 0;
-		}
+			Label(const char *str)
+					: str(str), hash(hash_djb2(str)) {}
 
-		const char* c_str() {
-			return str;
-		}
-
-		struct HashFunction {
-
-			size_t operator() (const Label& label) const {
-				return label.hash;
+			bool operator == (Label label) const {
+				return label.hash == this->hash && strcmp(label.str, this->str) == 0;
 			}
 
-		};
+			const char *c_str() {
+				return str;
+			}
 
-};
+			struct HashFunction {
 
-struct LabelCommand {
+				size_t operator()(const Label &label) const {
+					return label.hash;
+				}
 
-	Label label;
-	uint8_t size;
-	long offset;
-	long shift;
-	bool relative;
+			};
 
-};
+	};
+
+	struct LabelCommand {
+
+		Label label;
+		uint8_t size;
+		long offset;
+		long shift;
+		bool relative;
+
+	};
+
+}

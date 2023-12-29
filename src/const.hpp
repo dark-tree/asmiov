@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cinttypes>
+#include "external.hpp"
 
 namespace asmio::x86 {
 

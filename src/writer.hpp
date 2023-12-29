@@ -116,9 +116,6 @@ namespace asmio::x86 {
 			void put_sar(Location dst, Location src);   /// Arithmetic Shift Right
 			void put_jmp(Location dst);                 /// Unconditional Jump
 			void put_call(Location dst);                /// Procedure Call
-
-
-
 			Label put_jo(Label label);                  /// Jump on Overflow
 			Label put_jno(Label label);                 /// Jump on Not Overflow
 			Label put_jb(Label label);                  /// Jump on Below
@@ -135,7 +132,6 @@ namespace asmio::x86 {
 			Label put_jnl(Label label);                 /// Jump on Not Less
 			Label put_jle(Label label);                 /// Jump on Less or Equal
 			Label put_jnle(Label label);                /// Jump on Not Less or Equal
-
 			Label put_jc(Label label);                  /// Alias to JB, Jump on Carry
 			Label put_jnc(Label label);                 /// Alias to JNB, Jump on Not Carry
 			Label put_jnae(Label label);                /// Alias to JB, Jump on Not Above or Equal
@@ -150,12 +146,9 @@ namespace asmio::x86 {
 			Label put_jge(Label label);                 /// Alias to JNL, Jump on Greater or Equal
 			Label put_jng(Label label);                 /// Alias to JLE, Jump on Not Greater
 			Label put_jg(Label label);                  /// Alias to JNLE, Jump on Greater
-
 			Label put_jcxz(Label label);                /// Jump on CX Zero
 			Label put_jecxz(Label label);               /// Jump on ECX Zero
 			Label put_loop(Label label);                /// Loop Times
-
-
 			void put_seto(Location dst);                /// Set Byte on Overflow
 			void put_setno(Location dst);               /// Set Byte on Not Overflow
 			void put_setb(Location dst);                /// Set Byte on Below
@@ -172,7 +165,6 @@ namespace asmio::x86 {
 			void put_setnl(Location dst);               /// Set Byte on Not Less
 			void put_setle(Location dst);               /// Set Byte on Less or Equal
 			void put_setnle(Location dst);              /// Set Byte on Not Less or Equal
-
 			void put_setc(Location dst);                /// Alias to JB, Jump on Carry
 			void put_setnc(Location dst);               /// Alias to JNB, Jump on Not Carry
 			void put_setnae(Location dst);              /// Alias to JB, Jump on Not Above or Equal
@@ -187,7 +179,6 @@ namespace asmio::x86 {
 			void put_setge(Location dst);               /// Alias to JNL, Jump on Greater or Equal
 			void put_setng(Location dst);               /// Alias to JLE, Jump on Not Greater
 			void put_setg(Location dst);                /// Alias to JNLE, Jump on Greater
-
 			void put_int(Location type);                /// Interrupt
 			void put_nop();                             /// No Operation
 			void put_hlt();                             /// Halt

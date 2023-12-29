@@ -280,7 +280,7 @@ namespace asmio::x86 {
 
 	/// Multiply (Unsigned)
 	void BufferWriter::put_mul(Location dst) {
-		if (dst.is_simple() || dst.reference) {
+		if (dst.is_memreg()) {
 			put_inst_std(0b111101, dst, 0b100, true, dst.base.is_wide());
 			return;
 		}
@@ -291,12 +291,11 @@ namespace asmio::x86 {
 	/// Integer multiply (Signed)
 	void BufferWriter::put_imul(Location dst, Location src) {
 
-		// TODO: This requires a change to the size system to work
 		// short form
-		// if (dst.is_simple() && src.is_memreg() && dst.base.name == Registry::Name::A) {
-		// 	put_inst_std(0b111101, src, 0b101, true, dst.base.is_wide());
-		// 	return;
-		// }
+		if (dst.is_simple() && src.is_memreg() && src.size == dst.size && dst.base.is(EAX)) {
+			put_inst_std(0b111101, src, 0b101, true, src.is_wide());
+		 	return;
+		}
 
 		if (dst.is_simple() && src.is_memreg() && dst.base.size != BYTE) {
 			put_inst_std(0b10101111, src, dst.base.reg, true);

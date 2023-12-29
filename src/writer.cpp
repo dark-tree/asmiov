@@ -268,7 +268,6 @@ namespace asmio::x86 {
 	 */
 	void BufferWriter::put_inst_jx(Label label, uint8_t sopcode, uint8_t lopcode) {
 
-		// TODO: test
 		if (has_label(label)) {
 			int offset = get_label(label) - buffer.size();
 

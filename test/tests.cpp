@@ -1176,6 +1176,52 @@ TEST (writer_exec_setx) {
 
 }
 
+TEST (writer_exec_int_0x80) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 20); // sys_getpid
+	writer.put_int(0x80);
+	writer.put_ret();
+
+	const uint32_t pid = writer.bake().call_u32();
+	CHECK(pid, getpid());
+
+}
+
+TEST (writer_exec_long_back_jmp) {
+
+	BufferWriter writer;
+
+	writer.label("start");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("main");
+	writer.put_mov(EAX, 0);
+	for (int i = 0; i < 255; i ++) {
+		writer.put_nop();
+	}
+
+	writer.put_jmp("start");
+
+	CHECK(writer.bake().call_u32("main"), 1);
+
+}
+
+TEST (writer_exec_imul_short) {
+
+	BufferWriter writer;
+
+	writer.put_mov(EAX, -3);
+	writer.put_mov(EDX, 4);
+	writer.put_imul(EAX, EDX);
+	writer.put_ret();
+
+	CHECK(writer.bake().call_u32(), -12);
+
+}
+
 TEST (writer_fail_redefinition) {
 
 	BufferWriter writer;

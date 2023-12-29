@@ -144,9 +144,11 @@ namespace asmio::x86 {
 			Label put_jcxz(Label label);                /// Jump on CX Zero
 			Label put_jecxz(Label label);               /// Jump on ECX Zero
 			Label put_loop(Label label);                /// Loop Times
+			void put_int(Location type);				/// Interrupt
 			void put_nop();                             /// No Operation
 			void put_hlt();                             /// Halt
 			void put_wait();                            /// Wait
+			void put_leave();                           /// Leave
 			void put_pusha();                           /// Push All
 			void put_popa();                            /// Pop All
 			void put_pushf();                           /// Push Flags

@@ -74,12 +74,7 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_inst_imm(uint32_t immediate, uint8_t width) {
-		const uint8_t *imm_ptr = (uint8_t *) &immediate;
-
-		if (width >= BYTE) buffer.push_back(imm_ptr[0]);
-		if (width >= WORD) buffer.push_back(imm_ptr[1]);
-		if (width >= DWORD) buffer.push_back(imm_ptr[2]);
-		if (width >= DWORD) buffer.push_back(imm_ptr[3]);
+		insert_buffer(buffer, (uint8_t *) &immediate, std::min(width, DWORD)); // limit to DWORD
 	}
 
 	void BufferWriter::put_inst_sib(Location ref) {
@@ -100,7 +95,6 @@ namespace asmio::x86 {
 		}
 
 		put_inst_imm(imm.offset, size);
-		return;
 	}
 
 	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool longer) {
@@ -185,11 +179,11 @@ namespace asmio::x86 {
 		//     movsx (w=1) -> movsx [quad], [word]
 
 		if (!dst.is_simple()) {
-			throw std::runtime_error{"Invalid destination operand!"};
+			throw std::runtime_error {"Invalid destination operand!"};
 		}
 
 		if (src_len >= dst_len) {
-			throw std::runtime_error{"Invalid destination sizes!"};
+			throw std::runtime_error {"Invalid destination sizes!"};
 		}
 
 		put_inst_std(opcode, src, dst.base.reg, true, src_len == WORD, true);
@@ -221,7 +215,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 
 	}
 
@@ -243,7 +237,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 
 	}
 
@@ -265,7 +259,7 @@ namespace asmio::x86 {
 			}
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 
 	}
 
@@ -301,7 +295,7 @@ namespace asmio::x86 {
 	void BufferWriter::put_label(Label label, uint8_t size) {
 		commands.emplace_back(label, size, buffer.size(), 0, true);
 
-		while (size-- > 0) {
+		while (size --> 0) {
 			put_byte(0);
 		}
 	}
@@ -311,12 +305,16 @@ namespace asmio::x86 {
 	}
 
 	int BufferWriter::get_label(Label label) {
-		return labels.at(label);
+		try {
+			return labels.at(label);
+		} catch (...) {
+			throw std::runtime_error {std::string {"Undefined label '"} + label.c_str() + "' used!"};
+		}
 	}
 
 	BufferWriter& BufferWriter::label(Label label) {
 		if (has_label(label)) {
-			throw std::runtime_error{"Invalid label, redefinition attempted!"};
+			throw std::runtime_error {"Invalid label, redefinition attempted!"};
 		}
 
 		labels[label] = buffer.size();
@@ -328,62 +326,31 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_word(uint16_t word) {
-		const uint8_t *imm_ptr = (uint8_t *) &word;
-
-		buffer.push_back(imm_ptr[0]);
-		buffer.push_back(imm_ptr[1]);
+		insert_buffer(buffer, (uint8_t*) &word, WORD);
 	}
 
 	void BufferWriter::put_dword(uint32_t dword) {
-		const uint8_t *imm_ptr = (uint8_t *) &dword;
-
-		buffer.push_back(imm_ptr[0]);
-		buffer.push_back(imm_ptr[1]);
-		buffer.push_back(imm_ptr[2]);
-		buffer.push_back(imm_ptr[3]);
+		insert_buffer(buffer, (uint8_t*) &dword, DWORD);
 	}
 
 	void BufferWriter::put_dword_f(float dword) {
-		const uint8_t *imm_ptr = (uint8_t *) &dword;
-
-		buffer.push_back(imm_ptr[0]);
-		buffer.push_back(imm_ptr[1]);
-		buffer.push_back(imm_ptr[2]);
-		buffer.push_back(imm_ptr[3]);
+		insert_buffer(buffer, (uint8_t*) &dword, DWORD);
 	}
 
-	void BufferWriter::put_qword(uint64_t dword) {
-		const uint8_t *imm_ptr = (uint8_t *) &dword;
-
-		buffer.push_back(imm_ptr[0]);
-		buffer.push_back(imm_ptr[1]);
-		buffer.push_back(imm_ptr[2]);
-		buffer.push_back(imm_ptr[3]);
-		buffer.push_back(imm_ptr[4]);
-		buffer.push_back(imm_ptr[5]);
-		buffer.push_back(imm_ptr[6]);
-		buffer.push_back(imm_ptr[7]);
+	void BufferWriter::put_qword(uint64_t qword) {
+		insert_buffer(buffer, (uint8_t*) &qword, QWORD);
 	}
 
-	void BufferWriter::put_qword_f(double dword) {
-		const uint8_t *imm_ptr = (uint8_t *) &dword;
-
-		buffer.push_back(imm_ptr[0]);
-		buffer.push_back(imm_ptr[1]);
-		buffer.push_back(imm_ptr[2]);
-		buffer.push_back(imm_ptr[3]);
-		buffer.push_back(imm_ptr[4]);
-		buffer.push_back(imm_ptr[5]);
-		buffer.push_back(imm_ptr[6]);
-		buffer.push_back(imm_ptr[7]);
+	void BufferWriter::put_qword_f(double qword) {
+		insert_buffer(buffer, (uint8_t*) &qword, QWORD);
 	}
 
 	ExecutableBuffer BufferWriter::bake(bool debug) {
 
-		ExecutableBuffer result{buffer.size(), labels};
+		ExecutableBuffer result {buffer.size(), labels};
 		size_t absolute = result.get_address();
 
-		for (LabelCommand command: commands) {
+		for (LabelCommand command : commands) {
 			const long offset = command.relative ? command.offset + command.size : (-absolute);
 			const long imm_val = get_label(command.label) - offset + command.shift;
 			const uint8_t *imm_ptr = (uint8_t *) &imm_val;
@@ -399,17 +366,16 @@ namespace asmio::x86 {
 		if (debug) {
 			int i = 0;
 
-			for (uint8_t byte: buffer) {
+			for (uint8_t byte : buffer) {
 				std::bitset<8> bin(byte);
-				std::cout << std::setfill('0') << std::setw(4) << i << " | " << std::setfill('0') << std::setw(2)
-						<< std::hex << ((int) byte) << ' ' << bin << std::endl;
+				std::cout << std::setfill('0') << std::setw(4) << i << " | " << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << ' ' << bin << std::endl;
 				i++;
 			}
 
 			std::cout << "./unasm.sh \"db ";
 			bool first = true;
 
-			for (uint8_t byte: buffer) {
+			for (uint8_t byte : buffer) {
 				if (!first) {
 					std::cout << ", ";
 				}

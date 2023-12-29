@@ -10,7 +10,7 @@ namespace asmio::x86 {
 		// verify operand size
 		if (src.is_memreg() && dst.is_memreg()) {
 			if (src.size != dst.size) {
-				throw std::runtime_error{"Operands must have equal size!"};
+				throw std::runtime_error {"Operands must have equal size!"};
 			}
 		}
 
@@ -41,7 +41,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Move with Sign Extension
@@ -60,7 +60,7 @@ namespace asmio::x86 {
 		// lea deals with addresses, addresses use 32 bits,
 		// so this is quite a logical limitation
 		if (dst.base.size != DWORD) {
-			throw std::runtime_error{"Invalid operands, non-dword target register can't be used here!"};
+			throw std::runtime_error {"Invalid operands, non-dword target register can't be used here!"};
 		}
 
 		// handle EXP to REG
@@ -70,10 +70,10 @@ namespace asmio::x86 {
 		}
 
 		if (src.reference) {
-			throw std::runtime_error{"Invalid operands, reference can't be used here!"};
+			throw std::runtime_error {"Invalid operands, reference can't be used here!"};
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Exchange
@@ -89,7 +89,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Push
@@ -113,7 +113,7 @@ namespace asmio::x86 {
 		// for some reason push & pop don't handle the wide flag,
 		// so we can only accept wide registers
 		if (src.size == BYTE) {
-			throw std::runtime_error{"Invalid operands, byte register can't be used here!"};
+			throw std::runtime_error {"Invalid operands, byte register can't be used here!"};
 		}
 
 		// short-form
@@ -132,7 +132,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Pop
@@ -141,7 +141,7 @@ namespace asmio::x86 {
 		// for some reason push & pop don't handle the wide flag,
 		// so we can only accept wide registers
 		if (!src.base.is_wide()) {
-			throw std::runtime_error{"Invalid operands, byte register can't be used here!"};
+			throw std::runtime_error {"Invalid operands, byte register can't be used here!"};
 		}
 
 		// short-form
@@ -160,7 +160,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Increment
@@ -183,7 +183,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Decrement
@@ -205,7 +205,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Negate
@@ -215,7 +215,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Add
@@ -285,7 +285,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Integer multiply (Signed)
@@ -308,7 +308,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Integer multiply (Signed), triple arg version
@@ -321,7 +321,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands!"};
 	}
 
 	/// Divide (Unsigned)
@@ -331,7 +331,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand!"};
 	}
 
 	/// Integer divide (Signed)
@@ -341,7 +341,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand!"};
 	}
 
 	/// Invert
@@ -351,7 +351,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand!"};
 	}
 
 	/// Rotate Left
@@ -487,7 +487,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand!"};
 	}
 
 	/// Procedure Call
@@ -507,7 +507,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand!"};
 	}
 
 	/// Jump on Overflow
@@ -606,6 +606,25 @@ namespace asmio::x86 {
 		return label;
 	}
 
+	/// Interrupt
+	void BufferWriter::put_int(Location type) {
+
+		if (!type.is_immediate()) {
+			throw std::runtime_error {"Invalid operand!"};
+		}
+
+		// short form
+		if (type.offset == 3) {
+			put_byte(0xCC);
+			return;
+		}
+
+		// standard form
+		put_byte(0b11001101);
+		put_byte(type.offset);
+
+	}
+
 	/// No Operation
 	void BufferWriter::put_nop() {
 		put_byte(0b10010000);
@@ -619,6 +638,11 @@ namespace asmio::x86 {
 	/// Wait
 	void BufferWriter::put_wait() {
 		put_byte(0b10011011);
+	}
+
+	/// Leave
+	void BufferWriter::put_leave() {
+		put_byte(0b11001001);
 	}
 
 	/// Push All

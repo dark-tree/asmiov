@@ -16,6 +16,11 @@ namespace asmio::x86 {
 		if constexpr (std::is_pointer_v<T>) return value; else return nullptr;
 	}
 
+	template<typename T>
+	void insert_buffer(std::vector<T>& vec, T* buffer, size_t count) {
+		vec.insert(vec.end(), buffer, buffer + count);
+	}
+
 	inline int min_bytes(uint64_t value) {
 		if (value > 0xFFFFFFFF) return 8;
 		if (value > 0xFFFF) return 4;

@@ -1213,4 +1213,15 @@ TEST (writer_fail_invalid_mem_size) {
 
 }
 
+TEST (writer_fail_undefined_label) {
+
+	BufferWriter writer;
+	writer.put_mov(EAX, ref("hamburger"));
+
+	EXPECT(std::runtime_error, {
+		writer.bake();
+	});
+
+}
+
 BEGIN(VSTL_MODE_LENIENT)

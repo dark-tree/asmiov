@@ -606,6 +606,86 @@ namespace asmio::x86 {
 		return label;
 	}
 
+	/// Set Byte on Overflow
+	void BufferWriter::put_seto(Location dst) {
+		put_inst_setx(dst, 0);
+	}
+
+	/// Set Byte on Not Overflow
+	void BufferWriter::put_setno(Location dst) {
+		put_inst_setx(dst, 1);
+	}
+
+	/// Set Byte on Below
+	void BufferWriter::put_setb(Location dst) {
+		put_inst_setx(dst, 2);
+	}
+
+	/// Set Byte on Not Below
+	void BufferWriter::put_setnb(Location dst) {
+		put_inst_setx(dst, 3);
+	}
+
+	/// Set Byte on Equal
+	void BufferWriter::put_sete(Location dst) {
+		put_inst_setx(dst, 4);
+	}
+
+	/// Set Byte on Not Equal
+	void BufferWriter::put_setne(Location dst) {
+		put_inst_setx(dst, 5);
+	}
+
+	/// Set Byte on Below or Equal
+	void BufferWriter::put_setbe(Location dst) {
+		put_inst_setx(dst, 6);
+	}
+
+	/// Set Byte on Not Below or Equal
+	void BufferWriter::put_setnbe(Location dst) {
+		put_inst_setx(dst, 7);
+	}
+
+	/// Set Byte on Sign
+	void BufferWriter::put_sets(Location dst) {
+		put_inst_setx(dst, 8);
+	}
+
+	/// Set Byte on Not Sign
+	void BufferWriter::put_setns(Location dst) {
+		put_inst_setx(dst, 9);
+	}
+
+	/// Set Byte on Parity
+	void BufferWriter::put_setp(Location dst) {
+		put_inst_setx(dst, 10);
+	}
+
+	/// Set Byte on Not Parity
+	void BufferWriter::put_setnp(Location dst) {
+		put_inst_setx(dst, 11);
+	}
+
+	/// Set Byte on Less
+	void BufferWriter::put_setl(Location dst) {
+		put_inst_setx(dst, 12);
+	}
+
+	/// Set Byte on Not Less
+	void BufferWriter::put_setnl(Location dst) {
+		put_inst_setx(dst, 13);
+	}
+
+	/// Set Byte on Less or Equal
+	void BufferWriter::put_setle(Location dst) {
+		put_inst_setx(dst, 14);
+	}
+
+	/// Set Byte on Not Less or Equal
+	void BufferWriter::put_setnle(Location dst) {
+		put_inst_setx(dst, 15);
+	}
+
 	/// Interrupt
 	void BufferWriter::put_int(Location type) {
 
@@ -798,6 +878,76 @@ namespace asmio::x86 {
 		put_byte(0b11100010);
 		put_label(label, BYTE);
 		return label;
+	}
+
+	/// Alias to SETB, Set Byte on Carry
+	void BufferWriter::put_setc(Location dst) {
+		put_setb(dst);
+	}
+
+	/// Alias to SETNB, Set Byte on not Carry
+	void BufferWriter::put_setnc(Location dst) {
+		put_setnb(dst);
+	}
+
+	/// Alias to SETB, Set Byte on Not Above or Equal
+	void BufferWriter::put_setnae(Location dst) {
+		put_setb(dst);
+	}
+
+	/// Alias to SETNB, Set Byte on Above or Equal
+	void BufferWriter::put_setae(Location dst) {
+		put_setnb(dst);
+	}
+
+	/// Alias to SETE, Set Byte on Zero
+	void BufferWriter::put_setz(Location dst) {
+		put_sete(dst);
+	}
+
+	/// Alias to SETNE, Set Byte on Not Zero
+	void BufferWriter::put_setnz(Location dst) {
+		put_setne(dst);
+	}
+
+	/// Alias to SETBE, Set Byte on Not Above
+	void BufferWriter::put_setna(Location dst) {
+		put_setbe(dst);
+	}
+
+	/// Alias to SETNBE, Set Byte on Above
+	void BufferWriter::put_seta(Location dst) {
+		put_setnbe(dst);
+	}
+
+	/// Alias to SETP, Set Byte on Parity Even
+	void BufferWriter::put_setpe(Location dst) {
+		put_setp(dst);
+	}
+
+	/// Alias to SETNP, Set Byte on Parity Odd
+	void BufferWriter::put_setpo(Location dst) {
+		put_setnp(dst);
+	}
+
+	/// Alias to SETL, Set Byte on Not Greater or Equal
+	void BufferWriter::put_setnge(Location dst) {
+		put_setl(dst);
+	}
+
+	/// Alias to SETNL, Set Byte on Greater or Equal
+	void BufferWriter::put_setge(Location dst) {
+		put_setnl(dst);
+	}
+
+	/// Alias to SETLE, Set Byte on Not Greater
+	void BufferWriter::put_setng(Location dst) {
+		put_setle(dst);
+	}
+
+	/// Alias to SETNLE, Set Byte on Greater
+	void BufferWriter::put_setg(Location dst) {
+		put_setnle(dst);
 	}
 
 	/// ASCII adjust for division

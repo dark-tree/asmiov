@@ -1132,6 +1132,50 @@ TEST (writer_exec_bt_dec) {
 
 }
 
+TEST (writer_exec_setx) {
+
+	BufferWriter writer;
+
+	writer.label("db").put_byte(0);
+	writer.label("dw").put_word(0);
+	writer.label("dd").put_dword(0);
+
+	writer.label("main");
+	writer.put_mov(EAX, 0);
+	writer.put_stc();
+	writer.put_setc(EAX);
+	writer.put_setc(cast<BYTE>(ref("db")));
+	writer.put_setc(cast<WORD>(ref("dw")));
+	writer.put_setc(cast<DWORD>(ref("dd")));
+	writer.put_ret();
+
+	writer.label("sanity");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	writer.label("read_db");
+	writer.put_mov(EAX, 0);
+	writer.put_mov(AL, cast<BYTE>(ref("db")));
+	writer.put_ret();
+
+	writer.label("read_dw");
+	writer.put_mov(EAX, 0);
+	writer.put_mov(AX, cast<WORD>(ref("dw")));
+	writer.put_ret();
+
+	writer.label("read_dd");
+	writer.put_mov(EAX, ref("dd"));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_i32("main"), 1);
+	CHECK(buffer.call_i32("sanity"), 0);
+	CHECK(buffer.call_i32("read_db"), 1);
+	CHECK(buffer.call_i32("read_dw"), 1);
+	CHECK(buffer.call_i32("read_dd"), 1);
+
+}
+
 TEST (writer_fail_redefinition) {
 
 	BufferWriter writer;

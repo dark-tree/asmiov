@@ -159,7 +159,7 @@ namespace asmio::x86 {
 		uint8_t src_reg = src.base.reg;
 		uint8_t dst_len = dst.size;
 
-		put_inst_std(src.is_immediate() ? 0b110001 : 0b100010, dst, src_reg, direction, dst.base.is_wide());
+		put_inst_std(src.is_immediate() ? 0b110001 : 0b100010, dst, src_reg, direction, dst.is_wide());
 
 		if (src.is_immediate()) {
 			put_inst_label_imm(src, dst_len);
@@ -264,10 +264,11 @@ namespace asmio::x86 {
 	}
 
 	/**
-	 * Used for constructing the conditional jump family of instructions
+	 * Used for constructing the 'conditional jump' family of instructions
 	 */
 	void BufferWriter::put_inst_jx(Label label, uint8_t sopcode, uint8_t lopcode) {
 
+		// TODO: test
 		if (has_label(label)) {
 			int offset = get_label(label) - buffer.size();
 
@@ -282,6 +283,13 @@ namespace asmio::x86 {
 		put_byte(lopcode);
 		put_label(label, DWORD);
 
+	}
+
+	/**
+	 * Used for constructing the 'set byte' family of instructions
+	 */
+	void BufferWriter::put_inst_setx(Location dst, uint8_t lopcode) {
+		put_inst_std(0b1001'0000 | lopcode, dst, 0, true);
 	}
 
 	void BufferWriter::put_inst_16bit_operand_mark() {

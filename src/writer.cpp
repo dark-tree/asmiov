@@ -192,7 +192,7 @@ namespace asmio::x86 {
 	 */
 	void BufferWriter::put_inst_shift(Location dst, Location src, uint8_t inst) {
 
-		bool dst_wide = dst.base.is_wide();
+		bool dst_wide = dst.is_wide();
 
 		if (src.is_simple() && src.base.is(CL)) {
 			put_inst_std(0b110100, dst, inst, true, dst_wide);
@@ -220,12 +220,12 @@ namespace asmio::x86 {
 	void BufferWriter::put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_reg) {
 
 		if (dst.is_simple() && src.is_memreg()) {
-			put_inst_std(opcode_rmr, src, dst.base.reg, true, dst.base.is_wide());
+			put_inst_std(opcode_rmr, src, dst.base.reg, true, dst.is_wide());
 			return;
 		}
 
 		if (src.is_simple() && dst.reference) {
-			put_inst_std(opcode_rmr, src, dst.base.reg, false, src.base.is_wide());
+			put_inst_std(opcode_rmr, src, dst.base.reg, false, src.is_wide());
 			return;
 		}
 

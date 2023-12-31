@@ -110,7 +110,7 @@ namespace asmio::x86 {
 			void put_bts(Location dst, Location src);   /// Bit Test and Set
 			void put_btr(Location dst, Location src);   /// Bit Test and Reset
 			void put_btc(Location dst, Location src);   /// Bit Test and Complement
-			void put_mul(Location dst);                 /// Multiply (Unsigned)
+			void put_mul(Location src);                 /// Multiply (Unsigned)
 			void put_imul(Location dst, Location src);  /// Integer multiply (Signed)
 			void put_imul(Location dst, Location src, Location val); /// Integer multiply (Signed, Triple Arg)
 			void put_div(Location src);                 /// Divide (Unsigned)

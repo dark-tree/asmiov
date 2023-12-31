@@ -1287,6 +1287,147 @@ TEST (writer_exec_memory_push_pop) {
 
 }
 
+TEST (writer_exec_memory_dec_inc) {
+
+	BufferWriter writer;
+
+	writer.label("ad").put_dword(150);
+	writer.label("bd").put_word(100);
+	writer.label("cd").put_byte(50);
+	writer.label("ai").put_dword(150);
+	writer.label("bi").put_word(100);
+	writer.label("ci").put_byte(50);
+
+	writer.label("main");
+	writer.put_dec(ref("ad"));
+	writer.put_dec(cast<WORD>(ref("bd")));
+	writer.put_dec(cast<BYTE>(ref("cd")));
+	writer.put_inc(ref("ai"));
+	writer.put_inc(cast<WORD>(ref("bi")));
+	writer.put_inc(cast<BYTE>(ref("ci")));
+	writer.put_cmp(ref("ad"), 149);
+	writer.put_jne("invalid");
+	writer.put_cmp(cast<WORD>(ref("bd")), 99);
+	writer.put_jne("invalid");
+	writer.put_cmp(cast<BYTE>(ref("cd")), 49);
+	writer.put_jne("invalid");
+	writer.put_cmp(ref("ai"), 151);
+	writer.put_jne("invalid");
+	writer.put_cmp(cast<WORD>(ref("bi")), 101);
+	writer.put_jne("invalid");
+	writer.put_cmp(cast<BYTE>(ref("ci")), 51);
+	writer.put_jne("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("invalid");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+
+	CHECK(buffer.call_i32("main"), 1);
+
+}
+
+TEST (writer_exec_memory_neg) {
+
+	BufferWriter writer;
+
+	writer.label("a").put_dword(150);
+	writer.label("b").put_word(-100);
+	writer.label("c").put_byte(50);
+
+	writer.label("main");
+	writer.put_neg(ref("a"));
+	writer.put_neg(cast<WORD>(ref("b")));
+	writer.put_neg(cast<BYTE>(ref("c")));
+	writer.put_cmp(ref("a"), -150);
+	writer.put_jne("invalid");
+	writer.put_cmp(cast<WORD>(ref("b")), 100);
+	writer.put_jne("invalid");
+	writer.put_cmp(cast<BYTE>(ref("c")), -50);
+	writer.put_jne("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("invalid");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+
+	CHECK(buffer.call_i32("main"), 1);
+
+}
+
+TEST (writer_exec_memory_not) {
+
+	BufferWriter writer;
+
+	writer.label("a").put_dword(12345);
+	writer.label("b").put_word(178);
+	writer.label("c").put_byte(34);
+
+	writer.label("main");
+	writer.put_not(ref("a"));
+	writer.put_not(cast<WORD>(ref("b")));
+	writer.put_not(cast<BYTE>(ref("c")));
+	writer.put_cmp(ref("a"), ~12345);
+	writer.put_jne("invalid");
+	writer.put_cmp(cast<WORD>(ref("b")), ~178);
+	writer.put_jne("invalid");
+	writer.put_cmp(cast<BYTE>(ref("c")), ~34);
+	writer.put_jne("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("invalid");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+
+	CHECK(buffer.call_i32("main"), 1);
+
+}
+
+TEST (writer_exec_memory_mul) {
+
+	BufferWriter writer;
+
+	writer.label("a").put_byte(17);
+	writer.label("r").put_byte({2, 0, 0});
+
+	writer.label("main");
+	writer.put_mov(EAX, 3);
+	writer.put_mul(ref("a")); // intentional dword ptr
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	uint32_t eax = buffer.call_i32("main");
+
+	ASSERT(eax > 3*17);
+
+}
+
+TEST (writer_exec_memory_shift) {
+
+	BufferWriter writer;
+
+	writer.label("a").put_dword(0x0571BACD);
+
+	writer.label("main");
+	writer.put_xor(EAX, EAX);
+	writer.put_shl(cast<DWORD>(ref("a")), 1);
+	writer.put_mov(EAX, cast<DWORD>(ref("a")));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_i32("main"), 0x0571BACD<<1);
+
+}
+
 TEST (writer_fail_redefinition) {
 
 	BufferWriter writer;

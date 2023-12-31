@@ -39,10 +39,6 @@ namespace asmio::x86 {
 			return this->size == registry.size && this->reg == registry.reg && this->flag == registry.flag;
 		}
 
-		bool is_wide() const {
-			return size != 1;
-		}
-
 	};
 
 	constexpr const Registry UNSET {VOID,  0b000, Registry::PSEUDO};

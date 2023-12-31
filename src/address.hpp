@@ -97,10 +97,10 @@ namespace asmio::x86 {
 
 			const Registry base;
 			const Registry index;
-			const uint32_t scale : 4; // the scale, as integer
-			const bool reference : 1; // is this location a memory reference
-			const long offset;
+			const uint8_t scale  : 4; // the scale, as integer
+			const bool reference : 4; // is this location a memory reference
 			const uint8_t size;
+			const long offset;
 			const char* label;
 
 		public:
@@ -154,7 +154,7 @@ namespace asmio::x86 {
 			 * Checks if this location is a simple un-referenced constant (immediate) value
 			 */
 			bool is_immediate() const {
-				return base.is(UNSET) && index.is(UNSET) && scale == 1 && !reference;
+				return base.is(UNSET) && index.is(UNSET) && scale == 1 && !reference /* TODO: check - what about immediate labels? */;
 			}
 
 			/**
@@ -172,7 +172,7 @@ namespace asmio::x86 {
 			}
 
 			/**
-			 * Checks if this location requires  label resolution
+			 * Checks if this location requires label resolution
 			 */
 			bool is_labeled() const {
 				return label != nullptr;
@@ -181,7 +181,6 @@ namespace asmio::x86 {
 			/**
 			 * Checks if this location is a memory reference
 			 */
-			[[deprecated]]
 			bool is_memory() const {
 				return reference;
 			}

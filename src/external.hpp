@@ -14,8 +14,11 @@
 #include <unordered_map>
 
 #ifdef __linux__
-#	include <sys/mman.h>
 #	include <unistd.h>
+#	include <fcntl.h>
+#	include <sys/types.h>
+#	include <sys/mman.h>
+#	include <sys/wait.h>
 #else
 #	error "Other platforms not yet suported!"
 #endif

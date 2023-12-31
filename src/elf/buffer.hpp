@@ -3,17 +3,6 @@
 #include "external.hpp"
 #include "util.hpp"
 
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/wait.h>
-#include <sys/ptrace.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <err.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <cstdio>
-
 namespace asmio::elf {
 
 	constexpr const uint32_t VERSION = 1;
@@ -75,12 +64,12 @@ namespace asmio::elf {
 	};
 
 	struct SectionFlags {
-		static constexpr const uint32_t WRITE = 0b001; // Writable section
-		static constexpr const uint32_t ALLOC = 0b010; // Readable section
-		static constexpr const uint32_t EXECI = 0b100; // Executable section
+		static constexpr const uint32_t WRITE = 0b001;    // Writable section
+		static constexpr const uint32_t ALLOCATE = 0b010; // Readable section
+		static constexpr const uint32_t EXECUTE = 0b100;  // Executable section
 	};
 
-	struct SegmentFlags { // why????
+	struct SegmentFlags {
 		static constexpr const uint32_t X = 0b001; // Executable segment
 		static constexpr const uint32_t W = 0b010; // Writable segment
 		static constexpr const uint32_t R = 0b100; // Readable segment
@@ -224,7 +213,7 @@ namespace asmio::elf {
 				segment.virtual_address = mount;
 				segment.physical_address = mount;
 				segment.alignment = 0x1000;
-				segment.file_size = buffer.size(); // we load the entire ELF file to memory
+				segment.file_size = buffer.size(); // load the entire ELF file to memory
 				segment.memory_size = buffer.size();
 				segment.offset = 0;
 				segment.flags = SegmentFlags::R | SegmentFlags::W | SegmentFlags::X;
@@ -258,6 +247,11 @@ namespace asmio::elf {
 				return segment_data_offset;
 			}
 
+			RunResult execve(const char* name, int* status) {
+				const char* argv[] = {name, nullptr};
+				return execve(argv, (const char**) environ, status);
+			}
+
 			RunResult execve(const char** argv, const char** envp, int* status) {
 				// verify arguments, status can be a nullptr
 				if (argv == nullptr || envp == nullptr) {
@@ -289,11 +283,13 @@ namespace asmio::elf {
 					return RunResult::EXEC_ERROR;
 				}
 
-				// wait for child and get return code
+				// wait for child and get status code
 				if (waitpid(pid, status, 0) == -1) {
 					return RunResult::WAIT_ERROR;
 				}
 
+				// obtain return code from child status
+				*status = WEXITSTATUS(*status);
 				return RunResult::SUCCESS;
 			}
 

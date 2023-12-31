@@ -1,5 +1,3 @@
-#pragma once
-
 #include "address.hpp"
 
 namespace asmio::x86 {

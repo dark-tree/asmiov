@@ -1224,6 +1224,69 @@ TEST (writer_exec_imul_short) {
 
 }
 
+TEST (writer_exec_memory_xchg) {
+
+	BufferWriter writer;
+
+	writer.label("foo").put_dword(123);
+	writer.label("bar").put_byte(100);
+
+	writer.label("main");
+	writer.put_mov(EAX, 33);
+	writer.put_mov(BL, 99);
+	writer.put_xchg(EAX, ref("foo"));
+	writer.put_xchg(cast<BYTE>(ref("bar")), BL);
+	writer.put_ret();
+
+	writer.label("get_foo");
+	writer.put_mov(EAX, ref("foo"));
+	writer.put_ret();
+
+	writer.label("get_bar");
+	writer.put_xor(EAX, EAX);
+	writer.put_mov(AL, cast<BYTE>(ref("bar")));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+
+	CHECK(buffer.call_i32("main"), 123);
+	CHECK(buffer.call_i32("get_foo"), 33);
+	CHECK(buffer.call_i32("get_bar"), 99);
+
+}
+
+TEST (writer_exec_memory_push_pop) {
+
+	BufferWriter writer;
+
+	writer.label("foo").put_dword(123);
+	writer.label("bar").put_word(100);
+	writer.label("car").put_dword(0);
+
+	writer.label("main");
+	writer.put_xor(EBX, EBX);
+	writer.put_mov(EAX, 0);
+	writer.put_push(666);
+	writer.put_push(ref(EAX + "foo"));
+	writer.put_push(cast<WORD>(ref(EAX + "bar")));
+	writer.put_pop(BX);
+	writer.put_pop(EAX);
+	writer.put_pop(ref("car"));
+	writer.put_add(EAX, EBX);
+	writer.put_ret();
+
+	writer.label("get_car");
+	writer.put_xor(EAX, EAX);
+	writer.put_mov(EAX, ref("car"));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+
+	CHECK(buffer.call_i32("main"), 223);
+	CHECK(buffer.call_i32("get_car"), 666);
+
+}
+
 TEST (writer_fail_redefinition) {
 
 	BufferWriter writer;
@@ -1275,6 +1338,18 @@ TEST (writer_fail_invalid_reg_size) {
 		writer.put_movsx(BH, EDX);
 	});
 
+	EXPECT(std::runtime_error, {
+		writer.put_xchg(cast<BYTE>(ref("bar")), EBX);
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.put_xchg(cast<WORD>(ref("bar")), EBX);
+	});
+
+	EXPECT(std::runtime_error, {
+		writer.put_xchg(cast<BYTE>(ref("bar")), BX);
+	});
+
 }
 
 TEST (writer_fail_invalid_mem_size) {
@@ -1316,13 +1391,13 @@ TEST (writer_fail_undefined_label) {
 
 }
 
-TEST (writer_elf) {
+TEST (writer_elf_execve) {
 
 	using namespace asmio::elf;
 
 	BufferWriter writer;
 
-	writer.label("text").put_ascii("Hello!\n");
+	writer.label("text").put_ascii("Hello World!\n");
 
 	writer.label("strlen");
 	writer.put_mov(ECX, EAX);
@@ -1337,25 +1412,18 @@ TEST (writer_elf) {
 	writer.label("_start");
 	writer.put_lea(EAX, "text");
 	writer.put_call("strlen");
-	writer.put_mov(EDX, EAX); // size_t
-	writer.put_mov(EAX, 4); // sys_write
-	writer.put_mov(EBX, STDOUT_FILENO);
-	writer.put_lea(ECX, "text");
-	writer.put_int(0x80);
-	writer.put_mov(EAX, 1);
-	writer.put_mov(EBX, 0); // TODO: something strange happens here
+	writer.put_mov(EBX, EAX); // exit code
+	writer.put_mov(EAX, 1); // sys_exit
 	writer.put_int(0x80);
 	writer.put_ret();
 
 	ElfBuffer file = writer.bake_elf();
 
-	std::ofstream elf ("test_elf_file");
-	elf.write((const char*) file.data(), file.size());
-	elf.close();
+	int status;
+	RunResult result = file.execve("memfd-elf-1", &status);
 
-	const char* argv[] = {"test", nullptr};
-	const char* envp[] = {"a=b", nullptr};
-	file.execve(argv, envp, nullptr);
+	CHECK(result, RunResult::SUCCESS);
+	CHECK(status, 13);
 
 }
 

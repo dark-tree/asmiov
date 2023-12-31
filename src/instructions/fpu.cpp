@@ -1,5 +1,3 @@
-#pragma once
-
 #include "writer.hpp"
 
 namespace asmio::x86 {

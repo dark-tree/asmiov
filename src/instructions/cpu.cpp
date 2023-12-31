@@ -1,5 +1,3 @@
-#pragma once
-
 #include "writer.hpp"
 
 namespace asmio::x86 {
@@ -79,13 +77,19 @@ namespace asmio::x86 {
 	/// Exchange
 	void BufferWriter::put_xchg(Location dst, Location src) {
 
-		if (dst.is_simple() && !src.base.is(UNSET)) {
-			put_inst_std(0b100001, src, dst.base.reg, true, src.base.is_wide());
+		if (src.is_memreg() && dst.is_memreg()) {
+			if (dst.size != src.size) {
+				throw std::runtime_error {"Operands must have equal size!"};
+			}
+		}
+
+		if (dst.is_simple() && src.is_memreg()) {
+			put_inst_std(0b100001, src, dst.base.reg, true, src.is_wide());
 			return;
 		}
 
-		if (!dst.base.is(UNSET) && src.is_simple()) {
-			put_inst_std(0b100001, dst, src.base.reg, true, dst.base.is_wide());
+		if (dst.is_memreg() && src.is_simple()) {
+			put_inst_std(0b100001, dst, src.base.reg, true, dst.is_wide());
 			return;
 		}
 
@@ -112,7 +116,7 @@ namespace asmio::x86 {
 
 		// for some reason push & pop don't handle the wide flag,
 		// so we can only accept wide registers
-		if (src.size == BYTE) {
+		if (!src.is_wide()) {
 			throw std::runtime_error {"Invalid operands, byte register can't be used here!"};
 		}
 
@@ -127,8 +131,8 @@ namespace asmio::x86 {
 			return;
 		}
 
-		if (!src.base.is(UNSET)) {
-			put_inst_std(0b11111111, 0b110, src.base.reg);
+		if (src.is_memreg()) {
+			put_inst_std(0b11111111, src, 0b110);
 			return;
 		}
 
@@ -140,7 +144,7 @@ namespace asmio::x86 {
 
 		// for some reason push & pop don't handle the wide flag,
 		// so we can only accept wide registers
-		if (!src.base.is_wide()) {
+		if (!src.is_wide()) {
 			throw std::runtime_error {"Invalid operands, byte register can't be used here!"};
 		}
 
@@ -155,8 +159,8 @@ namespace asmio::x86 {
 			return;
 		}
 
-		if (!src.base.is(UNSET)) {
-			put_inst_std(0b100011, 0b000, src.base.reg, true, src.base.is_wide());
+		if (src.is_memreg()) {
+			put_inst_std(0b10001111, src, 0b000);
 			return;
 		}
 
@@ -178,8 +182,8 @@ namespace asmio::x86 {
 			return;
 		}
 
-		if (!dst.base.is(UNSET)) {
-			put_inst_std(0b111111, dst, 0b000, true, dst.base.is_wide());
+		if (dst.is_memreg()) {
+			put_inst_std(0b111111, dst, 0b000, true, dst.is_wide());
 			return;
 		}
 

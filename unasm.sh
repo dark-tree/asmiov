@@ -16,7 +16,9 @@ echo "[1] nasm $txt"
 nasm -f elf32 $txt -o $obj
 
 echo "[2] link $obj"
-ld -melf_i386 $obj -o $elf
+ld -nostdlib -melf_i386 $obj -o $elf
+strip $elf
 
 echo "[3] dump $elf"
-objdump -Mintel -D $elf
+#readelf -lSWa $elf
+objdump -Mintel -xD $elf

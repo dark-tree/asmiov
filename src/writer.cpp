@@ -232,7 +232,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memreg() && src.is_immediate()) {
-			put_inst_std(0b100000, dst, opcode_reg, false /* TODO: sign field (???) */, dst.size != BYTE);
+			put_inst_std(0b100000, dst, opcode_reg, false /* TODO: sign field (???) */, dst.is_wide());
 			put_inst_label_imm(src, dst.size);
 			return;
 		}
@@ -332,30 +332,83 @@ namespace asmio::x86 {
 		buffer.push_back(byte);
 	}
 
+	void BufferWriter::put_byte(std::initializer_list<uint8_t> bytes) {
+		insert_buffer(buffer, (uint8_t*) std::data(bytes), BYTE * bytes.size());
+	}
+
+	void BufferWriter::put_ascii(const std::string& str) {
+		insert_buffer(buffer, (uint8_t*) str.c_str(), BYTE * (str.size() + 1));
+	}
+
 	void BufferWriter::put_word(uint16_t word) {
 		insert_buffer(buffer, (uint8_t*) &word, WORD);
+	}
+
+	void BufferWriter::put_word(std::initializer_list<uint16_t> words) {
+		insert_buffer(buffer, (uint8_t*) std::data(words), WORD * words.size());
 	}
 
 	void BufferWriter::put_dword(uint32_t dword) {
 		insert_buffer(buffer, (uint8_t*) &dword, DWORD);
 	}
 
+	void BufferWriter::put_dword(std::initializer_list<uint32_t> dwords) {
+		insert_buffer(buffer, (uint8_t*) std::data(dwords), DWORD * dwords.size());
+	}
+
 	void BufferWriter::put_dword_f(float dword) {
 		insert_buffer(buffer, (uint8_t*) &dword, DWORD);
+	}
+
+	void BufferWriter::put_dword_f(std::initializer_list<float> dwords) {
+		insert_buffer(buffer, (uint8_t*) std::data(dwords), DWORD * dwords.size());
 	}
 
 	void BufferWriter::put_qword(uint64_t qword) {
 		insert_buffer(buffer, (uint8_t*) &qword, QWORD);
 	}
 
+	void BufferWriter::put_qword(std::initializer_list<uint64_t> dwords) {
+		insert_buffer(buffer, (uint8_t*) std::data(dwords), QWORD * dwords.size());
+	}
+
 	void BufferWriter::put_qword_f(double qword) {
 		insert_buffer(buffer, (uint8_t*) &qword, QWORD);
 	}
 
-	ExecutableBuffer BufferWriter::bake(bool debug) {
+	void BufferWriter::put_qword_f(std::initializer_list<double> dwords) {
+		insert_buffer(buffer, (uint8_t*) std::data(dwords), QWORD * dwords.size());
+	}
 
-		ExecutableBuffer result {buffer.size(), labels};
-		size_t absolute = result.get_address();
+	void BufferWriter::dump(bool verbose) const {
+		int i = 0;
+
+		if (verbose) {
+			for (uint8_t byte: buffer) {
+				std::bitset<8> bin(byte);
+				std::cout << std::setfill('0') << std::setw(4) << i << " | ";
+				std::cout << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << ' ' << bin;
+				std::cout << " | " << std::dec << (char) (byte < ' ' || byte > '~' ? '.' : byte) << std::endl;
+				i++;
+			}
+		}
+
+		std::cout << "./unasm.sh \"db ";
+		bool first = true;
+
+		for (uint8_t byte : buffer) {
+			if (!first) {
+				std::cout << ", ";
+			}
+
+			first = false;
+			std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << "h";
+		}
+
+		std::cout << '"' << std::endl;
+	}
+
+	void BufferWriter::assemble(size_t absolute, bool debug)  {
 
 		for (LabelCommand command : commands) {
 			const long offset = command.relative ? command.offset + command.size : (-absolute);
@@ -364,37 +417,32 @@ namespace asmio::x86 {
 			memcpy(buffer.data() + command.offset, imm_ptr, command.size);
 		}
 
-		result.write(buffer);
-
 		#if DEBUG_MODE
 		debug = true;
 		#endif
 
 		if (debug) {
-			int i = 0;
-
-			for (uint8_t byte : buffer) {
-				std::bitset<8> bin(byte);
-				std::cout << std::setfill('0') << std::setw(4) << i << " | " << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << ' ' << bin << std::endl;
-				i++;
-			}
-
-			std::cout << "./unasm.sh \"db ";
-			bool first = true;
-
-			for (uint8_t byte : buffer) {
-				if (!first) {
-					std::cout << ", ";
-				}
-
-				first = false;
-				std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << "h";
-			}
-
-			std::cout << '"' << std::endl;
+			dump(true);
 		}
 
+	}
+
+	ExecutableBuffer BufferWriter::bake(bool debug) {
+		ExecutableBuffer result {buffer.size(), labels};
+		assemble((size_t) result.address(), debug);
+		result.bake(buffer);
+
 		return result;
+	}
+
+	ElfBuffer BufferWriter::bake_elf(bool debug) {
+		uint32_t address = 0x08048000;
+
+		ElfBuffer elf {buffer.size(), address, (uint32_t) labels.at("_start")};
+		assemble(address + elf.offset(), debug);
+		elf.bake(buffer);
+
+		return elf;
 	}
 
 }

@@ -32,7 +32,7 @@ namespace asmio::x86 {
 				}
 			}
 
-			void write(const std::vector<uint8_t>& data) {
+			void bake(const std::vector<uint8_t>& data) {
 				if (data.size() != length) {
 					throw std::runtime_error{"Invalid size!"};
 				}
@@ -44,8 +44,16 @@ namespace asmio::x86 {
 				free(buffer);
 			}
 
-			size_t get_address() const {
-				return (size_t) buffer;
+			uint8_t* address() const {
+				return buffer;
+			}
+
+			uint8_t* address(Label label) const {
+				return buffer + labels.at(label);
+			}
+
+			size_t size() const {
+				return length;
 			}
 
 		public:

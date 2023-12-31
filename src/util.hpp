@@ -4,7 +4,7 @@
 #define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
 #define RETURN_TRANSIENT(T, format) {volatile T tmp; asm("" : format (tmp)); return tmp;}
 
-namespace asmio::x86 {
+namespace asmio {
 
 	template<typename T>
 	auto get_int_or(T value) {
@@ -19,6 +19,23 @@ namespace asmio::x86 {
 	template<typename T>
 	void insert_buffer(std::vector<T>& vec, T* buffer, size_t count) {
 		vec.insert(vec.end(), buffer, buffer + count);
+	}
+
+	template<typename T>
+	size_t insert_padding(std::vector<T>& vec, size_t count) {
+		const size_t length = vec.size();
+		vec.resize(vec.size() + count);
+		return length;
+	}
+
+	template<typename S, typename T>
+	size_t insert_struct(std::vector<T>& vec, size_t count = 1) {
+		return insert_padding(vec, sizeof(S) * count);
+	}
+
+	template<typename S, typename T>
+	S* buffer_view(std::vector<T>& vec, size_t offset) {
+		return (S*) (vec.data() + offset);
 	}
 
 	inline int min_bytes(uint64_t value) {

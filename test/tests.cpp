@@ -3,6 +3,8 @@
 
 #include "lib/vstl.hpp"
 #include "writer.hpp"
+#include "elf/buffer.hpp"
+#include <fstream>
 
 using namespace asmio::x86;
 
@@ -553,7 +555,7 @@ TEST(writer_exec_label_mov) {
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
-	CHECK(buffer.call_u32("main"), 14 + buffer.get_address());
+	CHECK(buffer.call_u32("main"), 14 + (size_t) buffer.address());
 
 }
 
@@ -1311,6 +1313,49 @@ TEST (writer_fail_undefined_label) {
 	EXPECT(std::runtime_error, {
 		writer.bake();
 	});
+
+}
+
+TEST (writer_elf) {
+
+	using namespace asmio::elf;
+
+	BufferWriter writer;
+
+	writer.label("text").put_ascii("Hello!\n");
+
+	writer.label("strlen");
+	writer.put_mov(ECX, EAX);
+	writer.put_dec(EAX);
+	writer.label("l_strlen_next");
+	writer.put_inc(EAX);
+	writer.put_cmp(cast<BYTE>(ref(EAX)), 0);
+	writer.put_jne("l_strlen_next");
+	writer.put_sub(EAX, ECX);
+	writer.put_ret();
+
+	writer.label("_start");
+	writer.put_lea(EAX, "text");
+	writer.put_call("strlen");
+	writer.put_mov(EDX, EAX); // size_t
+	writer.put_mov(EAX, 4); // sys_write
+	writer.put_mov(EBX, STDOUT_FILENO);
+	writer.put_lea(ECX, "text");
+	writer.put_int(0x80);
+	writer.put_mov(EAX, 1);
+	writer.put_mov(EBX, 0); // TODO: something strange happens here
+	writer.put_int(0x80);
+	writer.put_ret();
+
+	ElfBuffer file = writer.bake_elf();
+
+	std::ofstream elf ("test_elf_file");
+	elf.write((const char*) file.data(), file.size());
+	elf.close();
+
+	const char* argv[] = {"test", nullptr};
+	const char* envp[] = {"a=b", nullptr};
+	file.execve(argv, envp, nullptr);
 
 }
 

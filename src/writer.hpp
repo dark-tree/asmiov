@@ -4,8 +4,11 @@
 #include "address.hpp"
 #include "label.hpp"
 #include "buffer.hpp"
+#include "elf/buffer.hpp"
 
 namespace asmio::x86 {
+
+	using namespace elf;
 
 	class BufferWriter {
 
@@ -70,12 +73,19 @@ namespace asmio::x86 {
 
 			BufferWriter& label(Label label);
 
+			void put_ascii(const std::string& str);
 			void put_byte(uint8_t byte = 0);
+			void put_byte(std::initializer_list<uint8_t> byte);
 			void put_word(uint16_t word = 0);
+			void put_word(std::initializer_list<uint16_t> word);
 			void put_dword(uint32_t dword = 0);
+			void put_dword(std::initializer_list<uint32_t> dword);
 			void put_dword_f(float dword);
+			void put_dword_f(std::initializer_list<float> dword);
 			void put_qword(uint64_t dword = 0);
+			void put_qword(std::initializer_list<uint64_t> dword);
 			void put_qword_f(double dword);
+			void put_qword_f(std::initializer_list<double> dword);
 
 			// general
 			void put_mov(Location dst, Location src);   /// Move
@@ -278,7 +288,10 @@ namespace asmio::x86 {
 			void put_fdivr(Location dst, Location src); /// Reverse Divide
 			void put_fdivrp(Location dst);              /// Reverse Divide And Pop
 
+			void dump(bool verbose = false) const;
+			void assemble(size_t absolute, bool debug = false);
 			ExecutableBuffer bake(bool debug = false);
+			ElfBuffer bake_elf(bool debug = false);
 
 	};
 

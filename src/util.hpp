@@ -1,8 +1,9 @@
 #pragma once
 
+#include "external.hpp"
+
 #define UDIV_UP(a, b) (((a) + (b) - 1) / (b))
 #define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
-#define RETURN_TRANSIENT(T, format) {volatile T tmp; asm("" : format (tmp)); return tmp;}
 
 namespace asmio {
 
@@ -56,9 +57,4 @@ namespace asmio {
 		return hash;
 	}
 
-}
-
-extern "C" {
-	extern int x86_check_mode();
-	extern int x86_switch_mode(uint32_t (*)());
 }

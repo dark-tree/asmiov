@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26)
-project(LAIO C CXX ASM)
+project(ASMIOV C CXX ASM)
 
 set(CMAKE_CXX_FLAGS "-no-pie")
 set(CMAKE_C_FLAGS "-no-pie")
@@ -7,22 +7,22 @@ set(CMAKE_ASM_FLAGS "-no-pie")
 set(CMAKE_CXX_STANDARD 20)
 
 set(ASM_SOURCES
-        src/switch.s
+        src/asm/x86/switch.s
 )
 
 set(CPP_SOURCES
-        src/writer.cpp
-        src/address.cpp
-        src/instructions/cpu.cpp
-        src/instructions/fpu.cpp
+        src/asm/x86/writer.cpp
+        src/asm/x86/address.cpp
+        src/asm/x86/instructions/cpu.cpp
+        src/asm/x86/instructions/fpu.cpp
 )
 
-include_directories(LAIO
+include_directories(test
         src/
         .
 )
 
-add_executable(LAIO
+add_executable(test
         test/tests.cpp
         ${ASM_SOURCES}
         ${CPP_SOURCES}

@@ -3,7 +3,7 @@
 namespace asmio::x86 {
 
 	void assertValidScale(Registry registry, uint8_t scale) {
-		if (registry.is(ESP) && registry.size == DWORD) {
+		if (registry.is(ESP)) {
 			throw std::runtime_error {"The ESP registry can't be scaled!"};
 		}
 

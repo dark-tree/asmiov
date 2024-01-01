@@ -4,7 +4,7 @@
 #include "address.hpp"
 #include "label.hpp"
 #include "buffer.hpp"
-#include "elf/buffer.hpp"
+#include "file/elf/buffer.hpp"
 
 namespace asmio::x86 {
 

@@ -64,11 +64,12 @@
 #define VSTL_EXCEPT "Expected exception " VSTL_LINE "!"
 #define VSTL_RETHROW catch (vstl::TestFail& fail) { throw fail; }
 #define VSTL_VTOS(value) + vstl::to_printable(value) +
+#define VSTL_END 0
 
 /// used to define a test of the given [name]: TEST(example_test) { /* the test */ }
 #define TEST(name)          VSTL_BLC  vstl::Test VSTL_UNIQUE(__vstl_test__) = #name+[] ()
 
-/// used as a starting point for the VSTL, place anywhere in the test file, preferebly at the end: BEGIN(VSTL_MODE_LENIENT)
+/// used as a starting point for the VSTL, place anywhere in the test file, preferably at the end: BEGIN(VSTL_MODE_LENIENT)
 #define BEGIN(mode)         VSTL_BLC  int main() { return vstl::run(std::cout, mode); }
 
 /// used to defined error handlers (converters), place anywhere in the test file. use like this: HANDLER { CATCH_PTR (my_error_class& err) { FAIL(err.str())  } }
@@ -80,27 +81,27 @@
 /// failes the test with the given [reason] when called
 #define FAIL(reason)                  vstl::fail((reason))
 
-/// asserts the [condition] is true, otherwise failes the test with the custom [reason]
+/// asserts the [condition] is true, otherwise fails the test with the custom [reason]
 #define ASSERT_MSG(condition, reason) if(!(condition)) FAIL(reason)
 
-/// asserts the [condition] is true, otherwise failes the test
+/// asserts the [condition] is true, otherwise fails the test
 #define ASSERT(condition)             ASSERT_MSG(condition, "Expected " #condition " to be true, but it was not, " VSTL_LINE "!")
 
-/// checks if the [va] equals [vb], otherwise failes the test
+/// checks if the [va] equals [vb], otherwise fails the test
 #define CHECK(va, vb)                 VSTL_UNEQUAL(va, vb) FAIL("Expected " VSTL_VTOS(__vstl_a__) " to be equal " VSTL_VTOS(__vstl_b__) ", " #va " != " #vb ", " VSTL_LINE "!")
 
-/// checks if the given block [...] throws an exception, otherwise failes the test
-#define EXPECT_ANY(...)               try { __VA_ARGS__; FAIL(VSTL_EXCEPT); } VSTL_RETHROW catch (...) {}
+/// checks if the given block [...] throws an exception, otherwise fails the test
+#define EXPECT_ANY(...)               try { __VA_ARGS__; FAIL(VSTL_EXCEPT); } VSTL_RETHROW catch (...) {} VSTL_END
 
-/// checks if the given block [...] throws an exception of the given [type], otherwise failes the test
-#define EXPECT(type, ...)             try{ __VA_ARGS__; FAIL(VSTL_EXCEPT); } VSTL_RETHROW catch (type& t) {} catch (...) { FAIL("Expected exception of type " #type ", " VSTL_LINE "!"); }
+/// checks if the given block [...] throws an exception of the given [type], otherwise fails the test
+#define EXPECT(type, ...)             try{ __VA_ARGS__; FAIL(VSTL_EXCEPT); } VSTL_RETHROW catch (type& t) {} catch (...) { FAIL("Expected exception of type " #type ", " VSTL_LINE "!"); } VSTL_END
 
 enum TestMode : short {
 
 	/// will skip failed tests
 	VSTL_MODE_LENIENT,
 
-	/// will stop as soon any any test failes
+	/// will stop as soon any any test fails
 	VSTL_MODE_STRICT
 
 };

@@ -2,8 +2,8 @@
 #define DEBUG_MODE false
 
 #include "lib/vstl.hpp"
-#include "writer.hpp"
-#include "elf/buffer.hpp"
+#include "asm/x86/writer.hpp"
+#include "file/elf/buffer.hpp"
 #include <fstream>
 
 using namespace asmio::x86;
@@ -87,7 +87,7 @@ TEST (writer_exec_rol_inc_neg_sar) {
 
 }
 
-TEST(writer_simple_xchg) {
+TEST(writer_exec_xchg) {
 
 	BufferWriter writer;
 
@@ -1561,7 +1561,7 @@ TEST (writer_elf_execve) {
 	ElfBuffer file = writer.bake_elf();
 
 	int status;
-	RunResult result = file.execve("memfd-elf-1", &status);
+	RunResult result = file.execute("memfd-elf-1", &status);
 
 	CHECK(result, RunResult::SUCCESS);
 	CHECK(status, 13);

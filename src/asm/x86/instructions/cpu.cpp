@@ -974,14 +974,26 @@ namespace asmio::x86 {
 	}
 
 	/// Return from procedure
-	void BufferWriter::put_ret(uint16_t bytes) {
-		if (bytes != 0) {
-			put_byte(0b11000010);
-			put_word(bytes);
+	void BufferWriter::put_ret() {
+		put_byte(0b11000011);
+	}
+
+	/// Return from procedure and pop X bytes
+	void BufferWriter::put_ret(Location loc) {
+		if (loc.is_immediate()) {
+			uint32_t loc_val = loc.offset;
+
+			if (loc_val != 0) {
+				put_byte(0b11000010);
+				put_word(loc_val);
+				return;
+			}
+
+			put_byte(0b11000011);
 			return;
 		}
 
-		put_byte(0b11000011);
+		throw std::runtime_error {"Invalid operand!"};
 	}
 
 }

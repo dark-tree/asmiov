@@ -2,6 +2,7 @@
 
 #include <util.hpp>
 
+#define INST void
 #define RETURN_TRANSIENT(T, format) {volatile T tmp; asm("" : format (tmp)); return tmp;}
 
 extern "C" {

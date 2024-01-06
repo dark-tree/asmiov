@@ -150,7 +150,7 @@ namespace asmio::x86 {
 			 * Checks if this location is a simple un-referenced constant (immediate) value
 			 */
 			bool is_immediate() const {
-				return base.is(UNSET) && index.is(UNSET) && scale == 1 && !reference /* TODO: check - what about immediate labels? */;
+				return base.is(UNSET) && index.is(UNSET) && !reference /* TODO: check - what about immediate labels? */;
 			}
 
 			/**

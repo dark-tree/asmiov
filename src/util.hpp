@@ -39,6 +39,20 @@ namespace asmio {
 		return (S*) (vec.data() + offset);
 	}
 
+	template<typename T>
+	inline bool contains(const T& container, const auto& value) {
+		for (const auto& element : container) {
+			if (element == value) return true;
+		}
+
+		return false;
+	}
+
+	inline std::string str_tolower(std::string s) {
+		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
+		return s;
+	}
+
 	inline int min_bytes(uint64_t value) {
 		if (value > 0xFFFFFFFF) return 8;
 		if (value > 0xFFFF) return 4;

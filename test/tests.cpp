@@ -3,10 +3,16 @@
 
 #include "lib/vstl.hpp"
 #include "asm/x86/writer.hpp"
+#include "asm/x86/emitter.hpp"
 #include "file/elf/buffer.hpp"
+#include "tasml/tokenizer.hpp"
+#include "tasml/stream.hpp"
+
+// private libs
 #include <fstream>
 
 using namespace asmio::x86;
+using namespace asmio::tasml;
 
 TEST (writer_exec_mov_ret_nop) {
 
@@ -1565,6 +1571,40 @@ TEST (writer_elf_execve) {
 
 	CHECK(result, RunResult::SUCCESS);
 	CHECK(status, 13);
+
+}
+
+TEST (tasml_tokenize) {
+
+	std::string code = R"(
+		text:
+			ascii "Hello!"
+
+		strlen:
+			mov ecx, /* inline comments! */ eax
+			dec eax
+
+			l_strlen_next:
+				inc eax
+				cmp byte [eax], 0
+			jne @l_strlen_next
+
+			sub eax, ecx
+			ret
+
+		_start:
+			lea eax, @text
+			call @strlen
+			nop; nop; ret // multi-statements
+	)";
+
+	BufferWriter writer;
+
+	std::vector<Token> tokens = tokenize(code);
+	TokenStream stream {tokens};
+	parseBlock(writer, stream);
+
+	CHECK(writer.bake().call_i32("_start"), 6);
 
 }
 

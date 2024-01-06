@@ -304,7 +304,7 @@ namespace asmio::x86 {
 		put_byte(0b01100111);
 	}
 
-	void BufferWriter::put_label(Label label, uint8_t size, long shift) {
+	void BufferWriter::put_label(const Label& label, uint8_t size, long shift) {
 		commands.emplace_back(label, size, buffer.size(), shift, true);
 
 		while (size --> 0) {
@@ -312,11 +312,11 @@ namespace asmio::x86 {
 		}
 	}
 
-	bool BufferWriter::has_label(Label label) {
+	bool BufferWriter::has_label(const Label& label) {
 		return labels.contains(label);
 	}
 
-	int BufferWriter::get_label(Label label) {
+	int BufferWriter::get_label(const Label& label) {
 		try {
 			return labels.at(label);
 		} catch (...) {
@@ -324,7 +324,7 @@ namespace asmio::x86 {
 		}
 	}
 
-	BufferWriter& BufferWriter::label(Label label) {
+	BufferWriter& BufferWriter::label(const Label& label) {
 		if (has_label(label)) {
 			throw std::runtime_error {"Invalid label, redefinition attempted!"};
 		}

@@ -65,13 +65,13 @@ namespace asmio::x86 {
 
 			void put_inst_16bit_operand_mark();
 			void put_inst_16bit_address_mark();
-			void put_label(Label label, uint8_t size, long shift);
-			bool has_label(Label label);
-			int get_label(Label label);
+			void put_label(const Label& label, uint8_t size, long shift);
+			bool has_label(const Label& label);
+			int get_label(const Label& label);
 
 		public:
 
-			BufferWriter& label(Label label);
+			BufferWriter& label(const Label& label);
 
 			void put_ascii(const std::string& str);
 			void put_byte(uint8_t byte = 0);
@@ -88,205 +88,206 @@ namespace asmio::x86 {
 			void put_qword_f(std::initializer_list<double> dword);
 
 			// general
-			void put_mov(Location dst, Location src);   /// Move
-			void put_movsx(Location dst, Location src); /// Move with Sign Extension
-			void put_movzx(Location dst, Location src); /// Move with Zero Extension
-			void put_lea(Location dst, Location src);   /// Load Effective Address
-			void put_xchg(Location dst, Location src);  /// Exchange
-			void put_push(Location src);                /// Push
-			void put_pop(Location src);                 /// Pop
-			void put_inc(Location dst);                 /// Increment
-			void put_dec(Location dst);                 /// Decrement
-			void put_neg(Location dst);                 /// Negate
-			void put_add(Location dst, Location src);   /// Add
-			void put_adc(Location dst, Location src);   /// Add with carry
-			void put_sub(Location dst, Location src);   /// Subtract
-			void put_sbb(Location dst, Location src);   /// Subtract with borrow
-			void put_cmp(Location dst, Location src);   /// Compare
-			void put_and(Location dst, Location src);   /// Binary And
-			void put_or(Location dst, Location src);    /// Binary Or
-			void put_xor(Location dst, Location src);   /// Binary Xor
-			void put_bt(Location dst, Location src);    /// Bit Test
-			void put_bts(Location dst, Location src);   /// Bit Test and Set
-			void put_btr(Location dst, Location src);   /// Bit Test and Reset
-			void put_btc(Location dst, Location src);   /// Bit Test and Complement
-			void put_mul(Location src);                 /// Multiply (Unsigned)
-			void put_imul(Location dst, Location src);  /// Integer multiply (Signed)
-			void put_imul(Location dst, Location src, Location val); /// Integer multiply (Signed, Triple Arg)
-			void put_div(Location src);                 /// Divide (Unsigned)
-			void put_idiv(Location src);                /// Integer divide (Signed)
-			void put_not(Location dst);                 /// Invert
-			void put_rol(Location dst, Location src);   /// Rotate Left
-			void put_ror(Location dst, Location src);   /// Rotate Right
-			void put_rcl(Location dst, Location src);   /// Rotate Left Through Carry
-			void put_rcr(Location dst, Location src);   /// Rotate Right Through Carry
-			void put_shl(Location dst, Location src);   /// Shift Left
-			void put_shr(Location dst, Location src);   /// Shift Right
-			void put_sal(Location dst, Location src);   /// Arithmetic Shift Left
-			void put_sar(Location dst, Location src);   /// Arithmetic Shift Right
-			void put_jmp(Location dst);                 /// Unconditional Jump
-			void put_call(Location dst);                /// Procedure Call
-			void put_jo(Location label);                /// Jump on Overflow
-			void put_jno(Location label);               /// Jump on Not Overflow
-			void put_jb(Location label);                /// Jump on Below
-			void put_jnb(Location label);               /// Jump on Not Below
-			void put_je(Location label);                /// Jump on Equal
-			void put_jne(Location label);               /// Jump on Not Equal
-			void put_jbe(Location label);               /// Jump on Below or Equal
-			void put_jnbe(Location label);              /// Jump on Not Below or Equal
-			void put_js(Location label);                /// Jump on Sign
-			void put_jns(Location label);               /// Jump on Not Sign
-			void put_jp(Location label);                /// Jump on Parity
-			void put_jnp(Location label);               /// Jump on Not Parity
-			void put_jl(Location label);                /// Jump on Less
-			void put_jnl(Location label);               /// Jump on Not Less
-			void put_jle(Location label);               /// Jump on Less or Equal
-			void put_jnle(Location label);              /// Jump on Not Less or Equal
-			void put_jc(Location label);                /// Alias to JB, Jump on Carry
-			void put_jnc(Location label);               /// Alias to JNB, Jump on Not Carry
-			void put_jnae(Location label);              /// Alias to JB, Jump on Not Above or Equal
-			void put_jae(Location label);               /// Alias to JNB, Jump on Above or Equal
-			void put_jz(Location label);                /// Alias to JE, Jump on Zero
-			void put_jnz(Location label);               /// Alias to JNE, Jump on Not Zero
-			void put_jna(Location label);               /// Alias to JBE, Jump on Not Above
-			void put_ja(Location label);                /// Alias to JNBE, Jump on Above
-			void put_jpe(Location label);               /// Alias to JP, Jump on Parity Even
-			void put_jpo(Location label);               /// Alias to JNP, Jump on Parity Odd
-			void put_jnge(Location label);              /// Alias to JL, Jump on Not Greater or Equal
-			void put_jge(Location label);               /// Alias to JNL, Jump on Greater or Equal
-			void put_jng(Location label);               /// Alias to JLE, Jump on Not Greater
-			void put_jg(Location label);                /// Alias to JNLE, Jump on Greater
-			void put_jcxz(Location label);              /// Jump on CX Zero
-			void put_jecxz(Location label);             /// Jump on ECX Zero
-			void put_loop(Location label);              /// Loop Times
-			void put_seto(Location dst);                /// Set Byte on Overflow
-			void put_setno(Location dst);               /// Set Byte on Not Overflow
-			void put_setb(Location dst);                /// Set Byte on Below
-			void put_setnb(Location dst);               /// Set Byte on Not Below
-			void put_sete(Location dst);                /// Set Byte on Equal
-			void put_setne(Location dst);               /// Set Byte on Not Equal
-			void put_setbe(Location dst);               /// Set Byte on Below or Equal
-			void put_setnbe(Location dst);              /// Set Byte on Not Below or Equal
-			void put_sets(Location dst);                /// Set Byte on Sign
-			void put_setns(Location dst);               /// Set Byte on Not Sign
-			void put_setp(Location dst);                /// Set Byte on Parity
-			void put_setnp(Location dst);               /// Set Byte on Not Parity
-			void put_setl(Location dst);                /// Set Byte on Less
-			void put_setnl(Location dst);               /// Set Byte on Not Less
-			void put_setle(Location dst);               /// Set Byte on Less or Equal
-			void put_setnle(Location dst);              /// Set Byte on Not Less or Equal
-			void put_setc(Location dst);                /// Alias to JB, Jump on Carry
-			void put_setnc(Location dst);               /// Alias to JNB, Jump on Not Carry
-			void put_setnae(Location dst);              /// Alias to JB, Jump on Not Above or Equal
-			void put_setae(Location dst);               /// Alias to JNB, Jump on Above or Equal
-			void put_setz(Location dst);                /// Alias to JE, Jump on Zero
-			void put_setnz(Location dst);               /// Alias to JNE, Jump on Not Zero
-			void put_setna(Location dst);               /// Alias to JBE, Jump on Not Above
-			void put_seta(Location dst);                /// Alias to JNBE, Jump on Above
-			void put_setpe(Location dst);               /// Alias to JP, Jump on Parity Even
-			void put_setpo(Location dst);               /// Alias to JNP, Jump on Parity Odd
-			void put_setnge(Location dst);              /// Alias to JL, Jump on Not Greater or Equal
-			void put_setge(Location dst);               /// Alias to JNL, Jump on Greater or Equal
-			void put_setng(Location dst);               /// Alias to JLE, Jump on Not Greater
-			void put_setg(Location dst);                /// Alias to JNLE, Jump on Greater
-			void put_int(Location type);                /// Interrupt
-			void put_nop();                             /// No Operation
-			void put_hlt();                             /// Halt
-			void put_wait();                            /// Wait
-			void put_leave();                           /// Leave
-			void put_pusha();                           /// Push All
-			void put_popa();                            /// Pop All
-			void put_pushf();                           /// Push Flags
-			void put_popf();                            /// Pop Flags
-			void put_clc();                             /// Clear Carry
-			void put_stc();                             /// Set Carry
-			void put_cmc();                             /// Complement Carry Flag
-			void put_sahf();                            /// Store AH into flags
-			void put_lahf();                            /// Load status flags into AH register
-			void put_aaa();                             /// ASCII adjust for add
-			void put_daa();                             /// Decimal adjust for add
-			void put_aas();                             /// ASCII adjust for subtract
-			void put_das();                             /// Decimal adjust for subtract
-			void put_aad();                             /// ASCII adjust for division
-			void put_aam();                             /// ASCII adjust for multiplication
-			void put_cbw();                             /// Convert byte to word
-			void put_cwd();                             /// Convert word to double word
-			void put_ret(uint16_t bytes = 0);           /// Return from procedure
+			INST put_mov(Location dst, Location src);   /// Move
+			INST put_movsx(Location dst, Location src); /// Move with Sign Extension
+			INST put_movzx(Location dst, Location src); /// Move with Zero Extension
+			INST put_lea(Location dst, Location src);   /// Load Effective Address
+			INST put_xchg(Location dst, Location src);  /// Exchange
+			INST put_push(Location src);                /// Push
+			INST put_pop(Location src);                 /// Pop
+			INST put_inc(Location dst);                 /// Increment
+			INST put_dec(Location dst);                 /// Decrement
+			INST put_neg(Location dst);                 /// Negate
+			INST put_add(Location dst, Location src);   /// Add
+			INST put_adc(Location dst, Location src);   /// Add with carry
+			INST put_sub(Location dst, Location src);   /// Subtract
+			INST put_sbb(Location dst, Location src);   /// Subtract with borrow
+			INST put_cmp(Location dst, Location src);   /// Compare
+			INST put_and(Location dst, Location src);   /// Binary And
+			INST put_or(Location dst, Location src);    /// Binary Or
+			INST put_xor(Location dst, Location src);   /// Binary Xor
+			INST put_bt(Location dst, Location src);    /// Bit Test
+			INST put_bts(Location dst, Location src);   /// Bit Test and Set
+			INST put_btr(Location dst, Location src);   /// Bit Test and Reset
+			INST put_btc(Location dst, Location src);   /// Bit Test and Complement
+			INST put_mul(Location src);                 /// Multiply (Unsigned)
+			INST put_imul(Location dst, Location src);  /// Integer multiply (Signed)
+			INST put_imul(Location dst, Location src, Location val); /// Integer multiply (Signed, Triple Arg)
+			INST put_div(Location src);                 /// Divide (Unsigned)
+			INST put_idiv(Location src);                /// Integer divide (Signed)
+			INST put_not(Location dst);                 /// Invert
+			INST put_rol(Location dst, Location src);   /// Rotate Left
+			INST put_ror(Location dst, Location src);   /// Rotate Right
+			INST put_rcl(Location dst, Location src);   /// Rotate Left Through Carry
+			INST put_rcr(Location dst, Location src);   /// Rotate Right Through Carry
+			INST put_shl(Location dst, Location src);   /// Shift Left
+			INST put_shr(Location dst, Location src);   /// Shift Right
+			INST put_sal(Location dst, Location src);   /// Arithmetic Shift Left
+			INST put_sar(Location dst, Location src);   /// Arithmetic Shift Right
+			INST put_jmp(Location dst);                 /// Unconditional Jump
+			INST put_call(Location dst);                /// Procedure Call
+			INST put_jo(Location label);                /// Jump on Overflow
+			INST put_jno(Location label);               /// Jump on Not Overflow
+			INST put_jb(Location label);                /// Jump on Below
+			INST put_jnb(Location label);               /// Jump on Not Below
+			INST put_je(Location label);                /// Jump on Equal
+			INST put_jne(Location label);               /// Jump on Not Equal
+			INST put_jbe(Location label);               /// Jump on Below or Equal
+			INST put_jnbe(Location label);              /// Jump on Not Below or Equal
+			INST put_js(Location label);                /// Jump on Sign
+			INST put_jns(Location label);               /// Jump on Not Sign
+			INST put_jp(Location label);                /// Jump on Parity
+			INST put_jnp(Location label);               /// Jump on Not Parity
+			INST put_jl(Location label);                /// Jump on Less
+			INST put_jnl(Location label);               /// Jump on Not Less
+			INST put_jle(Location label);               /// Jump on Less or Equal
+			INST put_jnle(Location label);              /// Jump on Not Less or Equal
+			INST put_jc(Location label);                /// Alias to JB, Jump on Carry
+			INST put_jnc(Location label);               /// Alias to JNB, Jump on Not Carry
+			INST put_jnae(Location label);              /// Alias to JB, Jump on Not Above or Equal
+			INST put_jae(Location label);               /// Alias to JNB, Jump on Above or Equal
+			INST put_jz(Location label);                /// Alias to JE, Jump on Zero
+			INST put_jnz(Location label);               /// Alias to JNE, Jump on Not Zero
+			INST put_jna(Location label);               /// Alias to JBE, Jump on Not Above
+			INST put_ja(Location label);                /// Alias to JNBE, Jump on Above
+			INST put_jpe(Location label);               /// Alias to JP, Jump on Parity Even
+			INST put_jpo(Location label);               /// Alias to JNP, Jump on Parity Odd
+			INST put_jnge(Location label);              /// Alias to JL, Jump on Not Greater or Equal
+			INST put_jge(Location label);               /// Alias to JNL, Jump on Greater or Equal
+			INST put_jng(Location label);               /// Alias to JLE, Jump on Not Greater
+			INST put_jg(Location label);                /// Alias to JNLE, Jump on Greater
+			INST put_jcxz(Location label);              /// Jump on CX Zero
+			INST put_jecxz(Location label);             /// Jump on ECX Zero
+			INST put_loop(Location label);              /// Loop Times
+			INST put_seto(Location dst);                /// Set Byte on Overflow
+			INST put_setno(Location dst);               /// Set Byte on Not Overflow
+			INST put_setb(Location dst);                /// Set Byte on Below
+			INST put_setnb(Location dst);               /// Set Byte on Not Below
+			INST put_sete(Location dst);                /// Set Byte on Equal
+			INST put_setne(Location dst);               /// Set Byte on Not Equal
+			INST put_setbe(Location dst);               /// Set Byte on Below or Equal
+			INST put_setnbe(Location dst);              /// Set Byte on Not Below or Equal
+			INST put_sets(Location dst);                /// Set Byte on Sign
+			INST put_setns(Location dst);               /// Set Byte on Not Sign
+			INST put_setp(Location dst);                /// Set Byte on Parity
+			INST put_setnp(Location dst);               /// Set Byte on Not Parity
+			INST put_setl(Location dst);                /// Set Byte on Less
+			INST put_setnl(Location dst);               /// Set Byte on Not Less
+			INST put_setle(Location dst);               /// Set Byte on Less or Equal
+			INST put_setnle(Location dst);              /// Set Byte on Not Less or Equal
+			INST put_setc(Location dst);                /// Alias to JB, Jump on Carry
+			INST put_setnc(Location dst);               /// Alias to JNB, Jump on Not Carry
+			INST put_setnae(Location dst);              /// Alias to JB, Jump on Not Above or Equal
+			INST put_setae(Location dst);               /// Alias to JNB, Jump on Above or Equal
+			INST put_setz(Location dst);                /// Alias to JE, Jump on Zero
+			INST put_setnz(Location dst);               /// Alias to JNE, Jump on Not Zero
+			INST put_setna(Location dst);               /// Alias to JBE, Jump on Not Above
+			INST put_seta(Location dst);                /// Alias to JNBE, Jump on Above
+			INST put_setpe(Location dst);               /// Alias to JP, Jump on Parity Even
+			INST put_setpo(Location dst);               /// Alias to JNP, Jump on Parity Odd
+			INST put_setnge(Location dst);              /// Alias to JL, Jump on Not Greater or Equal
+			INST put_setge(Location dst);               /// Alias to JNL, Jump on Greater or Equal
+			INST put_setng(Location dst);               /// Alias to JLE, Jump on Not Greater
+			INST put_setg(Location dst);                /// Alias to JNLE, Jump on Greater
+			INST put_int(Location type);                /// Interrupt
+			INST put_nop();                             /// No Operation
+			INST put_hlt();                             /// Halt
+			INST put_wait();                            /// Wait
+			INST put_leave();                           /// Leave
+			INST put_pusha();                           /// Push All
+			INST put_popa();                            /// Pop All
+			INST put_pushf();                           /// Push Flags
+			INST put_popf();                            /// Pop Flags
+			INST put_clc();                             /// Clear Carry
+			INST put_stc();                             /// Set Carry
+			INST put_cmc();                             /// Complement Carry Flag
+			INST put_sahf();                            /// Store AH into flags
+			INST put_lahf();                            /// Load status flags into AH register
+			INST put_aaa();                             /// ASCII adjust for add
+			INST put_daa();                             /// Decimal adjust for add
+			INST put_aas();                             /// ASCII adjust for subtract
+			INST put_das();                             /// Decimal adjust for subtract
+			INST put_aad();                             /// ASCII adjust for division
+			INST put_aam();                             /// ASCII adjust for multiplication
+			INST put_cbw();                             /// Convert byte to word
+			INST put_cwd();                             /// Convert word to double word
+			INST put_ret();                             /// Return from procedure
+			INST put_ret(Location bytes);               /// Return from procedure and pop X bytes
 
 			// floating-point
-			void put_fnop();                            /// No Operation
-			void put_finit();                           /// Initialize FPU
-			void put_fninit();                          /// Initialize FPU (without checking for pending unmasked exceptions)
-			void put_fclex();                           /// Clear Exceptions
-			void put_fnclex();                          /// Clear Exceptions (without checking for pending unmasked exceptions)
-			void put_fstsw(Location dst);               /// Store FPU State Word
-			void put_fnstsw(Location dst);              /// Store FPU State Word (without checking for pending unmasked exceptions)
-			void put_fstcw(Location dst);               /// Store FPU Control Word
-			void put_fnstcw(Location dst);              /// Store FPU Control Word (without checking for pending unmasked exceptions)
-			void put_fld1();                            /// Load +1.0 Constant onto the stack
-			void put_fld0();                            /// Load +0.0 Constant onto the stack
-			void put_fldpi();                           /// Load PI Constant onto the stack
-			void put_fldl2t();                          /// Load Log{2}(10) Constant onto the stack
-			void put_fldl2e();                          /// Load Log{2}(e) Constant onto the stack
-			void put_fldlt2();                          /// Load Log{10}(2) Constant onto the stack
-			void put_fldle2();                          /// Load Log{e}(2) Constant onto the stack
-			void put_fldcw(Location src);               /// Load x87 FPU Control Word
-			void put_f2xm1();                           /// Compute 2^x - 1
-			void put_fabs();                            /// Absolute Value
-			void put_fchs();                            /// Change Sign
-			void put_fcos();                            /// Compute Cosine
-			void put_fsin();                            /// Compute Sine
-			void put_fsincos();                         /// Compute Sine and Cosine, sets ST(0) to sin(ST(0)), and pushes cos(ST(0)) onto the stack
-			void put_fdecstp();                         /// Decrement Stack Pointer
-			void put_fincstp();                         /// Increment Stack Pointer
-			void put_fpatan();                          /// Partial Arctangent, sets ST(1) to arctan(ST(1) / ST(0)), and pops the stack
-			void put_fprem();                           /// Partial Remainder, sets ST(0) to ST(0) % ST(1)
-			void put_fprem1();                          /// Partial IEEE Remainder, sets ST(0) to ST(0) % ST(1)
-			void put_fptan();                           /// Partial Tangent, sets ST(0) to tan(ST(0)), and pushes 1 onto the stack
-			void put_frndint();                         /// Round to Integer, Rounds ST(0) to an integer
-			void put_fscale();                          /// Scale, ST(0) by ST(1), Sets ST(0) to ST(0)*2^floor(ST(1))
-			void put_fsqrt();                           /// Square Root, sets ST(0) to sqrt(ST(0))
-			void put_fld(Location src);                 /// Load Floating-Point Value
-			void put_fild(Location src);                /// Load Integer Value
-			void put_fst(Location dst);                 /// Store Floating-Point Value
-			void put_fstp(Location dst);                /// Store Floating-Point Value and Pop
-			void put_fist(Location dst);                /// Store Floating-Point Value As Integer
-			void put_fistp(Location dst);               /// Store Floating-Point Value As Integer And Pop
-			void put_fisttp(Location dst);              /// Store Floating-Point Value As Integer With Truncation And Pop
-			void put_ffree(Location src);               /// Free Floating-Point Register
-			void put_fcmovb(Location src);              /// Move SRC, if below, into ST+0
-			void put_fcmove(Location src);              /// Move SRC, if equal, into ST+0
-			void put_fcmovbe(Location src);             /// Move SRC, if below or equal, into ST+0
-			void put_fcmovu(Location src);              /// Move SRC, if unordered with, into ST+0
-			void put_fcmovnb(Location src);             /// Move SRC, if not below, into ST+0
-			void put_fcmovne(Location src);             /// Move SRC, if not equal, into ST+0
-			void put_fcmovnbe(Location src);            /// Move SRC, if not below or equal, into ST+0
-			void put_fcmovnu(Location src);             /// Move SRC, if not unordered with, into ST+0
-			void put_fcom(Location src);                /// Compare ST+0 with SRC
-			void put_fcomp(Location src);               /// Compare ST+0 with SRC And Pop
-			void put_fcompp();                          /// Compare ST+0 with ST+1 And Pop Both
-			void put_ficom(Location src);               /// Compare ST+0 with Integer SRC
-			void put_ficomp(Location src);              /// Compare ST+0 with Integer SRC, And Pop
-			void put_fcomi(Location src);               /// Compare ST+0 with SRC and set EFLAGS
-			void put_fcomip(Location src);              /// Compare ST+0 with SRC, Pop, and set EFLAGS
-			void put_fucomi(Location src);              /// Compare, and check for ordered values, ST+0 with SRC and set EFLAGS
-			void put_fucomip(Location src);             /// Compare, and check for ordered values, ST+0 with SRC, Pop, and set EFLAGS
-			void put_fmul(Location src);                /// Multiply By Memory Float
-			void put_fimul(Location src);               /// Multiply By Memory Integer
-			void put_fmul(Location dst, Location src);  /// Multiply
-			void put_fmulp(Location dst);               /// Multiply And Pop
-			void put_fadd(Location src);                /// Add Memory Float
-			void put_fiadd(Location src);               /// Add Memory Integer
-			void put_fadd(Location dst, Location src);  /// Add
-			void put_faddp(Location dst);               /// Add And Pop
-			void put_fdiv(Location src);                /// Divide By Memory Float
-			void put_fidiv(Location src);               /// Divide By Memory Integer
-			void put_fdiv(Location dst, Location src);  /// Divide
-			void put_fdivp(Location dst);               /// Divide And Pop
-			void put_fdivr(Location src);               /// Divide Memory Float
-			void put_fidivr(Location src);              /// Divide Memory Integer
-			void put_fdivr(Location dst, Location src); /// Reverse Divide
-			void put_fdivrp(Location dst);              /// Reverse Divide And Pop
+			INST put_fnop();                            /// No Operation
+			INST put_finit();                           /// Initialize FPU
+			INST put_fninit();                          /// Initialize FPU (without checking for pending unmasked exceptions)
+			INST put_fclex();                           /// Clear Exceptions
+			INST put_fnclex();                          /// Clear Exceptions (without checking for pending unmasked exceptions)
+			INST put_fstsw(Location dst);               /// Store FPU State Word
+			INST put_fnstsw(Location dst);              /// Store FPU State Word (without checking for pending unmasked exceptions)
+			INST put_fstcw(Location dst);               /// Store FPU Control Word
+			INST put_fnstcw(Location dst);              /// Store FPU Control Word (without checking for pending unmasked exceptions)
+			INST put_fld1();                            /// Load +1.0 Constant onto the stack
+			INST put_fld0();                            /// Load +0.0 Constant onto the stack
+			INST put_fldpi();                           /// Load PI Constant onto the stack
+			INST put_fldl2t();                          /// Load Log{2}(10) Constant onto the stack
+			INST put_fldl2e();                          /// Load Log{2}(e) Constant onto the stack
+			INST put_fldlt2();                          /// Load Log{10}(2) Constant onto the stack
+			INST put_fldle2();                          /// Load Log{e}(2) Constant onto the stack
+			INST put_fldcw(Location src);               /// Load x87 FPU Control Word
+			INST put_f2xm1();                           /// Compute 2^x - 1
+			INST put_fabs();                            /// Absolute Value
+			INST put_fchs();                            /// Change Sign
+			INST put_fcos();                            /// Compute Cosine
+			INST put_fsin();                            /// Compute Sine
+			INST put_fsincos();                         /// Compute Sine and Cosine, sets ST(0) to sin(ST(0)), and pushes cos(ST(0)) onto the stack
+			INST put_fdecstp();                         /// Decrement Stack Pointer
+			INST put_fincstp();                         /// Increment Stack Pointer
+			INST put_fpatan();                          /// Partial Arctangent, sets ST(1) to arctan(ST(1) / ST(0)), and pops the stack
+			INST put_fprem();                           /// Partial Remainder, sets ST(0) to ST(0) % ST(1)
+			INST put_fprem1();                          /// Partial IEEE Remainder, sets ST(0) to ST(0) % ST(1)
+			INST put_fptan();                           /// Partial Tangent, sets ST(0) to tan(ST(0)), and pushes 1 onto the stack
+			INST put_frndint();                         /// Round to Integer, Rounds ST(0) to an integer
+			INST put_fscale();                          /// Scale, ST(0) by ST(1), Sets ST(0) to ST(0)*2^floor(ST(1))
+			INST put_fsqrt();                           /// Square Root, sets ST(0) to sqrt(ST(0))
+			INST put_fld(Location src);                 /// Load Floating-Point Value
+			INST put_fild(Location src);                /// Load Integer Value
+			INST put_fst(Location dst);                 /// Store Floating-Point Value
+			INST put_fstp(Location dst);                /// Store Floating-Point Value and Pop
+			INST put_fist(Location dst);                /// Store Floating-Point Value As Integer
+			INST put_fistp(Location dst);               /// Store Floating-Point Value As Integer And Pop
+			INST put_fisttp(Location dst);              /// Store Floating-Point Value As Integer With Truncation And Pop
+			INST put_ffree(Location src);               /// Free Floating-Point Register
+			INST put_fcmovb(Location src);              /// Move SRC, if below, into ST+0
+			INST put_fcmove(Location src);              /// Move SRC, if equal, into ST+0
+			INST put_fcmovbe(Location src);             /// Move SRC, if below or equal, into ST+0
+			INST put_fcmovu(Location src);              /// Move SRC, if unordered with, into ST+0
+			INST put_fcmovnb(Location src);             /// Move SRC, if not below, into ST+0
+			INST put_fcmovne(Location src);             /// Move SRC, if not equal, into ST+0
+			INST put_fcmovnbe(Location src);            /// Move SRC, if not below or equal, into ST+0
+			INST put_fcmovnu(Location src);             /// Move SRC, if not unordered with, into ST+0
+			INST put_fcom(Location src);                /// Compare ST+0 with SRC
+			INST put_fcomp(Location src);               /// Compare ST+0 with SRC And Pop
+			INST put_fcompp();                          /// Compare ST+0 with ST+1 And Pop Both
+			INST put_ficom(Location src);               /// Compare ST+0 with Integer SRC
+			INST put_ficomp(Location src);              /// Compare ST+0 with Integer SRC, And Pop
+			INST put_fcomi(Location src);               /// Compare ST+0 with SRC and set EFLAGS
+			INST put_fcomip(Location src);              /// Compare ST+0 with SRC, Pop, and set EFLAGS
+			INST put_fucomi(Location src);              /// Compare, and check for ordered values, ST+0 with SRC and set EFLAGS
+			INST put_fucomip(Location src);             /// Compare, and check for ordered values, ST+0 with SRC, Pop, and set EFLAGS
+			INST put_fmul(Location src);                /// Multiply By Memory Float
+			INST put_fimul(Location src);               /// Multiply By Memory Integer
+			INST put_fmul(Location dst, Location src);  /// Multiply
+			INST put_fmulp(Location dst);               /// Multiply And Pop
+			INST put_fadd(Location src);                /// Add Memory Float
+			INST put_fiadd(Location src);               /// Add Memory Integer
+			INST put_fadd(Location dst, Location src);  /// Add
+			INST put_faddp(Location dst);               /// Add And Pop
+			INST put_fdiv(Location src);                /// Divide By Memory Float
+			INST put_fidiv(Location src);               /// Divide By Memory Integer
+			INST put_fdiv(Location dst, Location src);  /// Divide
+			INST put_fdivp(Location dst);               /// Divide And Pop
+			INST put_fdivr(Location src);               /// Divide Memory Float
+			INST put_fidivr(Location src);              /// Divide Memory Integer
+			INST put_fdivr(Location dst, Location src); /// Reverse Divide
+			INST put_fdivrp(Location dst);              /// Reverse Divide And Pop
 
 			void dump(bool verbose = false) const;
 			void assemble(size_t absolute, bool debug = false);

@@ -117,6 +117,21 @@ namespace asmio::elf {
 				return segment_data_offset;
 			}
 
+			bool save(const char* path) const {
+				FILE* file = fopen(path, "wb");
+
+				if (file == nullptr) {
+					return false;
+				}
+
+				if (fwrite(buffer.data(), 1, buffer.size(), file) != buffer.size()) {
+					return false;
+				}
+
+				fclose(file);
+				return true;
+			}
+
 			RunResult execute(const char* name, int* status) const {
 				const char* argv[] = {name, nullptr};
 				return execute(argv, (const char**) environ, status);

@@ -456,7 +456,7 @@ namespace asmio::x86 {
 
 		// TODO
 		if (strcmp(name, "ascii") == 0) {
-			return writer.put_ascii(stream.accept(Token::STRING)->cooked());
+			return writer.put_ascii(stream.accept(Token::STRING)->parseString());
 		}
 
 		throw std::runtime_error {"Unknown mnemonic '" + std::string {name} + "'!"};

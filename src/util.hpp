@@ -2,6 +2,9 @@
 
 #include "external.hpp"
 
+#define ASMIOV_VERSION "1.0.0"
+#define ASMIOV_SOURCE "https://github.com/dark-tree/asmiov"
+
 #define UDIV_UP(a, b) (((a) + (b) - 1) / (b))
 #define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
 

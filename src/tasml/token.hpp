@@ -84,6 +84,51 @@ struct Token {
 
 	}
 
+	std::string parseString() const {
+		std::string output;
+		output.reserve(raw.size() - 2);
+		bool escape = false;
+
+		for (int i = 1; i < raw.size() - 1; i ++) {
+			char chr = raw[i];
+
+			if (escape) {
+				escape = false;
+
+				if (chr == '\\') {
+					output.push_back('\\');
+				}
+
+				if (chr == '"') {
+					output.push_back('"');
+				}
+
+				if (chr == 'n') {
+					output.push_back('\n');
+				}
+
+				if (chr == 't') {
+					output.push_back('\t');
+				}
+
+				if (chr == 'r') {
+					output.push_back('\r');
+				}
+
+				continue;
+			}
+
+			if (chr == '\\') {
+				escape = true;
+				continue;
+			}
+
+			output += chr;
+		}
+
+		return output;
+	}
+
 	const size_t line;
 	const size_t column;
 	const size_t offset;
@@ -101,7 +146,6 @@ struct Token {
 	: line(line), column(column), offset(offset), length(length), raw(raw), type(type), weight(weight) {}
 
 	std::string cooked() const {
-		if (type == STRING) return raw.substr(1, raw.length() - 2);
 		if (type == LABEL) return raw.substr(0, raw.length() - 1);
 		if (type == REFERENCE) return raw.substr(1, raw.length() - 1);
 		return raw;

@@ -6,7 +6,7 @@
 
 #define SKIP(count) i += (count); column += (count);
 
-namespace asmio::tasml {
+namespace asmio {
 
 	static constexpr std::array symbols   {';', '{', '}', '(', ')', '[', ']', ','};
 	static constexpr std::array operators {'+', '-', '*', '/', '%', '&', '|', '^'};

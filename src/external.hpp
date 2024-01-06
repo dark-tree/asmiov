@@ -13,6 +13,7 @@
 #include <vector>
 #include <unordered_map>
 #include <optional>
+#include <list>
 
 #ifdef __linux__
 #	include <unistd.h>

@@ -1600,7 +1600,7 @@ TEST (tasml_tokenize) {
 
 	BufferWriter writer;
 
-	std::vector<Token> tokens = tokenize(code);
+	std::vector<Token> tokens = asmio::tokenize(code);
 	TokenStream stream {tokens};
 	parseBlock(writer, stream);
 

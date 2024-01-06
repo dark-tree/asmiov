@@ -264,21 +264,28 @@ namespace asmio::x86 {
 	/**
 	 * Used for constructing the 'conditional jump' family of instructions
 	 */
-	void BufferWriter::put_inst_jx(Label label, uint8_t sopcode, uint8_t lopcode) {
+	void BufferWriter::put_inst_jx(Location dst, uint8_t sopcode, uint8_t lopcode) {
+
+		Label label = dst.label;
+		long shift = dst.offset;
+
+		if (!dst.is_jump_label()) {
+			throw std::runtime_error {"Invalid operand!"};
+		}
 
 		if (has_label(label)) {
-			int offset = get_label(label) - buffer.size();
+			long offset = get_label(label) - buffer.size() + shift;
 
 			if (offset > -127) {
 				put_byte(sopcode);
-				put_label(label, BYTE);
+				put_label(label, BYTE, shift);
 				return;
 			}
 		}
 
 		put_byte(0b00001111);
 		put_byte(lopcode);
-		put_label(label, DWORD);
+		put_label(label, DWORD, shift);
 
 	}
 
@@ -297,8 +304,8 @@ namespace asmio::x86 {
 		put_byte(0b01100111);
 	}
 
-	void BufferWriter::put_label(Label label, uint8_t size) {
-		commands.emplace_back(label, size, buffer.size(), 0, true);
+	void BufferWriter::put_label(Label label, uint8_t size, long shift) {
+		commands.emplace_back(label, size, buffer.size(), shift, true);
 
 		while (size --> 0) {
 			put_byte(0);

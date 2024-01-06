@@ -56,7 +56,7 @@ namespace asmio::x86 {
 			/**
 			 * Used for constructing the conditional jump family of instructions
 			 */
-			void put_inst_jx(Label label, uint8_t sopcode, uint8_t lopcode);
+			void put_inst_jx(Location label, uint8_t sopcode, uint8_t lopcode);
 
 			/**
 			 * Used for constructing the 'set byte' family of instructions
@@ -65,7 +65,7 @@ namespace asmio::x86 {
 
 			void put_inst_16bit_operand_mark();
 			void put_inst_16bit_address_mark();
-			void put_label(Label label, uint8_t size);
+			void put_label(Label label, uint8_t size, long shift);
 			bool has_label(Label label);
 			int get_label(Label label);
 
@@ -126,39 +126,39 @@ namespace asmio::x86 {
 			void put_sar(Location dst, Location src);   /// Arithmetic Shift Right
 			void put_jmp(Location dst);                 /// Unconditional Jump
 			void put_call(Location dst);                /// Procedure Call
-			Label put_jo(Label label);                  /// Jump on Overflow
-			Label put_jno(Label label);                 /// Jump on Not Overflow
-			Label put_jb(Label label);                  /// Jump on Below
-			Label put_jnb(Label label);                 /// Jump on Not Below
-			Label put_je(Label label);                  /// Jump on Equal
-			Label put_jne(Label label);                 /// Jump on Not Equal
-			Label put_jbe(Label label);                 /// Jump on Below or Equal
-			Label put_jnbe(Label label);                /// Jump on Not Below or Equal
-			Label put_js(Label label);                  /// Jump on Sign
-			Label put_jns(Label label);                 /// Jump on Not Sign
-			Label put_jp(Label label);                  /// Jump on Parity
-			Label put_jnp(Label label);                 /// Jump on Not Parity
-			Label put_jl(Label label);                  /// Jump on Less
-			Label put_jnl(Label label);                 /// Jump on Not Less
-			Label put_jle(Label label);                 /// Jump on Less or Equal
-			Label put_jnle(Label label);                /// Jump on Not Less or Equal
-			Label put_jc(Label label);                  /// Alias to JB, Jump on Carry
-			Label put_jnc(Label label);                 /// Alias to JNB, Jump on Not Carry
-			Label put_jnae(Label label);                /// Alias to JB, Jump on Not Above or Equal
-			Label put_jae(Label label);                 /// Alias to JNB, Jump on Above or Equal
-			Label put_jz(Label label);                  /// Alias to JE, Jump on Zero
-			Label put_jnz(Label label);                 /// Alias to JNE, Jump on Not Zero
-			Label put_jna(Label label);                 /// Alias to JBE, Jump on Not Above
-			Label put_ja(Label label);                  /// Alias to JNBE, Jump on Above
-			Label put_jpe(Label label);                 /// Alias to JP, Jump on Parity Even
-			Label put_jpo(Label label);                 /// Alias to JNP, Jump on Parity Odd
-			Label put_jnge(Label label);                /// Alias to JL, Jump on Not Greater or Equal
-			Label put_jge(Label label);                 /// Alias to JNL, Jump on Greater or Equal
-			Label put_jng(Label label);                 /// Alias to JLE, Jump on Not Greater
-			Label put_jg(Label label);                  /// Alias to JNLE, Jump on Greater
-			Label put_jcxz(Label label);                /// Jump on CX Zero
-			Label put_jecxz(Label label);               /// Jump on ECX Zero
-			Label put_loop(Label label);                /// Loop Times
+			void put_jo(Location label);                /// Jump on Overflow
+			void put_jno(Location label);               /// Jump on Not Overflow
+			void put_jb(Location label);                /// Jump on Below
+			void put_jnb(Location label);               /// Jump on Not Below
+			void put_je(Location label);                /// Jump on Equal
+			void put_jne(Location label);               /// Jump on Not Equal
+			void put_jbe(Location label);               /// Jump on Below or Equal
+			void put_jnbe(Location label);              /// Jump on Not Below or Equal
+			void put_js(Location label);                /// Jump on Sign
+			void put_jns(Location label);               /// Jump on Not Sign
+			void put_jp(Location label);                /// Jump on Parity
+			void put_jnp(Location label);               /// Jump on Not Parity
+			void put_jl(Location label);                /// Jump on Less
+			void put_jnl(Location label);               /// Jump on Not Less
+			void put_jle(Location label);               /// Jump on Less or Equal
+			void put_jnle(Location label);              /// Jump on Not Less or Equal
+			void put_jc(Location label);                /// Alias to JB, Jump on Carry
+			void put_jnc(Location label);               /// Alias to JNB, Jump on Not Carry
+			void put_jnae(Location label);              /// Alias to JB, Jump on Not Above or Equal
+			void put_jae(Location label);               /// Alias to JNB, Jump on Above or Equal
+			void put_jz(Location label);                /// Alias to JE, Jump on Zero
+			void put_jnz(Location label);               /// Alias to JNE, Jump on Not Zero
+			void put_jna(Location label);               /// Alias to JBE, Jump on Not Above
+			void put_ja(Location label);                /// Alias to JNBE, Jump on Above
+			void put_jpe(Location label);               /// Alias to JP, Jump on Parity Even
+			void put_jpo(Location label);               /// Alias to JNP, Jump on Parity Odd
+			void put_jnge(Location label);              /// Alias to JL, Jump on Not Greater or Equal
+			void put_jge(Location label);               /// Alias to JNL, Jump on Greater or Equal
+			void put_jng(Location label);               /// Alias to JLE, Jump on Not Greater
+			void put_jg(Location label);                /// Alias to JNLE, Jump on Greater
+			void put_jcxz(Location label);              /// Jump on CX Zero
+			void put_jecxz(Location label);             /// Jump on ECX Zero
+			void put_loop(Location label);              /// Loop Times
 			void put_seto(Location dst);                /// Set Byte on Overflow
 			void put_setno(Location dst);               /// Set Byte on Not Overflow
 			void put_setb(Location dst);                /// Set Byte on Below

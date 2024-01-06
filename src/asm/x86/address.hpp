@@ -209,6 +209,13 @@ namespace asmio::x86 {
 				return is_floating() && (offset == 0);
 			}
 
+			/**
+			* Checks if this location contains a label an nothing else
+			*/
+			bool is_jump_label() {
+				return is_labeled() && base.is(UNSET) && index.is(UNSET) && !reference;
+			}
+
 			uint8_t get_mod_flag() const {
 				if (label != nullptr) return MOD_QUAD;
 				if (offset == 0) return MOD_NONE;

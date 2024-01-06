@@ -463,23 +463,22 @@ namespace asmio::x86 {
 	/// Unconditional Jump
 	void BufferWriter::put_jmp(Location dst) {
 
-		if (dst.is_labeled()) {
-
-			// TODO shift
+		if (dst.is_jump_label()) {
 			Label label = dst.label;
+			long shift = dst.offset;
 
 			if (has_label(label)) {
-				int offset = get_label(label) - buffer.size();
+				int offset = get_label(label) - buffer.size() + shift;
 
 				if (offset > -127) {
 					put_byte(0b11101011);
-					put_label(label, BYTE);
+					put_label(label, BYTE, shift);
+					return;
 				}
-
 			}
 
 			put_byte(0b11101001);
-			put_label(label, DWORD);
+			put_label(label, DWORD, shift);
 			return;
 		}
 
@@ -494,13 +493,10 @@ namespace asmio::x86 {
 	/// Procedure Call
 	void BufferWriter::put_call(Location dst) {
 
-		if (dst.is_labeled()) {
-
-			// TODO shift
+		if (dst.is_jump_label()) {
 			put_byte(0b11101000);
-			put_label(dst.label, DWORD);
+			put_label(dst.label, DWORD, dst.offset);
 			return;
-
 		}
 
 		if (dst.is_memreg()) {
@@ -512,99 +508,83 @@ namespace asmio::x86 {
 	}
 
 	/// Jump on Overflow
-	Label BufferWriter::put_jo(Label label) {
+	void BufferWriter::put_jo(Location label) {
 		put_inst_jx(label, 0b01110000, 0b10000000);
-		return label;
 	}
 
 	/// Jump on Not Overflow
-	Label BufferWriter::put_jno(Label label) {
+	void BufferWriter::put_jno(Location label) {
 		put_inst_jx(label, 0b01110001, 0b10000001);
-		return label;
 	}
 
 	/// Jump on Below
-	Label BufferWriter::put_jb(Label label) {
+	void BufferWriter::put_jb(Location label) {
 		put_inst_jx(label, 0b01110010, 0b10000010);
-		return label;
 	}
 
 	/// Jump on Not Below
-	Label BufferWriter::put_jnb(Label label) {
+	void BufferWriter::put_jnb(Location label) {
 		put_inst_jx(label, 0b01110011, 0b10000011);
-		return label;
 	}
 
 	/// Jump on Equal
-	Label BufferWriter::put_je(Label label) {
+	void BufferWriter::put_je(Location label) {
 		put_inst_jx(label, 0b01110100, 0b10000100);
-		return label;
 	}
 
 	/// Jump on Not Equal
-	Label BufferWriter::put_jne(Label label) {
+	void BufferWriter::put_jne(Location label) {
 		put_inst_jx(label, 0b01110101, 0b10000101);
-		return label;
 	}
 
 	/// Jump on Below or Equal
-	Label BufferWriter::put_jbe(Label label) {
+	void BufferWriter::put_jbe(Location label) {
 		put_inst_jx(label, 0b01110110, 0b10000110);
-		return label;
 	}
 
 	/// Jump on Not Below or Equal
-	Label BufferWriter::put_jnbe(Label label) {
+	void BufferWriter::put_jnbe(Location label) {
 		put_inst_jx(label, 0b01110111, 0b10000111);
-		return label;
 	}
 
 	/// Jump on Sign
-	Label BufferWriter::put_js(Label label) {
+	void BufferWriter::put_js(Location label) {
 		put_inst_jx(label, 0b01111000, 0b10001000);
-		return label;
 	}
 
 	/// Jump on Not Sign
-	Label BufferWriter::put_jns(Label label) {
+	void BufferWriter::put_jns(Location label) {
 		put_inst_jx(label, 0b01111001, 0b10001001);
-		return label;
 	}
 
 	/// Jump on Parity
-	Label BufferWriter::put_jp(Label label) {
+	void BufferWriter::put_jp(Location label) {
 		put_inst_jx(label, 0b01111010, 0b10001010);
-		return label;
 	}
 
 	/// Jump on Not Parity
-	Label BufferWriter::put_jnp(Label label) {
+	void BufferWriter::put_jnp(Location label) {
 		put_inst_jx(label, 0b01111011, 0b10001011);
-		return label;
 	}
 
 	/// Jump on Less
-	Label BufferWriter::put_jl(Label label) {
+	void BufferWriter::put_jl(Location label) {
 		put_inst_jx(label, 0b01111100, 0b10001100);
-		return label;
 	}
 
 	/// Jump on Not Less
-	Label BufferWriter::put_jnl(Label label) {
+	void BufferWriter::put_jnl(Location label) {
 		put_inst_jx(label, 0b01111101, 0b10001101);
-		return label;
 	}
 
 	/// Jump on Less or Equal
-	Label BufferWriter::put_jle(Label label) {
+	void BufferWriter::put_jle(Location label) {
 		put_inst_jx(label, 0b01111110, 0b10001110);
-		return label;
 	}
 
 	/// Jump on Not Less or Equal
-	Label BufferWriter::put_jnle(Label label) {
+	void BufferWriter::put_jnle(Location label) {
 		put_inst_jx(label, 0b01111111, 0b10001111);
-		return label;
 	}
 
 	/// Set Byte on Overflow
@@ -792,93 +772,105 @@ namespace asmio::x86 {
 	}
 
 	/// Alias to JB, Jump on Carry
-	Label BufferWriter::put_jc(Label label) {
-		return put_jb(label);
+	void BufferWriter::put_jc(Location label) {
+		put_jb(label);
 	}
 
 	/// Alias to JNB, Jump on not Carry
-	Label BufferWriter::put_jnc(Label label) {
-		return put_jnb(label);
+	void BufferWriter::put_jnc(Location label) {
+		put_jnb(label);
 	}
 
 	/// Alias to JB, Jump on Not Above or Equal
-	Label BufferWriter::put_jnae(Label label) {
-		return put_jb(label);
+	void BufferWriter::put_jnae(Location label) {
+		put_jb(label);
 	}
 
 	/// Alias to JNB, Jump on Above or Equal
-	Label BufferWriter::put_jae(Label label) {
-		return put_jnb(label);
+	void BufferWriter::put_jae(Location label) {
+		put_jnb(label);
 	}
 
 	/// Alias to JE, Jump on Zero
-	Label BufferWriter::put_jz(Label label) {
-		return put_je(label);
+	void BufferWriter::put_jz(Location label) {
+		put_je(label);
 	}
 
 	/// Alias to JNE, Jump on Not Zero
-	Label BufferWriter::put_jnz(Label label) {
-		return put_jne(label);
+	void BufferWriter::put_jnz(Location label) {
+		put_jne(label);
 	}
 
 	/// Alias to JBE, Jump on Not Above
-	Label BufferWriter::put_jna(Label label) {
-		return put_jbe(label);
+	void BufferWriter::put_jna(Location label) {
+		put_jbe(label);
 	}
 
 	/// Alias to JNBE, Jump on Above
-	Label BufferWriter::put_ja(Label label) {
-		return put_jnbe(label);
+	void BufferWriter::put_ja(Location label) {
+		put_jnbe(label);
 	}
 
 	/// Alias to JP, Jump on Parity Even
-	Label BufferWriter::put_jpe(Label label) {
-		return put_jp(label);
+	void BufferWriter::put_jpe(Location label) {
+		put_jp(label);
 	}
 
 	/// Alias to JNP, Jump on Parity Odd
-	Label BufferWriter::put_jpo(Label label) {
-		return put_jnp(label);
+	void BufferWriter::put_jpo(Location label) {
+		put_jnp(label);
 	}
 
 	/// Alias to JL, Jump on Not Greater or Equal
-	Label BufferWriter::put_jnge(Label label) {
-		return put_jl(label);
+	void BufferWriter::put_jnge(Location label) {
+		put_jl(label);
 	}
 
 	/// Alias to JNL, Jump on Greater or Equal
-	Label BufferWriter::put_jge(Label label) {
-		return put_jnl(label);
+	void BufferWriter::put_jge(Location label) {
+		put_jnl(label);
 	}
 
 	/// Alias to JLE, Jump on Not Greater
-	Label BufferWriter::put_jng(Label label) {
-		return put_jle(label);
+	void BufferWriter::put_jng(Location label) {
+		put_jle(label);
 	}
 
 	/// Alias to JNLE, Jump on Greater
-	Label BufferWriter::put_jg(Label label) {
-		return put_jnle(label);
+	void BufferWriter::put_jg(Location label) {
+		put_jnle(label);
 	}
 
 	/// Jump on CX Zero
-	Label BufferWriter::put_jcxz(Label label) {
+	void BufferWriter::put_jcxz(Location label) {
 		put_inst_16bit_address_mark();
-		return put_jecxz(label);
+		put_jecxz(label);
 	}
 
 	/// Jump on ECX Zero
-	Label BufferWriter::put_jecxz(Label label) {
-		put_byte(0b11100011);
-		put_label(label, BYTE);
-		return label;
+	void BufferWriter::put_jecxz(Location dst) {
+
+		// FIXME: no range check
+		if (dst.is_jump_label()) {
+			put_byte(0b11100011);
+			put_label(dst.label, BYTE, dst.offset);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand!"};
 	}
 
 	/// Loop Times
-	Label BufferWriter::put_loop(Label label) {
-		put_byte(0b11100010);
-		put_label(label, BYTE);
-		return label;
+	void BufferWriter::put_loop(Location dst) {
+
+		// FIXME: no range check
+		if (dst.is_jump_label()) {
+			put_byte(0b11100010);
+			put_label(dst.label, BYTE, dst.offset);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand!"};
 	}
 
 	/// Alias to SETB, Set Byte on Carry

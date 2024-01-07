@@ -4,6 +4,7 @@
 #include "address.hpp"
 #include "label.hpp"
 #include "buffer.hpp"
+#include "tasml/error.hpp"
 #include "file/elf/buffer.hpp"
 
 namespace asmio::x86 {
@@ -290,9 +291,9 @@ namespace asmio::x86 {
 			INST put_fdivrp(Location dst);              /// Reverse Divide And Pop
 
 			void dump(bool verbose = false) const;
-			void assemble(size_t absolute, bool debug = false);
+			void assemble(size_t absolute, ErrorHandler* reporter = nullptr, bool debug = false);
 			ExecutableBuffer bake(bool debug = false);
-			ElfBuffer bake_elf(bool debug = false);
+			ElfBuffer bake_elf(ErrorHandler* reporter, uint32_t address = 0x08048000, const char* entry = "_start", bool debug = false);
 
 	};
 

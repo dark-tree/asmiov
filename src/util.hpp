@@ -2,6 +2,9 @@
 
 #include "external.hpp"
 
+#define EXIT_OK 0
+#define EXIT_ERROR 1
+
 #define ASMIOV_VERSION "1.0.0"
 #define ASMIOV_SOURCE "https://github.com/dark-tree/asmiov"
 

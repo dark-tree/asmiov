@@ -1,6 +1,7 @@
 #pragma once
 
 #include "external.hpp"
+#include "util.hpp"
 
 struct ErrorHandler {
 
@@ -10,24 +11,31 @@ struct ErrorHandler {
 
 			public:
 
-				enum Severity : uint32_t {
+				enum Type : uint32_t {
 					WARNING,
 					ERROR,
-					FATAL
+					FATAL,
+					LINK
 				};
 
-				Report(Severity severity, uint32_t line, uint32_t column, const std::string& message, const std::string& unit)
-				: line(line), column(column), severity(severity), message(message), unit(unit) {}
+				Report(Type type, uint32_t line, uint32_t column, const std::string& message, const std::string& unit)
+				: line(line), column(column), type(type), message(message), unit(unit) {}
 
 				const char* typestr(bool ansi) const {
-					if (severity == WARNING) return ansi ? "\033[33;1mWarning:\033[0m" : "Warning:";
-					if (severity == ERROR) return ansi ? "\033[31;1mError:\033[0m" : "Error:";
-					if (severity == FATAL) return ansi ? "\033[31;1mFatal Error:\033[0m" : "Fatal Error:";
+					if (type == WARNING) return ansi ? "\033[33;1mWarning:\033[0m" : "Warning:";
+					if (type == ERROR) return ansi ? "\033[31;1mError:\033[0m" : "Error:";
+					if (type == FATAL) return ansi ? "\033[31;1mFatal Error:\033[0m" : "Fatal Error:";
+					if (type == LINK) return ansi ? "\033[31;1mLink Error:\033[0m" : "Link Error:";
 
 					return ansi ? "\033[31;1mInvalid:\033[0m" : "Invalid:";
 				}
 
 				void dump(bool ansi) const {
+					if (type == LINK) {
+						printf("%s at 0x%08x %s %s!\n", unit.c_str(), column, typestr(ansi), message.c_str());
+						return;
+					}
+
 					printf("%s:%d %s %s!\n", unit.c_str(), line, typestr(ansi), message.c_str());
 				}
 
@@ -35,7 +43,7 @@ struct ErrorHandler {
 
 				uint32_t line;
 				uint32_t column;
-				Severity severity;
+				Type type;
 				std::string message;
 				std::string unit;
 
@@ -43,6 +51,10 @@ struct ErrorHandler {
 
 		ErrorHandler(const std::string& unit, bool ansi)
 		: unit(unit), ansi(ansi), errors(0), warnings(0) {}
+
+		bool ok() const {
+			return errors == 0;
+		}
 
 		void dump() {
 			for (Report report : reports) {
@@ -54,8 +66,11 @@ struct ErrorHandler {
 			errors = 0;
 		}
 
-		bool ok() const {
-			return errors == 0;
+		void assert(int code) {
+			if (!ok()) {
+				dump();
+				exit(code);
+			}
 		}
 
 	public:
@@ -70,12 +85,9 @@ struct ErrorHandler {
 			errors ++;
 		}
 
-		[[noreturn]]
-		void fatal(int line, int column, const std::string& message) {
-			reports.emplace_back(Report::FATAL, line, column, message, unit);
+		void link(uint32_t offset, const std::string& message) {
+			reports.emplace_back(Report::LINK, -1, offset, message, unit);
 			errors ++;
-
-			throw std::runtime_error {"Fatal error occurred!"};
 		}
 
 	private:
@@ -83,7 +95,6 @@ struct ErrorHandler {
 		std::list<Report> reports;
 		const std::string unit;
 		const bool ansi;
-
 		int errors, warnings;
 
 };

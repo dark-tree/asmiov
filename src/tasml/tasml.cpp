@@ -11,6 +11,10 @@
 #include <iostream>
 #include <fstream>
 
+#define EXIT_TOKEN_ERROR 2
+#define EXIT_PARSE_ERROR 3
+#define EXIT_LINKE_ERROR 4
+
 using namespace asmio;
 
 int main(int argc, char** argv) {
@@ -19,6 +23,7 @@ int main(int argc, char** argv) {
 
 	args.define("-i").define("--stdin");
 	args.define("-o", 1).define("--output", 1);
+	args.define("--xansi");
 	args.define("-?").define("-h").define("--help");
 	args.define("--version");
 
@@ -31,10 +36,11 @@ int main(int argc, char** argv) {
 
 		printf("  -i, --stdin    Read input from stdin, not file\n");
 		printf("  -o, --output   Place the output into <file>\n");
+		printf("      --xansi    Disables colored output\n");
 		printf("  -h, --help     Display this help page and exit\n");
 		printf("      --version  Display version information and exit\n");
 
-		return 0;
+		return EXIT_OK;
 	}
 
 	if (args.has("--version")) {
@@ -42,7 +48,7 @@ int main(int argc, char** argv) {
 		printf("Version: " ASMIOV_VERSION "\n");
 		printf("Source: " ASMIOV_SOURCE "\n");
 
-		return 0;
+		return EXIT_OK;
 	}
 
 	std::string assembly;
@@ -60,7 +66,7 @@ int main(int argc, char** argv) {
 	if (args.has("-o") && args.has("--output")) {
 		printf("Invalid syntax, output redefined!");
 		printf("Try '--help' for more info!\n");
-		exit(1);
+		return EXIT_ERROR;
 	}
 
 	if (args.has("-i") || args.has("--stdin")) {
@@ -79,7 +85,7 @@ int main(int argc, char** argv) {
 
 		if (!file.is_open()) {
 			printf("Failed to read input!\n");
-			return 1;
+			return EXIT_ERROR;
 		}
 
 		// load file contents into string
@@ -89,41 +95,34 @@ int main(int argc, char** argv) {
 		assembly.assign(std::istreambuf_iterator<char> {file}, std::istreambuf_iterator<char> {});
 	}
 
-	ErrorHandler handler {input, true};
+	ErrorHandler handler {input, !args.has("--xansi")};
 
 	try {
 
 		// tokenize input
 		std::vector<Token> tokens = tokenize(handler, assembly);
-		TokenStream stream {tokens};
-		assembly.clear();
-
-		// check tokenization error
-		if (!handler.ok()) {
-			handler.dump();
-			return 1;
-		}
+		TokenStream stream {tokens}; assembly.clear();
+		handler.assert(EXIT_TOKEN_ERROR);
 
 		// parse and assemble
 		x86::BufferWriter writer;
 		x86::parseBlock(handler, writer, stream);
+		handler.assert(EXIT_PARSE_ERROR);
 
-		// check parsing error
-		if (!handler.ok()) {
-			handler.dump();
-			return 1;
-		}
+		// assemble buffer and create ELF file
+		elf::ElfBuffer elf = writer.bake_elf(&handler);
+		handler.assert(EXIT_LINKE_ERROR);
 
 		// write to output file
-		if (!writer.bake_elf().save(output.c_str())) {
+		if (!writer.bake_elf(&handler).save(output.c_str())) {
 			printf("Failed to save output!\n");
-			return 1;
+			return EXIT_ERROR;
 		}
 
 	} catch (std::runtime_error& error) {
-		printf("%s\n", error.what());
-		return 1;
+		printf("Unhandled Error: %s\n", error.what());
+		return EXIT_ERROR;
 	}
 
-	return 0;
+	return EXIT_OK;
 }

@@ -177,11 +177,11 @@ namespace asmio::x86 {
 		//     movsx (w=1) -> movsx [quad], [word]
 
 		if (!dst.is_simple()) {
-			throw std::runtime_error {"Invalid destination operand!"};
+			throw std::runtime_error {"Invalid destination operand"};
 		}
 
 		if (src_len >= dst_len) {
-			throw std::runtime_error {"Invalid destination sizes!"};
+			throw std::runtime_error {"Invalid destination size"};
 		}
 
 		put_inst_std(opcode, src, dst.base.reg, true, src_len == WORD, true);
@@ -213,7 +213,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error {"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands"};
 
 	}
 
@@ -235,7 +235,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error {"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands"};
 
 	}
 
@@ -257,7 +257,7 @@ namespace asmio::x86 {
 			}
 		}
 
-		throw std::runtime_error {"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands"};
 
 	}
 
@@ -270,7 +270,7 @@ namespace asmio::x86 {
 		long shift = dst.offset;
 
 		if (!dst.is_jump_label()) {
-			throw std::runtime_error {"Invalid operand!"};
+			throw std::runtime_error {"Invalid operand"};
 		}
 
 		if (has_label(label)) {
@@ -320,13 +320,13 @@ namespace asmio::x86 {
 		try {
 			return labels.at(label);
 		} catch (...) {
-			throw std::runtime_error {std::string {"Undefined label '"} + label.c_str() + "' used!"};
+			throw std::runtime_error {std::string {"Undefined label '"} + label.c_str() + "' used"};
 		}
 	}
 
 	BufferWriter& BufferWriter::label(const Label& label) {
 		if (has_label(label)) {
-			throw std::runtime_error {"Invalid label, redefinition attempted!"};
+			throw std::runtime_error {"Invalid label, redefinition attempted"};
 		}
 
 		labels[label] = buffer.size();
@@ -413,13 +413,17 @@ namespace asmio::x86 {
 		std::cout << '"' << std::endl;
 	}
 
-	void BufferWriter::assemble(size_t absolute, bool debug)  {
+	void BufferWriter::assemble(size_t absolute, ErrorHandler* reporter, bool debug)  {
 
 		for (LabelCommand command : commands) {
-			const long offset = command.relative ? command.offset + command.size : (-absolute);
-			const long imm_val = get_label(command.label) - offset + command.shift;
-			const uint8_t *imm_ptr = (uint8_t *) &imm_val;
-			memcpy(buffer.data() + command.offset, imm_ptr, command.size);
+			try {
+				const long offset = command.relative ? command.offset + command.size : (-absolute);
+				const long imm_val = get_label(command.label) - offset + command.shift;
+				const uint8_t *imm_ptr = (uint8_t *) &imm_val;
+				memcpy(buffer.data() + command.offset, imm_ptr, command.size);
+			} catch (std::runtime_error& error) {
+				if (reporter != nullptr) reporter->link(command.offset, error.what()); else throw error;
+			}
 		}
 
 		#if DEBUG_MODE
@@ -434,17 +438,15 @@ namespace asmio::x86 {
 
 	ExecutableBuffer BufferWriter::bake(bool debug) {
 		ExecutableBuffer result {buffer.size(), labels};
-		assemble((size_t) result.address(), debug);
+		assemble((size_t) result.address(), nullptr, debug);
 		result.bake(buffer);
 
 		return result;
 	}
 
-	ElfBuffer BufferWriter::bake_elf(bool debug) {
-		uint32_t address = 0x08048000;
-
-		ElfBuffer elf {buffer.size(), address, (uint32_t) labels.at("_start")};
-		assemble(address + elf.offset(), debug);
+	ElfBuffer BufferWriter::bake_elf(ErrorHandler* reporter, uint32_t address, const char* entry, bool debug) {
+		ElfBuffer elf {buffer.size(), address, (uint32_t) labels.at(entry)};
+		assemble(address + elf.offset(), reporter, debug);
 		elf.bake(buffer);
 
 		return elf;

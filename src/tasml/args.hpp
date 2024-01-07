@@ -22,7 +22,7 @@ class Args {
 			if (!contains(defined, value)) {
 				printf("Unknown option '%s'!\n", value.c_str());
 				printf("Try '--help' for more info!\n");
-				exit(1);
+				exit(EXIT_ERROR);
 			}
 
 			options.push_back(value);
@@ -54,19 +54,19 @@ class Args {
 					if (!vals.empty()) {
 						printf("Invalid syntax, '%s' was already used!\n", key.c_str());
 						printf("Try '--help' for more info!\n");
-						exit(1);
+						exit(EXIT_ERROR);
 					}
 
 					if (parts.size() < argc) {
 						printf("Invalid syntax, too few arguments given to '%s'!\n", key.c_str());
 						printf("Try '--help' for more info!\n");
-						exit(1);
+						exit(EXIT_ERROR);
 					}
 
 					if (!finalize && parts.size() > argc) {
 						printf("Invalid syntax, too many arguments given to '%s'!\n", key.c_str());
 						printf("Try '--help' for more info!\n");
-						exit(1);
+						exit(EXIT_ERROR);
 					}
 
 					while (argc --> 0) {
@@ -87,7 +87,7 @@ class Args {
 				if (last == -1 && !parts.empty() /* && !finalize */) {
 					printf("Invalid syntax, expected an option or flag!\n");
 					printf("Try '--help' for more info!\n");
-					exit(1);
+					exit(EXIT_ERROR);
 				}
 
 
@@ -152,7 +152,7 @@ class Args {
 			if (trailing.size() != length && length != -1) {
 				printf("Invalid syntax, expected %d %s!\n", length, (length == 1) ? "file" : "files");
 				printf("Try '--help' for more info!\n");
-				exit(1);
+				exit(EXIT_ERROR);
 			}
 
 			return trailing;

@@ -53,6 +53,14 @@ class TokenStream {
 
 	public:
 
+		const Token& first() {
+			if (start + 1 == end) {
+				return tokens.at(start < 0 ? 0 : start);
+			}
+
+			return tokens.at(start + 1);
+		}
+
 		/// Throws a "unexpected end of scope" report, specifying the expectation with a TokenPredicate.
 		/// Warning: this method does NOT check if the stream is actually empty! To do that use assertEmpty()
 		void raiseInputEnd(const TokenPredicate& predicate) {
@@ -84,11 +92,6 @@ class TokenStream {
 		/// checks if the stream is empty
 		bool empty() const {
 			return index >= end;
-		}
-
-		/// returns the number of remaining tokens
-		int remaining() const {
-			return end - index;
 		}
 
 		/// Returns a reference to the next token without consuming it,
@@ -150,20 +153,6 @@ class TokenStream {
 			return block(open, close, name);
 		}
 
-//		/// Consumes tokens until the given token (or stream end) is reached, all consumed tokens are added to the returned sub-stream.
-//		/// The specified token is NOT consumed!
-//		TokenStream until(const TokenPredicate& predicate, const char* name) {
-//			long begin = index;
-//
-//			while (index < end) {
-//				if (!accept(inverted)) {
-//					break;
-//				}
-//			}
-//
-//			return TokenStream {tokens, begin - 1, index, name};
-//		}
-
 		/// Consumes tokens until the end of input or a ',' is reached
 		/// Returns a sub-stream of the consumed tokens
 		TokenStream expression(const char* name) {
@@ -201,18 +190,6 @@ class TokenStream {
 			accept(";");
 
 			return TokenStream {tokens, begin - 1, finish, name};
-		}
-
-		/// Helper for creating bracket-bound sub-streams, takes two strings, first the pattern (e.g. "{}" or "()")
-		/// and second the name for the sub-stream. Expects the very next token to be the opening bracket!
-		TokenStream range(const char str[2], const char* name) {
-			if (str[0] == 0 || str[1] == 0 || str[2] != 0) {
-				throw std::runtime_error {"Invalid range pattern length!"};
-			}
-
-			char tmp[2] = {str[0], 0};
-			expect(tmp);
-			return block(str, name);
 		}
 
 };

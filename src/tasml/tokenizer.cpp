@@ -10,7 +10,6 @@ namespace asmio {
 
 	static constexpr std::array symbols   {';', '{', '}', '(', ')', '[', ']', ','};
 	static constexpr std::array operators {'+', '-', '*', '/', '%', '&', '|', '^'};
-	static constexpr std::array weights   {  3,   3,   4,   4,   4,   2,   0,   1};
 
 	inline bool isSpace(char chr) {
 		return chr <= ' ';
@@ -46,18 +45,18 @@ namespace asmio {
 		if (raw.length() == 1) {
 			char chr = raw[0];
 
-			if (isSymbol(raw[0])) return Token::SYMBOL;
-			if (isOperator(raw[0])) return Token::OPERATOR;
+			if (isSymbol(chr)) return Token::SYMBOL;
+			if (isOperator(chr)) return Token::OPERATOR;
 		}
 
 		return Token::INVALID;
 	}
 
 
-	std::vector<Token> tokenize(const std::string& input) {
+	std::vector<Token> tokenize(ErrorHandler& reporter, const std::string& input) {
 
 		size_t size = input.size();
-		size_t line = 1, column = 0, start = 0, offset = 0;
+		int32_t line = 1, column = 0, start = 0, offset = 0;
 
 		std::vector<Token> tokens;
 		std::string token = "";
@@ -67,18 +66,11 @@ namespace asmio {
 		bool in_multiline_comment = false;
 
 		auto submit = [&] (const std::string& raw, bool silent = false) {
-
-			short weight = -1;
 			Token::Type type = categorize(raw);
-
-			if (type == Token::OPERATOR) {
-				weight = weights[std::distance(operators.begin(), std::find(operators.begin(), operators.end(), raw[0]))];
-			}
-
-			tokens.emplace_back(line, start, offset, raw, type, weight);
+			tokens.emplace_back(line, start, offset, raw, type);
 
 			if (type == Token::INVALID && !silent) {
-				throw std::runtime_error {"Unknown token '" + raw + "' at line " + std::to_string(line) + ":" + std::to_string(start)};
+				reporter.error(line, start, "Unknown token '" + raw + "'");
 			}
 		};
 
@@ -90,7 +82,7 @@ namespace asmio {
 
 			if (c == '\n') {
 				if (in_string) {
-					throw std::runtime_error {"Unexpected end of line, expected end of string at line " + std::to_string(line) + ":" + std::to_string(start)};
+					reporter.error(line, start, "Unexpected end of line, expected end of string");
 					submit(token, true);
 					in_string = false;
 					token = "";
@@ -143,7 +135,7 @@ namespace asmio {
 				token += c;
 
 				if (c == '\\') {
-					//checkEscapeCode(line, column, n);
+					// TODO: checkEscapeCode(line, column, n);
 					token += n;
 					SKIP(1); // skip the escaped char
 				}
@@ -191,8 +183,12 @@ namespace asmio {
 		// behave as if there was an extra whitespace at the end
 		column ++;
 
+		if (in_multiline_comment) {
+			reporter.warn(line, start, "Unexpected end of input, expected end of multiline comment");
+		}
+
 		if (in_string) {
-			throw std::runtime_error {"Unexpected end of input, expected end of string at line " + std::to_string(line) + ":" + std::to_string(start)};
+			reporter.error(line, start, "Unexpected end of input, expected end of string");
 			submit(token, true);
 			token = "";
 		}

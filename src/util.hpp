@@ -74,4 +74,52 @@ namespace asmio {
 		return hash;
 	}
 
+	inline int64_t parseInt(const char* str) {
+
+		int base = 10;
+		size_t length = strlen(str);
+		const char* digits = str;
+
+		if (length > 2 && str[0] == '0') {
+			if (str[1] == 'x') { digits = str + 2; base = 16; }
+			if (str[1] == 'o') { digits = str + 2; base = 8;  }
+			if (str[1] == 'b') { digits = str + 2; base = 2;  }
+		}
+
+		size_t offset;
+		int64_t value;
+
+		try {
+			value = std::stoll(digits, &offset, base);
+		} catch(...) {
+			throw std::runtime_error {"exception thrown"};
+		}
+
+		if (offset != length - (base != 10 ? 2 : 0)) {
+			throw std::runtime_error {"some input ignored"};
+		}
+
+		return value;
+
+	}
+
+	inline long double parseFloat(const char* str) {
+
+		size_t offset;
+		long double value;
+
+		try {
+			value = std::stold(str, &offset);
+		} catch(...) {
+			throw std::runtime_error {"exception thrown"};
+		}
+
+		if (offset != strlen(str)) {
+			throw std::runtime_error {"some input ignored"};
+		}
+
+		return value;
+
+	}
+
 }

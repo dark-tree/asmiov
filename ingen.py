@@ -15,7 +15,7 @@ with open(input) as in_file:
 			locs = inst.count('Location')
 			name = inst[:open]
 
-			print(f'if (argc == {locs} && strcmp(name, "{name}") == 0) return parseCall<{locs}>(&BufferWriter::put_{name}, writer, stream);')
+			print(f'if (argc == {locs} && strcmp(name, "{name}") == 0) return parseCall<{locs}>(reporter, &BufferWriter::put_{name}, writer, stream);')
 		except:
 			pass
 

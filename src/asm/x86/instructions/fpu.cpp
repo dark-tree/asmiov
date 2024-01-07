@@ -49,7 +49,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (dst.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected word"};
+		}
+
+		throw std::runtime_error{"Invalid operand"};
 
 	}
 
@@ -67,7 +71,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (dst.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected word"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -115,7 +123,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected word"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -222,10 +234,10 @@ namespace asmio::x86 {
 		}
 
 		if (src.is_memory()) {
-			throw std::runtime_error{"Invalid operand size!"};
+			throw std::runtime_error {"Invalid operand size, expected dword, qword or tword"};
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -251,10 +263,10 @@ namespace asmio::x86 {
 		}
 
 		if (src.is_memory()) {
-			throw std::runtime_error{"Invalid operand size!"};
+			throw std::runtime_error {"Invalid operand size, expected word, dword or qword"};
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -280,10 +292,10 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memory()) {
-			throw std::runtime_error{"Invalid operand size!"};
+			throw std::runtime_error {"Invalid operand size, expected dword or qword"};
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -315,10 +327,10 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memory()) {
-			throw std::runtime_error{"Invalid operand size!"};
+			throw std::runtime_error {"Invalid operand size, expected dword, qword or tword"};
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -338,10 +350,10 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memory()) {
-			throw std::runtime_error{"Invalid operand size!"};
+			throw std::runtime_error {"Invalid operand size, expected word or dword"};
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -367,10 +379,10 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memory()) {
-			throw std::runtime_error{"Invalid operand size!"};
+			throw std::runtime_error {"Invalid operand size, expected word, dword or qword"};
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error{"Invalid operand"};
 
 	}
 
@@ -396,10 +408,10 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memory()) {
-			throw std::runtime_error{"Invalid operand size!"};
+			throw std::runtime_error {"Invalid operand size, expected word, dword or qword"};
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -411,7 +423,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -423,7 +435,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -435,7 +447,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -447,7 +459,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -459,7 +471,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -471,7 +483,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -483,7 +495,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -495,7 +507,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -507,7 +519,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -532,7 +544,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected dword or qword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -557,7 +573,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected dword or qword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -581,7 +601,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected word or dword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -600,7 +624,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected word or dword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -613,7 +641,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -626,7 +654,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -639,7 +667,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -652,7 +680,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -671,7 +699,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected dword or qword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -690,7 +722,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -709,7 +741,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands"};
 
 	}
 
@@ -722,7 +754,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -741,7 +773,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected dword or qword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -760,7 +796,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected word or dword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -779,7 +819,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands"};
 
 	}
 
@@ -792,7 +832,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -811,7 +851,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected dword or qword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -830,7 +874,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected word or dword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -849,7 +897,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands"};
 
 	}
 
@@ -862,7 +910,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error{"Invalid operand"};
 
 	}
 
@@ -881,7 +929,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected dword or qword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -900,7 +952,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		if (src.is_memory()) {
+			throw std::runtime_error {"Invalid operand size, expected word or dword"};
+		}
+
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 
@@ -919,7 +975,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operands!"};
+		throw std::runtime_error {"Invalid operands"};
 
 	}
 
@@ -932,7 +988,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error{"Invalid operand!"};
+		throw std::runtime_error {"Invalid operand"};
 
 	}
 

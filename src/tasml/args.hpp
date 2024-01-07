@@ -140,14 +140,6 @@ class Args {
 			defined.shrink_to_fit();
 		}
 
-		void clear() {
-			undefine();
-
-			options.clear();
-			values.clear();
-			trailing.clear();
-		}
-
 		bool has(const char* name) {
 			return contains(options, name);
 		}

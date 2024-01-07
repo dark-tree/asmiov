@@ -3,6 +3,7 @@
 #include "args.hpp"
 #include "stream.hpp"
 #include "tokenizer.hpp"
+#include "error.hpp"
 #include <asm/x86/writer.hpp>
 #include <asm/x86/emitter.hpp>
 
@@ -44,7 +45,8 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	std::string input;
+	std::string assembly;
+	std::string input = "<stdin>"; // path
 	std::string output = "a.out"; // path
 
 	if (args.has("-o")) {
@@ -69,11 +71,11 @@ int main(int argc, char** argv) {
 
 		// load until end of input is reached
 		while (std::cin >> chr){
-			input.push_back(chr);
+			assembly.push_back(chr);
 		}
 	} else {
-		const std::string& path = args.tail(1).at(0);
-		std::ifstream file {path};
+		input = args.tail(1).at(0);
+		std::ifstream file {input};
 
 		if (!file.is_open()) {
 			printf("Failed to read input!\n");
@@ -82,21 +84,35 @@ int main(int argc, char** argv) {
 
 		// load file contents into string
 		file.seekg(0, std::ios::end);
-		input.reserve(file.tellg());
+		assembly.reserve(file.tellg());
 		file.seekg(0, std::ios::beg);
-		input.assign(std::istreambuf_iterator<char> {file}, std::istreambuf_iterator<char> {});
+		assembly.assign(std::istreambuf_iterator<char> {file}, std::istreambuf_iterator<char> {});
 	}
+
+	ErrorHandler handler {input, true};
 
 	try {
 
 		// tokenize input
-		std::vector<Token> tokens = tokenize(input);
+		std::vector<Token> tokens = tokenize(handler, assembly);
 		TokenStream stream {tokens};
-		input.clear();
+		assembly.clear();
+
+		// check tokenization error
+		if (!handler.ok()) {
+			handler.dump();
+			return 1;
+		}
 
 		// parse and assemble
 		x86::BufferWriter writer;
-		x86::parseBlock(writer, stream);
+		x86::parseBlock(handler, writer, stream);
+
+		// check parsing error
+		if (!handler.ok()) {
+			handler.dump();
+			return 1;
+		}
 
 		// write to output file
 		if (!writer.bake_elf().save(output.c_str())) {

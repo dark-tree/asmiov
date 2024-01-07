@@ -36,7 +36,7 @@ class TokenPredicate {
 		}
 
 		std::string quoted() const {
-			return literal ? text : typestr();
+			return literal ? "'" + std::string(text) + "'" : typestr();
 		}
 
 };

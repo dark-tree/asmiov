@@ -12,7 +12,6 @@
 #include <fstream>
 
 using namespace asmio::x86;
-using namespace asmio::tasml;
 
 TEST (writer_exec_mov_ret_nop) {
 
@@ -1599,10 +1598,22 @@ TEST (tasml_tokenize) {
 	)";
 
 	BufferWriter writer;
+	ErrorHandler reporter {"<string>", true};
 
-	std::vector<Token> tokens = asmio::tokenize(code);
+	std::vector<Token> tokens = asmio::tokenize(reporter, code);
+
+	if (!reporter.ok()) {
+		reporter.dump();
+		FAIL("Tokenizer error!");
+	}
+
 	TokenStream stream {tokens};
-	parseBlock(writer, stream);
+	parseBlock(reporter, writer, stream);
+
+	if (!reporter.ok()) {
+		reporter.dump();
+		FAIL("Parser error!");
+	}
 
 	CHECK(writer.bake().call_i32("_start"), 6);
 

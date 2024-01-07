@@ -67,8 +67,10 @@ struct ErrorHandler {
 		}
 
 		void assert(int code) {
-			if (!ok()) {
-				dump();
+			const bool failed = !ok();
+			dump();
+
+			if (failed) {
 				exit(code);
 			}
 		}

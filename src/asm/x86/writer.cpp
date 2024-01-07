@@ -445,6 +445,10 @@ namespace asmio::x86 {
 	}
 
 	ElfBuffer BufferWriter::bake_elf(ErrorHandler* reporter, uint32_t address, const char* entry, bool debug) {
+		if (!has_label(entry)) {
+			throw std::runtime_error {"No entrypoint '" + std::string {entry} + "' defined!"};
+		}
+
 		ElfBuffer elf {buffer.size(), address, (uint32_t) labels.at(entry)};
 		assemble(address + elf.offset(), reporter, debug);
 		elf.bake(buffer);

@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 		args.tail(0);
 
 		// load until end of input is reached
-		while (std::cin >> chr){
+		while (std::cin.get(chr)){
 			assembly.push_back(chr);
 		}
 	} else {

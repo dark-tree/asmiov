@@ -1,6 +1,6 @@
 #pragma once
 
-#include "external.hpp"
+#include <external.hpp>
 
 #define EXIT_OK 0
 #define EXIT_ERROR 1

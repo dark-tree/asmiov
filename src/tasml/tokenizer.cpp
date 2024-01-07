@@ -135,7 +135,10 @@ namespace asmio {
 				token += c;
 
 				if (c == '\\') {
-					// TODO: checkEscapeCode(line, column, n);
+					if (Token::getEscapedValue(n) == -1) {
+						reporter.warn(line, column, "Unknown escape code '\\" + std::string {n} + "' used in string");
+					}
+
 					token += n;
 					SKIP(1); // skip the escaped char
 				}

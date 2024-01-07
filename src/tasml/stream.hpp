@@ -53,6 +53,8 @@ class TokenStream {
 
 	public:
 
+		/// Returns the first token in this stream
+		/// If that is not possible it returns the closest possible token
 		const Token& first() {
 			if (start + 1 == end) {
 				return tokens.at(start < 0 ? 0 : start);

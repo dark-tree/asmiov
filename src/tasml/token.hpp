@@ -17,6 +17,23 @@ struct Token {
 		OPERATOR  = 8,
 	};
 
+	static inline signed char getEscapedValue(char chr) {
+		switch (chr) {
+			case 'n': return '\n'; // new line
+			case 't': return '\t'; // tab
+			case '0': return '\0'; // null byte
+			case 'r': return '\r'; // carriage return
+			case 'v': return '\v'; // vertical tab
+			case 'a': return '\a'; // bell
+			case 'e': return 27;   // ascii escape
+			case '\\': return '\\';
+			case '"': return '"';
+			case '\'': return '\'';
+		}
+
+		return -1;
+	}
+
 	int64_t parseInt() const {
 
 		if (type == FLOAT) {
@@ -62,27 +79,7 @@ struct Token {
 
 			if (escape) {
 				escape = false;
-
-				if (chr == '\\') {
-					output.push_back('\\');
-				}
-
-				if (chr == '"') {
-					output.push_back('"');
-				}
-
-				if (chr == 'n') {
-					output.push_back('\n');
-				}
-
-				if (chr == 't') {
-					output.push_back('\t');
-				}
-
-				if (chr == 'r') {
-					output.push_back('\r');
-				}
-
+				output.push_back(getEscapedValue(chr));
 				continue;
 			}
 
@@ -100,10 +97,6 @@ struct Token {
 	std::string parseLabel() const {
 		return raw.substr(0, raw.length() - 1);
 	}
-
-//	std::string parseReference() const {
-//		return raw.substr(1, raw.length() - 1);
-//	}
 
 	const size_t line;
 	const size_t column;

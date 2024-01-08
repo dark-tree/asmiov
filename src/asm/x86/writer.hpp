@@ -199,9 +199,16 @@ namespace asmio::x86 {
 			INST put_popa();                            /// Pop All
 			INST put_pushf();                           /// Push Flags
 			INST put_popf();                            /// Pop Flags
-			INST put_clc();                             /// Clear Carry
-			INST put_stc();                             /// Set Carry
+			INST put_clc();                             /// Clear Carry Flag
+			INST put_stc();                             /// Set Carry Flag
 			INST put_cmc();                             /// Complement Carry Flag
+			INST put_cld();                             /// Clear Direction Flag
+			INST put_std();                             /// Set Direction Flag
+			INST put_cli();                             /// Clear Interrupt Flag
+			INST put_sti();                             /// Set Interrupt Flag
+			INST put_scf(Location src);                 /// Set Carry Flag to Immediate, ASMIOV extension
+			INST put_sdf(Location src);                 /// Set Direction Flag to Immediate, ASMIOV extension
+			INST put_sif(Location src);                 /// Set Interrupt Flag to Immediate, ASMIOV extension
 			INST put_sahf();                            /// Store AH into flags
 			INST put_lahf();                            /// Load status flags into AH register
 			INST put_aaa();                             /// ASCII adjust for add
@@ -212,6 +219,10 @@ namespace asmio::x86 {
 			INST put_aam();                             /// ASCII adjust for multiplication
 			INST put_cbw();                             /// Convert byte to word
 			INST put_cwd();                             /// Convert word to double word
+			INST put_xlat();                            /// Table Look-up Translation
+			INST put_in(Location dst, Location src);    /// Input from Port
+			INST put_out(Location dst, Location src);   /// Output to Port
+			INST put_test(Location dst, Location src);  /// And Function to Flags, no Result
 			INST put_ret();                             /// Return from procedure
 			INST put_ret(Location bytes);               /// Return from procedure and pop X bytes
 

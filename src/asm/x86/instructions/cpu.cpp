@@ -294,7 +294,7 @@ namespace asmio::x86 {
 	void BufferWriter::put_imul(Location dst, Location src) {
 
 		// short form
-		if (dst.is_simple() && src.is_memreg() && src.size == dst.size && dst.base.is(EAX)) {
+		if (dst.is_simple() && src.is_memreg() && src.size == dst.size && dst.base.is(Registry::ACCUMULATOR)) {
 			put_inst_std(0b111101, src, 0b101, true, src.is_wide());
 		 	return;
 		}
@@ -738,7 +738,54 @@ namespace asmio::x86 {
 
 	/// Complement Carry Flag
 	void BufferWriter::put_cmc() {
-		put_byte(0b11111000);
+		put_byte(0b11110101);
+	}
+
+	/// Clear Direction Flag
+	void BufferWriter::put_cld() {
+		put_byte(0b11111100);
+	}
+
+	/// Set Direction Flag
+	void BufferWriter::put_std() {
+		put_byte(0b11111101);
+	}
+
+	/// Clear Interrupt Flag
+	void BufferWriter::put_cli() {
+		put_byte(0b11111010);
+	}
+
+	/// Set Interrupt Flag
+	void BufferWriter::put_sti() {
+		put_byte(0b11111011);
+	}
+
+	/// Set Interrupt Flag to Immediate, ASMIOV extension
+	void BufferWriter::put_sif(Location src) {
+		if (!src.is_immediate()) {
+			throw std::runtime_error {"Invalid operand"};
+		}
+
+		if (src.offset == 0) put_cli(); else put_sti();
+	}
+
+	/// Set Carry Flag to Immediate, ASMIOV extension
+	void BufferWriter::put_scf(Location src) {
+		if (!src.is_immediate()) {
+			throw std::runtime_error {"Invalid operand"};
+		}
+
+		if (src.offset == 0) put_clc(); else put_stc();
+	}
+
+	/// Set Direction Flag to Immediate, ASMIOV extension
+	void BufferWriter::put_sdf(Location src) {
+		if (!src.is_immediate()) {
+			throw std::runtime_error {"Invalid operand"};
+		}
+
+		if (src.offset == 0) put_cld(); else put_std();
 	}
 
 	/// Store AH into flags
@@ -971,6 +1018,114 @@ namespace asmio::x86 {
 	/// Convert word to double word
 	void BufferWriter::put_cwd() {
 		put_byte(0b10011001);
+	}
+
+	/// Table Look-up Translation
+	void BufferWriter::put_xlat() {
+		put_byte(0b11010111);
+	}
+
+	/// Input from Port
+	void BufferWriter::put_in(Location dst, Location src) {
+
+		if (!dst.is_simple() || !(dst.base.is(EAX) || dst.base.is(AX) || dst.base.is(AL))) {
+			throw std::runtime_error {"Invalid destination operand, expected EAX, AX or AL registers"};
+		}
+
+		if (dst.size == WORD) {
+			put_inst_16bit_operand_mark();
+		}
+
+		if (src.is_immediate()) {
+			put_byte(0b11100100 | dst.is_wide());
+			put_byte(dst.offset);
+			return;
+		}
+
+		if (src.is_simple() && src.base.is(DX)) {
+			put_byte(0b11101100 | dst.is_wide());
+			return;
+		}
+
+		throw std::runtime_error {"Invalid source operand, expected an immediate value or DX register"};
+
+	}
+
+	/// Output to Port
+	void BufferWriter::put_out(Location dst, Location src) {
+
+		if (!src.is_simple() || !(src.base.is(EAX) || src.base.is(AX) || src.base.is(AL))) {
+			throw std::runtime_error {"Invalid source operand, expected EAX, AX or AL registers"};
+		}
+
+		if (src.size == WORD) {
+			put_inst_16bit_operand_mark();
+		}
+
+		if (dst.is_immediate()) {
+			put_byte(0b11100110 | src.is_wide());
+			put_byte(dst.offset);
+			return;
+		}
+
+		if (dst.is_simple() && dst.base.is(DX)) {
+			put_byte(0b11101110 | src.is_wide());
+			return;
+		}
+
+		throw std::runtime_error {"Invalid destination operand, expected an immediate value or DX register"};
+
+	}
+
+	/// And Function to Flags, no Result
+	void BufferWriter::put_test(Location dst, Location src) {
+
+		if (src.is_memreg() && dst.is_simple()) {
+			put_inst_std(0b100001, src, dst.base.reg, false, dst.is_wide());
+			return;
+		}
+
+		if (src.is_simple() && dst.is_memreg()) {
+			put_inst_std(0b100001, dst, src.base.reg, false, src.is_wide());
+			return;
+		}
+
+		// short form
+		if (src.is_accum() && dst.is_immediate()) {
+			if (src.size == WORD) {
+				put_inst_16bit_operand_mark();
+			}
+
+			put_byte(10101000 | src.is_wide());
+			put_inst_imm(dst.offset, src.size);
+			return;
+		}
+
+		// short form
+		if (src.is_immediate() && dst.is_accum()) {
+			if (dst.size == WORD) {
+				put_inst_16bit_operand_mark();
+			}
+
+			put_byte(10101000 | dst.is_wide());
+			put_inst_imm(src.offset, dst.size);
+			return;
+		}
+
+		if (src.is_immediate() && dst.is_memreg()) {
+			put_inst_std(0b111101, dst, 0b000, true, dst.is_wide());
+			put_inst_imm(src.offset, dst.size);
+			return;
+		}
+
+		if (src.is_memreg() && dst.is_immediate()) {
+			put_inst_std(0b111101, src, 0b000, true, src.is_wide());
+			put_inst_imm(dst.offset, src.size);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operands"};
+
 	}
 
 	/// Return from procedure

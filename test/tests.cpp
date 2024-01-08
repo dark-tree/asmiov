@@ -1433,6 +1433,106 @@ TEST (writer_exec_memory_shift) {
 
 }
 
+TEST (writer_exec_xlat) {
+
+	BufferWriter writer;
+	writer.label("table");
+	writer.put_byte(0); // 0 -> 0
+	writer.put_byte(7); // 1 -> 7
+	writer.put_byte(6); // 2 -> 6
+	writer.put_byte(1); // 3 -> 1
+	writer.put_byte(5); // 4 -> 5
+	writer.put_byte(4); // 5 -> 4
+	writer.put_byte(3); // 6 -> 3
+	writer.put_byte(0); // 7 -> 0
+
+	writer.label("main");
+	writer.put_mov(EBX, "table");
+	writer.put_mov(AL, 2);
+	writer.put_xlat(); // AL := EBX[1] -> 6
+	writer.put_xlat(); // AL := EBX[6] -> 3
+	writer.put_xlat(); // AL := EBX[3] -> 1
+	writer.put_xlat(); // AL := EBX[1] -> 7
+	writer.put_cmp(AL, 7);
+	writer.put_jne("invalid");
+
+	writer.put_mov(AL, 7);
+	writer.put_xlat(); // AL := EBX[7] -> 0
+	writer.put_xlat(); // AL := EBX[0] -> 0
+	writer.put_xlat(); // AL := EBX[0] -> 0
+	writer.put_xlat(); // AL := EBX[0] -> 0
+	writer.put_cmp(AL, 0);
+	writer.put_jne("invalid");
+
+	writer.put_mov(AL, 4);
+	writer.put_xlat(); // AL := EBX[4] -> 5
+	writer.put_xlat(); // AL := EBX[5] -> 4
+	writer.put_xlat(); // AL := EBX[4] -> 5
+	writer.put_xlat(); // AL := EBX[5] -> 4
+	writer.put_cmp(AL, 4);
+	writer.put_jne("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("invalid");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_i32("main"), 1);
+
+}
+
+TEST (writer_exec_scf) {
+
+	BufferWriter writer;
+
+	writer.label("main");
+	writer.put_scf(1);
+	writer.put_jnc("invalid");
+	writer.put_scf(0);
+	writer.put_jc("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("invalid");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_i32("main"), 1);
+
+}
+
+TEST (writer_exec_test) {
+
+	BufferWriter writer;
+
+	writer.label("foo");
+	writer.put_dword(0x10000);
+
+	writer.label("main");
+	writer.put_test(ref("foo"), 0x10000);
+	writer.put_je("invalid");
+	writer.put_test(ref("foo"), 0x20000);
+	writer.put_jne("invalid");
+	writer.put_mov(EDX, 0x10000);
+	writer.put_test(EDX, ref("foo"));
+	writer.put_je("invalid");
+	writer.put_test(ref("foo"), EDX);
+	writer.put_je("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("invalid");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_i32("main"), 1);
+
+}
+
 TEST (writer_fail_redefinition) {
 
 	BufferWriter writer;
@@ -1563,7 +1663,7 @@ TEST (writer_elf_execve) {
 	writer.put_int(0x80);
 	writer.put_ret();
 
-	ElfBuffer file = writer.bake_elf();
+	ElfBuffer file = writer.bake_elf(nullptr);
 
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);

@@ -18,10 +18,11 @@ namespace asmio::x86 {
 
 		// a bit useless rn
 		enum Flag {
-			NONE     = 0b000,
-			PSEUDO   = 0b001,
-			GENERAL  = 0b010,
-			FLOATING = 0b100
+			NONE        = 0b0000,
+			PSEUDO      = 0b0001,
+			GENERAL     = 0b0010,
+			FLOATING    = 0b0100,
+			ACCUMULATOR = 0b1000
 		};
 
 		const uint8_t size : 8; // size in bytes
@@ -42,9 +43,9 @@ namespace asmio::x86 {
 	};
 
 	constexpr const Registry UNSET {VOID,  0b000, Registry::PSEUDO};
-	constexpr const Registry EAX   {DWORD, 0b000, Registry::GENERAL};
-	constexpr const Registry AX    {WORD,  0b000, Registry::GENERAL};
-	constexpr const Registry AL    {BYTE,  0b000, Registry::GENERAL};
+	constexpr const Registry EAX   {DWORD, 0b000, Registry::GENERAL | Registry::ACCUMULATOR};
+	constexpr const Registry AX    {WORD,  0b000, Registry::GENERAL | Registry::ACCUMULATOR};
+	constexpr const Registry AL    {BYTE,  0b000, Registry::GENERAL | Registry::ACCUMULATOR};
 	constexpr const Registry AH    {BYTE,  0b100, Registry::GENERAL};
 	constexpr const Registry EBX   {DWORD, 0b011, Registry::GENERAL};
 	constexpr const Registry BX    {WORD,  0b011, Registry::GENERAL};
@@ -165,6 +166,13 @@ namespace asmio::x86 {
 			 */
 			bool is_simple() const {
 				return (base.flag & Registry::GENERAL) && !is_indexed() && offset == 0 && !reference && !is_labeled();
+			}
+
+			/**
+			 * Checks if this location is a simple un-referenced accumulator, used when encoding short-forms
+			 */
+			bool is_accum() const {
+				return base.is(Registry::ACCUMULATOR) && is_simple();
 			}
 
 			/**

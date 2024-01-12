@@ -75,18 +75,6 @@ namespace asmio::x86 {
 		insert_buffer(buffer, (uint8_t *) &immediate, std::min(width, DWORD)); // limit to DWORD
 	}
 
-	void BufferWriter::put_inst_sib(Location ref) {
-		uint8_t ss_flag = ref.get_ss_flag();
-		uint8_t index_reg = ref.index.reg;
-
-		if (ref.index.is(UNSET)) {
-			index_reg = NO_SIB_INDEX;
-			ss_flag = NO_SIB_SCALE;
-		}
-
-		put_inst_sib(ss_flag, index_reg, ref.base.reg);
-	}
-
 	void BufferWriter::put_inst_label_imm(Location imm, uint8_t size) {
 		if (imm.is_labeled()) {
 			commands.emplace_back(imm.label, size, buffer.size(), imm.offset, false);
@@ -95,10 +83,10 @@ namespace asmio::x86 {
 		put_inst_imm(imm.offset, size);
 	}
 
-	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool longer) {
-		uint8_t dst_reg = dst.base.reg;
+	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, uint8_t reg, uint8_t size, bool longer) {
 
-		if (dst.size == WORD) {
+		// this assumes that both operands have same size
+		if (size == WORD) {
 			put_inst_16bit_operand_mark();
 		}
 
@@ -107,36 +95,80 @@ namespace asmio::x86 {
 			put_byte(0x0F);
 		}
 
+		// simple registry to registry operation
 		if (dst.is_simple()) {
 			put_byte(opcode);
-			put_inst_mod_reg_rm(MOD_SHORT, reg, dst_reg);
+			put_inst_mod_reg_rm(MOD_SHORT, reg, dst.base.reg);
 			return;
 		}
 
-		// we have to use the SIB byte to target ESP
-		bool sib = dst.base.is(ESP) || dst.is_indexed();
-		uint8_t mod = dst.get_mod_flag();
+		// this is where the fun begins ...
+		uint8_t sib_scale = dst.get_ss_flag();
+		uint8_t sib_index = dst.index.reg;
+		uint8_t sib_base = dst.base.reg;
+		uint8_t mrm_mod = dst.get_mod_flag();
+		uint8_t mrm_mem = dst.base.reg;
+		uint8_t imm_len = DWORD;
 
-		// special case for [EBP + (any indexed) + 0]
-		if (dst.base.is(EBP)) {
-			mod = MOD_BYTE;
+		// in most cases mod controls the size of offset (immediate value)
+		// but there are exceptions that cause those two to be different
+		if (mrm_mod == MOD_NONE) imm_len = VOID;
+		if (mrm_mod == MOD_BYTE) imm_len = BYTE;
+
+		// if there is no base or index (just the offset), put NO_BASE into r/m, and MOD_NONE into mod
+		// this is a special case used to encode a direct offset reference (32 bit)
+		if (dst.base.is(UNSET) && dst.index.is(UNSET)) {
+			mrm_mod = MOD_NONE;
+			mrm_mem = NO_BASE;
+			imm_len = DWORD;
 		}
 
-		// TODO: cleanup
-		if (dst.base.is(UNSET)) {
-			dst_reg = NO_BASE;
+		// we have to use the SIB byte to target ESP
+		else if (dst.base.is(ESP) || dst.is_indexed()) {
+			mrm_mem = RM_SIB;
+
+			// special case for [EBP + (indexed)]
+			// we have to encode it as [EBP + (indexed) + 0]
+			if (dst.base.is(EBP) && mrm_mod == MOD_NONE) {
+				mrm_mod = MOD_BYTE;
+				imm_len = BYTE;
+			}
+
+			// no base in SIB
+			// this is encoded by setting base to NO_BASE (101b) and mod to MOD_NONE (00b)
+			if (dst.base.is(UNSET)) {
+				sib_base = NO_BASE;
+				mrm_mod = MOD_NONE;
+
+				// in this special case the size of offset is assumed to be 32 bits
+				imm_len = DWORD;
+			}
+
+			// no index in SIB
+			// this is encoded by setting index to NO_INDEX (100b) and ss to NO_SCALE (00b)
+			if (dst.index.is(UNSET)) {
+				sib_index = NO_SIB_INDEX;
+				sib_scale = NO_SIB_SCALE;
+			}
 		}
 
 		put_byte(opcode);
-		put_inst_mod_reg_rm(dst_reg == NO_BASE ? MOD_NONE : mod, reg, sib ? RM_SIB : dst_reg);
+		put_inst_mod_reg_rm(mrm_mod, reg, mrm_mem);
 
-		if (sib) {
-			put_inst_sib(dst);
+		// if SIB was enabled write it
+		if (mrm_mem == RM_SIB) {
+			put_inst_sib(sib_scale, sib_index, sib_base);
 		}
 
-		if (mod == MOD_BYTE || mod == MOD_QUAD) {
-			put_inst_label_imm(dst, mod == MOD_BYTE ? BYTE : DWORD);
+		// if offset was present write it
+		if (imm_len != VOID) {
+			put_inst_label_imm(dst, imm_len);
 		}
+
+	}
+
+	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool longer) {
+		put_inst_std(opcode, dst, reg, dst.size, longer);
 	}
 
 	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool direction, bool wide, bool longer) {
@@ -184,7 +216,7 @@ namespace asmio::x86 {
 			throw std::runtime_error {"Invalid destination size"};
 		}
 
-		put_inst_std(opcode, src, dst.base.reg, true, src_len == WORD, true);
+		put_inst_std(pack_opcode_dw(opcode, true, src_len == WORD), src, dst.base.reg, dst.size, true);
 	}
 
 	/**

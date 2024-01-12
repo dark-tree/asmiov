@@ -1533,6 +1533,62 @@ TEST (writer_exec_test) {
 
 }
 
+TEST (writer_exec_tricky_encodings) {
+
+	BufferWriter writer;
+
+	// lea eax, 1234h
+	// special case: no base nor index
+	writer.label("test_1");
+	writer.put_lea(EAX, 0x1234);
+	writer.put_ret();
+
+	// mov eax, esp
+	// special case: ESP used in r/m
+	writer.label("test_2");
+	writer.put_push(EBP);
+	writer.put_mov(EBP, ESP);
+	writer.put_mov(ESP, 16492);
+	writer.put_mov(EAX, ESP); // here
+	writer.put_mov(ESP, EBP);
+	writer.put_pop(EBP);
+	writer.put_ret();
+
+	// lea eax, ebp + eax
+	// special case: EBP in SIB with no offset
+	writer.label("test_3");
+	writer.put_push(EBP);
+	writer.put_mov(EBP, 12);
+	writer.put_mov(EDX, 56);
+	writer.put_lea(EAX, EBP + EDX);
+	writer.put_pop(EBP);
+	writer.put_ret();
+
+	// lea eax, edx * 2
+	// special case: no base in SIB
+	writer.label("test_4");
+	writer.put_mov(EDX, 56);
+	writer.put_lea(EAX, EDX * 2);
+	writer.put_ret();
+
+	// lea eax, ebp + 1234h
+	// special case: no index in SIB
+	writer.label("test_5");
+	writer.put_push(EBP);
+	writer.put_mov(EBP, 111);
+	writer.put_lea(EAX, EBP + 333);
+	writer.put_pop(EBP);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake(true);
+	CHECK(buffer.call_i32("test_1"), 0x1234);
+//	CHECK(buffer.call_i32("test_2"), 16492);
+//	CHECK(buffer.call_i32("test_3"), 12 + 56);
+	CHECK(buffer.call_i32("test_4"), 56 * 2);
+//	CHECK(buffer.call_i32("test_5"), 444);
+
+}
+
 TEST (writer_fail_redefinition) {
 
 	BufferWriter writer;

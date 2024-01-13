@@ -280,6 +280,38 @@ namespace asmio::x86 {
 		put_inst_btx(dst, src, 0b101110, 0b111);
 	}
 
+	/// Bit Scan Forward
+	void BufferWriter::put_bsf(Location dst, Location src) {
+		uint32_t size = pair_size(src, dst);
+
+		if (size != WORD && size != DWORD) {
+			throw std::runtime_error {"Invalid operand size, expected word or dword"};
+		}
+
+		if (dst.is_simple() && src.is_memreg()) {
+			put_inst_std(0b10111100, src, dst.base.reg, size, true);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operands"};
+	}
+
+	/// Bit Scan Reverse
+	void BufferWriter::put_bsr(Location dst, Location src) {
+		uint32_t size = pair_size(src, dst);
+
+		if (size != WORD && size != DWORD) {
+			throw std::runtime_error {"Invalid operand size, expected word or dword"};
+		}
+
+		if (dst.is_simple() && src.is_memreg()) {
+			put_inst_std(0b10111101, src, dst.base.reg, size, true);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operands"};
+	}
+
 	/// Multiply (Unsigned)
 	void BufferWriter::put_mul(Location src) {
 		if (src.is_memreg()) {
@@ -701,7 +733,25 @@ namespace asmio::x86 {
 		put_byte(0b10011011);
 	}
 
-	/// Leave
+	/// Undefined Instruction
+	void BufferWriter::put_ud2() {
+		put_byte(0x0F);
+		put_byte(0x0B);
+	}
+
+	/// Enter Procedure
+	void BufferWriter::put_enter(Location alc, Location nst) {
+		if (alc.is_immediate() && nst.is_immediate()) {
+			put_byte(0b11001000);
+			put_word(alc.offset);
+			put_byte(nst.offset);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operands"};
+	}
+
+	/// Leave Procedure
 	void BufferWriter::put_leave() {
 		put_byte(0b11001001);
 	}
@@ -717,13 +767,25 @@ namespace asmio::x86 {
 	}
 
 	/// Push Flags
-	void BufferWriter::put_pushf() {
+	void BufferWriter::put_pushfd() {
 		put_byte(0b10011100);
 	}
 
 	/// Pop Flags
-	void BufferWriter::put_popf() {
+	void BufferWriter::put_popfd() {
 		put_byte(0b10011101);
+	}
+
+	/// Push Flags
+	void BufferWriter::put_pushf() {
+		put_inst_16bit_operand_mark();
+		put_pushfd();
+	}
+
+	/// Pop Flags
+	void BufferWriter::put_popf() {
+		put_inst_16bit_operand_mark();
+		put_popfd();
 	}
 
 	/// Clear Carry

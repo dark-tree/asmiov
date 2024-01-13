@@ -123,6 +123,13 @@ namespace asmio::x86 {
 			imm_len = DWORD;
 		}
 
+		// special case for [EBP]
+		// we have to encode it as [EBP + 0]
+		else if (dst.base.is(EBP) && mrm_mod == MOD_NONE && dst.index.is(UNSET)) {
+			mrm_mod = MOD_BYTE;
+			imm_len = BYTE;
+		}
+
 		// we have to use the SIB byte to target ESP
 		else if (dst.base.is(ESP) || dst.is_indexed()) {
 			mrm_mem = RM_SIB;
@@ -257,7 +264,7 @@ namespace asmio::x86 {
 		}
 
 		if (src.is_simple() && dst.reference) {
-			put_inst_std_dw(opcode_rmr, src, dst.base.reg, pair_size(src, dst), false, src.is_wide());
+			put_inst_std_dw(opcode_rmr, dst, src.base.reg, pair_size(src, dst), false, src.is_wide());
 			return;
 		}
 

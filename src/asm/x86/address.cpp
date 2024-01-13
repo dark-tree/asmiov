@@ -22,6 +22,10 @@ namespace asmio::x86 {
 		return Location {registry, UNSET, 1, offset, nullptr, DWORD, false};
 	}
 
+	Location operator - (Registry registry, int offset) {
+		return Location {registry, UNSET, 1, -offset, nullptr, DWORD, false};
+	}
+
 	Location operator + (Registry registry, Label label) {
 		return Location {registry, UNSET, 1, 0, label.c_str(), DWORD, false};
 	}
@@ -36,6 +40,10 @@ namespace asmio::x86 {
 
 	Location operator + (ScaledRegistry index, int offset) {
 		return Location {index} + offset;
+	}
+
+	Location operator - (ScaledRegistry index, int offset) {
+		return Location {index} - offset;
 	}
 
 	Location operator + (ScaledRegistry index, Label label) {

@@ -307,6 +307,8 @@ namespace asmio::x86 {
 		if (argc == 2 && strcmp(name, "bts") == 0) return parseCall<2>(reporter, &BufferWriter::put_bts, writer, stream);
 		if (argc == 2 && strcmp(name, "btr") == 0) return parseCall<2>(reporter, &BufferWriter::put_btr, writer, stream);
 		if (argc == 2 && strcmp(name, "btc") == 0) return parseCall<2>(reporter, &BufferWriter::put_btc, writer, stream);
+		if (argc == 2 && strcmp(name, "bsf") == 0) return parseCall<2>(reporter, &BufferWriter::put_bsf, writer, stream);
+		if (argc == 2 && strcmp(name, "bsr") == 0) return parseCall<2>(reporter, &BufferWriter::put_bsr, writer, stream);
 		if (argc == 1 && strcmp(name, "mul") == 0) return parseCall<1>(reporter, &BufferWriter::put_mul, writer, stream);
 		if (argc == 2 && strcmp(name, "imul") == 0) return parseCall<2>(reporter, &BufferWriter::put_imul, writer, stream);
 		if (argc == 3 && strcmp(name, "imul") == 0) return parseCall<3>(reporter, &BufferWriter::put_imul, writer, stream);
@@ -390,9 +392,13 @@ namespace asmio::x86 {
 		if (argc == 0 && strcmp(name, "nop") == 0) return parseCall<0>(reporter, &BufferWriter::put_nop, writer, stream);
 		if (argc == 0 && strcmp(name, "hlt") == 0) return parseCall<0>(reporter, &BufferWriter::put_hlt, writer, stream);
 		if (argc == 0 && strcmp(name, "wait") == 0) return parseCall<0>(reporter, &BufferWriter::put_wait, writer, stream);
+		if (argc == 0 && strcmp(name, "ud2") == 0) return parseCall<0>(reporter, &BufferWriter::put_ud2, writer, stream);
+		if (argc == 2 && strcmp(name, "enter") == 0) return parseCall<2>(reporter, &BufferWriter::put_enter, writer, stream);
 		if (argc == 0 && strcmp(name, "leave") == 0) return parseCall<0>(reporter, &BufferWriter::put_leave, writer, stream);
 		if (argc == 0 && strcmp(name, "pusha") == 0) return parseCall<0>(reporter, &BufferWriter::put_pusha, writer, stream);
 		if (argc == 0 && strcmp(name, "popa") == 0) return parseCall<0>(reporter, &BufferWriter::put_popa, writer, stream);
+		if (argc == 0 && strcmp(name, "pushfd") == 0) return parseCall<0>(reporter, &BufferWriter::put_pushfd, writer, stream);
+		if (argc == 0 && strcmp(name, "popfd") == 0) return parseCall<0>(reporter, &BufferWriter::put_popfd, writer, stream);
 		if (argc == 0 && strcmp(name, "pushf") == 0) return parseCall<0>(reporter, &BufferWriter::put_pushf, writer, stream);
 		if (argc == 0 && strcmp(name, "popf") == 0) return parseCall<0>(reporter, &BufferWriter::put_popf, writer, stream);
 		if (argc == 0 && strcmp(name, "clc") == 0) return parseCall<0>(reporter, &BufferWriter::put_clc, writer, stream);

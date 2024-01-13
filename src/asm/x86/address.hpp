@@ -242,10 +242,12 @@ namespace asmio::x86 {
 	};
 
 	Location operator + (Registry registry, int offset);
+	Location operator - (Registry registry, int offset);
 	Location operator + (Registry registry, Label label);
 	ScaledRegistry operator * (Registry registry, uint8_t scale);
 	Location operator + (Registry base, ScaledRegistry index);
 	Location operator + (ScaledRegistry index, int offset);
+	Location operator - (ScaledRegistry index, int offset);
 	Location operator + (ScaledRegistry index, Label label);
 	Location operator + (Registry base, Registry index);
 	Location ref(Location location);

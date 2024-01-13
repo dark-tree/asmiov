@@ -112,6 +112,8 @@ namespace asmio::x86 {
 			INST put_bts(Location dst, Location src);   /// Bit Test and Set
 			INST put_btr(Location dst, Location src);   /// Bit Test and Reset
 			INST put_btc(Location dst, Location src);   /// Bit Test and Complement
+			INST put_bsf(Location dst, Location src);   /// Bit Scan Forward
+			INST put_bsr(Location dst, Location src);   /// Bit Scan Reverse
 			INST put_mul(Location src);                 /// Multiply (Unsigned)
 			INST put_imul(Location dst, Location src);  /// Integer multiply (Signed)
 			INST put_imul(Location dst, Location src, Location val); /// Integer multiply (Signed, Triple Arg)
@@ -195,9 +197,13 @@ namespace asmio::x86 {
 			INST put_nop();                             /// No Operation
 			INST put_hlt();                             /// Halt
 			INST put_wait();                            /// Wait
-			INST put_leave();                           /// Leave
+			INST put_ud2();                             /// Undefined Instruction
+			INST put_enter(Location alc, Location nst); /// Enter Procedure
+			INST put_leave();                           /// Leave Procedure
 			INST put_pusha();                           /// Push All
 			INST put_popa();                            /// Pop All
+			INST put_pushfd();                          /// Push EFLAGS
+			INST put_popfd();                           /// Pop EFLAGS
 			INST put_pushf();                           /// Push Flags
 			INST put_popf();                            /// Pop Flags
 			INST put_clc();                             /// Clear Carry Flag

@@ -1608,6 +1608,116 @@ TEST (writer_exec_tricky_encodings) {
 
 }
 
+TEST (writer_exec_pushf_popf) {
+
+	BufferWriter writer;
+
+	writer.put_xor(EAX, EAX);
+	writer.put_stc();
+	writer.put_pushf();
+	writer.put_clc();
+	writer.put_popf();
+	writer.put_setc(EAX);
+	writer.put_ret();
+
+	CHECK(writer.bake().call_i32(), 1);
+
+}
+
+TEST (writer_exec_retx) {
+
+	BufferWriter writer;
+
+	writer.label("stdcall");
+	writer.put_mov(EAX, ref(ESP + 4));
+	writer.put_mov(EDX, ref(ESP + 8));
+	writer.put_sub(ESP, 4);
+	writer.put_mov(ref(ESP), EAX);
+	writer.put_add(ref(ESP), EDX);
+	writer.put_mov(EAX, ref(ESP));
+	writer.put_add(ESP, 4);
+	writer.put_ret(8);
+
+	writer.label("main");
+	writer.put_mov(ECX, ESP);
+	writer.put_push(21);
+	writer.put_push(4300);
+	writer.put_call("stdcall");
+	writer.put_sub(ECX, ESP);
+	writer.put_add(EAX, ECX);
+	writer.put_ret();
+
+	CHECK(writer.bake().call_i32("main"), 4321);
+
+}
+
+TEST (writer_exec_enter_leave) {
+
+	BufferWriter writer;
+
+	writer.label("stdcall");
+	writer.put_enter(4, 0);
+	writer.put_scf(0);
+	writer.put_mov(ref(EBP - 4), 1230);
+	writer.put_adc(ref(EBP - 4), 4);
+	writer.put_mov(EAX, ref(EBP - 4));
+	writer.put_mov(ESP, 21);
+	writer.put_leave();
+	writer.put_ret();
+
+	writer.label("main");
+	writer.put_mov(EBP, 0);
+	writer.put_mov(ECX, ESP);
+	writer.put_call("stdcall");
+	writer.put_sub(ECX, ESP);
+	writer.put_add(EAX, ECX);
+	writer.put_add(EAX, EBP);
+	writer.put_ret();
+
+	CHECK(writer.bake().call_i32("main"), 1234);
+
+}
+
+TEST (writer_exec_bsf_bsr) {
+
+	BufferWriter writer;
+
+	//                                        ,-> 21    ,-> 13
+	//                                        |         |
+	writer.label("a").put_dword(0b0000'0000'0010'0000'0010'0000'0000'0000);
+
+	//                                  ,-> 9
+	//                                  |
+	writer.label("b").put_word(0b0000'0010'0000'0000);
+
+	writer.label("bsf_a");
+	writer.put_bsf(EAX, ref("a"));
+	writer.put_ret();
+
+	writer.label("bsr_a");
+	writer.put_xor(EDX, EDX);
+	writer.put_bsr(EAX, ref(EDX + "a"));
+	writer.put_ret();
+
+	writer.label("bsf_b");
+	writer.put_xor(EDX, EDX);
+	writer.put_mov(EAX, 0x80000000);
+	writer.put_bsf(AX, ref(EDX + "b"));
+	writer.put_ret();
+
+	writer.label("bsr_b");
+	writer.put_mov(EAX, 0x80000000);
+	writer.put_bsr(AX, ref("b"));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32("bsf_a"), 13);
+	CHECK(buffer.call_u32("bsr_a"), 21);
+	CHECK(buffer.call_u32("bsf_b"), 0x80000009);
+	CHECK(buffer.call_u32("bsr_b"), 0x80000009);
+
+}
+
 TEST (writer_fail_redefinition) {
 
 	BufferWriter writer;

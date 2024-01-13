@@ -14,11 +14,12 @@ x86_switch_mode:
         push    rbx
         push    rbp
         mov     rbp, rsp
-        sub     rsp, 0x18
 
+        sub     rsp, 8
         mov     rbx, rsp
-        movq    [rbx], offset .L1
 
+        // assemble the address
+        movq    [rbx], offset .L1
         mov     ecx, [code_segment]
         mov     [rbx+4], ecx
 

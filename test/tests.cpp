@@ -13,6 +13,18 @@
 
 using namespace asmio::x86;
 
+TEST (switch_mode_rbp_protection) {
+
+	BufferWriter writer;
+
+	writer.put_push(EBP);
+	writer.put_pop(EBP);
+	writer.put_ret();
+
+	writer.bake().call_u32();
+
+}
+
 TEST (writer_exec_mov_ret_nop) {
 
 	BufferWriter writer;
@@ -1537,6 +1549,12 @@ TEST (writer_exec_tricky_encodings) {
 
 	BufferWriter writer;
 
+	writer.label("sanity");
+	writer.put_push(EBP);
+	writer.put_lea(EAX, 1);
+	writer.put_pop(EBP);
+	writer.put_ret();
+
 	// lea eax, 1234h
 	// special case: no base nor index
 	writer.label("test_1");
@@ -1580,12 +1598,13 @@ TEST (writer_exec_tricky_encodings) {
 	writer.put_pop(EBP);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake(true);
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_i32("sanity"), 1);
 	CHECK(buffer.call_i32("test_1"), 0x1234);
-//	CHECK(buffer.call_i32("test_2"), 16492);
-//	CHECK(buffer.call_i32("test_3"), 12 + 56);
+	CHECK(buffer.call_i32("test_2"), 16492);
+	CHECK(buffer.call_i32("test_3"), 12 + 56);
 	CHECK(buffer.call_i32("test_4"), 56 * 2);
-//	CHECK(buffer.call_i32("test_5"), 444);
+	CHECK(buffer.call_i32("test_5"), 444);
 
 }
 

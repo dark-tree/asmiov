@@ -553,8 +553,8 @@ namespace asmio::x86 {
             }
 
 			if (token.type == Token::STRING) {
-				for (int i = 1; i < token.raw.size() - 1; i ++) {
-					char chr = token.raw[i];
+				std::string parsed = token.parseString();
+				for (char chr : parsed) {
 
 					if (size == BYTE) {
 						writer.put_byte(chr);

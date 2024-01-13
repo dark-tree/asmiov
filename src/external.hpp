@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <optional>
 #include <list>
+#include <functional>
 
 #ifdef __linux__
 #	include <unistd.h>

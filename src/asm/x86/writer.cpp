@@ -72,7 +72,7 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_inst_imm(uint32_t immediate, uint8_t width) {
-		insert_buffer(buffer, (uint8_t *) &immediate, std::min(width, DWORD)); // limit to DWORD
+		util::insert_buffer(buffer, (uint8_t *) &immediate, std::min(width, DWORD)); // limit to DWORD
 	}
 
 	void BufferWriter::put_inst_label_imm(Location imm, uint8_t size) {
@@ -370,51 +370,55 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_byte(std::initializer_list<uint8_t> bytes) {
-		insert_buffer(buffer, (uint8_t*) std::data(bytes), BYTE * bytes.size());
+		util::insert_buffer(buffer, (uint8_t*) std::data(bytes), BYTE * bytes.size());
 	}
 
 	void BufferWriter::put_ascii(const std::string& str) {
-		insert_buffer(buffer, (uint8_t*) str.c_str(), BYTE * (str.size() + 1));
+		util::insert_buffer(buffer, (uint8_t*) str.c_str(), BYTE * (str.size() + 1));
 	}
 
 	void BufferWriter::put_word(uint16_t word) {
-		insert_buffer(buffer, (uint8_t*) &word, WORD);
+		util::insert_buffer(buffer, (uint8_t*) &word, WORD);
 	}
 
 	void BufferWriter::put_word(std::initializer_list<uint16_t> words) {
-		insert_buffer(buffer, (uint8_t*) std::data(words), WORD * words.size());
+		util::insert_buffer(buffer, (uint8_t*) std::data(words), WORD * words.size());
 	}
 
 	void BufferWriter::put_dword(uint32_t dword) {
-		insert_buffer(buffer, (uint8_t*) &dword, DWORD);
+		util::insert_buffer(buffer, (uint8_t*) &dword, DWORD);
 	}
 
 	void BufferWriter::put_dword(std::initializer_list<uint32_t> dwords) {
-		insert_buffer(buffer, (uint8_t*) std::data(dwords), DWORD * dwords.size());
+		util::insert_buffer(buffer, (uint8_t*) std::data(dwords), DWORD * dwords.size());
 	}
 
 	void BufferWriter::put_dword_f(float dword) {
-		insert_buffer(buffer, (uint8_t*) &dword, DWORD);
+		util::insert_buffer(buffer, (uint8_t*) &dword, DWORD);
 	}
 
 	void BufferWriter::put_dword_f(std::initializer_list<float> dwords) {
-		insert_buffer(buffer, (uint8_t*) std::data(dwords), DWORD * dwords.size());
+		util::insert_buffer(buffer, (uint8_t*) std::data(dwords), DWORD * dwords.size());
 	}
 
 	void BufferWriter::put_qword(uint64_t qword) {
-		insert_buffer(buffer, (uint8_t*) &qword, QWORD);
+		util::insert_buffer(buffer, (uint8_t*) &qword, QWORD);
 	}
 
 	void BufferWriter::put_qword(std::initializer_list<uint64_t> dwords) {
-		insert_buffer(buffer, (uint8_t*) std::data(dwords), QWORD * dwords.size());
+		util::insert_buffer(buffer, (uint8_t*) std::data(dwords), QWORD * dwords.size());
 	}
 
 	void BufferWriter::put_qword_f(double qword) {
-		insert_buffer(buffer, (uint8_t*) &qword, QWORD);
+		util::insert_buffer(buffer, (uint8_t*) &qword, QWORD);
 	}
 
 	void BufferWriter::put_qword_f(std::initializer_list<double> dwords) {
-		insert_buffer(buffer, (uint8_t*) std::data(dwords), QWORD * dwords.size());
+		util::insert_buffer(buffer, (uint8_t*) std::data(dwords), QWORD * dwords.size());
+	}
+
+	void BufferWriter::put_data(size_t bytes, void* date) {
+		util::insert_buffer(buffer, (uint8_t*) date, bytes);
 	}
 
 	void BufferWriter::dump(bool verbose) const {
@@ -445,7 +449,7 @@ namespace asmio::x86 {
 		std::cout << '"' << std::endl;
 	}
 
-	void BufferWriter::assemble(size_t absolute, ErrorHandler* reporter, bool debug)  {
+	void BufferWriter::assemble(size_t absolute, tasml::ErrorHandler* reporter, bool debug)  {
 
 		for (LabelCommand command : commands) {
 			try {
@@ -476,7 +480,7 @@ namespace asmio::x86 {
 		return result;
 	}
 
-	ElfBuffer BufferWriter::bake_elf(ErrorHandler* reporter, uint32_t address, const char* entry, bool debug) {
+	ElfBuffer BufferWriter::bake_elf(tasml::ErrorHandler* reporter, uint32_t address, const char* entry, bool debug) {
 		if (!has_label(entry)) {
 			throw std::runtime_error {"No entrypoint '" + std::string {entry} + "' defined!"};
 		}

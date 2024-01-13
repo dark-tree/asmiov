@@ -11,7 +11,7 @@
 #define UDIV_UP(a, b) (((a) + (b) - 1) / (b))
 #define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
 
-namespace asmio {
+namespace asmio::util {
 
 	template<typename T>
 	auto get_int_or(T value) {
@@ -54,7 +54,7 @@ namespace asmio {
 		return false;
 	}
 
-	inline std::string str_tolower(std::string s) {
+	inline std::string tolower(std::string s) {
 		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
 		return s;
 	}

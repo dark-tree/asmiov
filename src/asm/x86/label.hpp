@@ -17,10 +17,10 @@ namespace asmio::x86 {
 		public:
 
 			Label(const char* str)
-			: str(str), hash(hash_djb2(str)), allocated(false) {}
+			: str(str), hash(util::hash_djb2(str)), allocated(false) {}
 
 			Label(const std::string& str)
-			: str((const char*) malloc(str.length())), hash(hash_djb2(str.c_str())), allocated(false) {
+			: str((const char*) malloc(str.length())), hash(util::hash_djb2(str.c_str())), allocated(false) {
 				memcpy((void*) this->str, str.c_str(), str.size() + 1);
 			}
 

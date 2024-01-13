@@ -15,11 +15,9 @@
 #define EXIT_PARSE_ERROR 3
 #define EXIT_LINKE_ERROR 4
 
-using namespace asmio;
-
 int main(int argc, char** argv) {
 
-	Args args;
+	tasml::Args args;
 
 	args.define("-i").define("--stdin");
 	args.define("-o", 1).define("--output", 1);
@@ -95,22 +93,22 @@ int main(int argc, char** argv) {
 		assembly.assign(std::istreambuf_iterator<char> {file}, std::istreambuf_iterator<char> {});
 	}
 
-	ErrorHandler handler {input, !args.has("--xansi")};
+	tasml::ErrorHandler handler {input, !args.has("--xansi")};
 
 	try {
 
 		// tokenize input
-		std::vector<Token> tokens = tokenize(handler, assembly);
-		TokenStream stream {tokens}; assembly.clear();
+		std::vector<tasml::Token> tokens = tokenize(handler, assembly);
+		tasml::TokenStream stream {tokens}; assembly.clear();
 		handler.assert(EXIT_TOKEN_ERROR);
 
 		// parse and assemble
-		x86::BufferWriter writer;
-		x86::parseBlock(handler, writer, stream);
+		asmio::x86::BufferWriter writer;
+		asmio::x86::parseBlock(handler, writer, stream);
 		handler.assert(EXIT_PARSE_ERROR);
 
 		// assemble buffer and create ELF file
-		elf::ElfBuffer elf = writer.bake_elf(&handler);
+		asmio::elf::ElfBuffer elf = writer.bake_elf(&handler);
 		handler.assert(EXIT_LINKE_ERROR);
 
 		// write to output file

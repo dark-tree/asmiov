@@ -99,7 +99,7 @@ namespace asmio::x86 {
 
 		// handle immediate data
 		if (src.is_immediate()) {
-			uint8_t imm_len = min_bytes(src.offset);
+			uint8_t imm_len = util::min_bytes(src.offset);
 
 			if (imm_len == BYTE) {
 				put_byte(0b01101010);

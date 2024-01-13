@@ -1752,7 +1752,7 @@ TEST (tasml_tokenize) {
 
 	std::string code = R"(
 		text:
-			ascii "Hello!"
+			byte "Hello!", 0
 
 		strlen:
 			mov ecx, /* inline comments! */ eax
@@ -1773,16 +1773,16 @@ TEST (tasml_tokenize) {
 	)";
 
 	BufferWriter writer;
-	ErrorHandler reporter {"<string>", true};
+	tasml::ErrorHandler reporter {"<string>", true};
 
-	std::vector<Token> tokens = asmio::tokenize(reporter, code);
+	std::vector<tasml::Token> tokens = tasml::tokenize(reporter, code);
 
 	if (!reporter.ok()) {
 		reporter.dump();
 		FAIL("Tokenizer error!");
 	}
 
-	TokenStream stream {tokens};
+	tasml::TokenStream stream {tokens};
 	parseBlock(reporter, writer, stream);
 
 	if (!reporter.ok()) {

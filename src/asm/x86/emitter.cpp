@@ -2,7 +2,14 @@
 
 #include "writer.hpp"
 
+using namespace tasml;
+
 namespace asmio::x86 {
+
+	// forward defs
+	Location parseExpression(int cast, bool reference, tasml::TokenStream stream);
+	Location parseLocation(tasml::ErrorHandler& reporter, tasml::TokenStream stream, bool& write);
+	bool parseDataDefinition(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token);
 
 	template <uint32_t argc> struct Instruction {};
 	template <> struct Instruction<0> { using type = void (BufferWriter::*) (); };
@@ -41,17 +48,27 @@ namespace asmio::x86 {
 		}
 	}
 
-	int getCastByToken(const Token* token) {
+	int getTypeByToken(const Token* token) {
 		if (token == nullptr || token->type != Token::NAME) return -1;
-		std::string raw = str_tolower(token->raw);
+		std::string raw = util::tolower(token->raw);
 
-		if (raw == "byte") return BYTE;
-		if (raw == "word") return WORD;
-		if (raw == "dword") return DWORD;
-		if (raw == "qword") return QWORD;
-		if (raw == "tword") return TWORD;
+		static std::unordered_map<std::string, int> types = {
+			{"byte", BYTE},
+			{"word", WORD},
+			{"dword", DWORD},
+			{"qword", QWORD},
+			{"tword", TWORD},
 
-		return -1;
+			{"float", DWORD},
+			{"double", QWORD},
+			{"real", TWORD},
+		};
+
+		try {
+			return types.at(raw);
+		} catch (std::out_of_range& error) {
+			return -1;
+		}
 	}
 
 	int countArgs(TokenStream stream) {
@@ -73,7 +90,7 @@ namespace asmio::x86 {
 
 	Registry getRegistryByToken(const Token* token) {
 		if (token == nullptr || token->type != Token::NAME) return UNSET;
-		std::string raw = str_tolower(token->raw);
+		std::string raw = util::tolower(token->raw);
 
 		if (raw == "eax") return EAX;
 		if (raw == "ax") return AX;
@@ -241,7 +258,7 @@ namespace asmio::x86 {
 	Location parseLocation(ErrorHandler& reporter, TokenStream stream, bool& write) {
 		try {
 			const Token *name = &stream.peek();
-			const int cast = getCastByToken(name);
+			const int cast = getTypeByToken(name);
 
 			if (cast != -1) {
 				stream.next(); // consume 'name' token if it was a cast
@@ -263,8 +280,9 @@ namespace asmio::x86 {
 		}
 	}
 
-	void parseInstruction(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const char* name) {
+	void parseInstruction(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token) {
 		int argc = countArgs(stream);
+		const char* name = token.raw.c_str();
 
 		// auto generated using ingen.py
 		if (argc == 2 && strcmp(name, "mov") == 0) return parseCall<2>(reporter, &BufferWriter::put_mov, writer, stream);
@@ -477,12 +495,84 @@ namespace asmio::x86 {
 		if (argc == 2 && strcmp(name, "fdivr") == 0) return parseCall<2>(reporter, &BufferWriter::put_fdivr, writer, stream);
 		if (argc == 1 && strcmp(name, "fdivrp") == 0) return parseCall<1>(reporter, &BufferWriter::put_fdivrp, writer, stream);
 
-		// TODO
-		if (strcmp(name, "ascii") == 0) {
-			return writer.put_ascii(stream.accept(Token::STRING)->parseString());
+		if (parseDataDefinition(reporter, writer, stream, token)) {
+			return;
 		}
 
 		throw std::runtime_error {"Unknown " + std::to_string(argc) + " argument mnemonic '" + std::string {name} + "'"};
+	}
+
+	bool parseDataDefinition(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token) {
+		size_t size = getTypeByToken(&token);
+
+		if (size == -1) {
+			return false;
+		}
+
+		while (!stream.empty()) {
+			TokenStream arg = stream.expression("argument");
+			const Token& token = arg.next();
+			arg.assertEmpty();
+
+			if (token.type == Token::INT) {
+				int64_t value = token.parseInt();
+
+				if (size <= sizeof(value)) {
+					writer.put_data(size, &value);
+				} else {
+					void* data = malloc(size);
+					memcpy(data, &value, sizeof(value));
+					writer.put_data(size, data);
+					free(data);
+				}
+
+				continue;
+			}
+
+			if (token.type == Token::FLOAT) {
+				long double value80 = token.parseFloat();
+
+				if (size == DWORD) {
+					float value32 = (float) value80;
+					writer.put_data(DWORD, &value32);
+					continue;
+				}
+
+				if (size == QWORD) {
+					double value64 = (double) value80;
+					writer.put_data(QWORD, &value64);
+					continue;
+				}
+
+				if (size == TWORD) {
+					writer.put_data(TWORD, &value80);
+					continue;
+				}
+
+				throw std::runtime_error {"Unable to encode floating point value into the specified size"};
+            }
+
+			if (token.type == Token::STRING) {
+				for (int i = 1; i < token.raw.size() - 1; i ++) {
+					char chr = token.raw[i];
+
+					if (size == BYTE) {
+						writer.put_byte(chr);
+					} else {
+						void* data = malloc(size);
+						memcpy(data, &chr, 1);
+						writer.put_data(size, data);
+						free(data);
+					}
+				}
+
+				continue;
+			}
+
+			throw std::runtime_error {"Unexpected token '" + token.quoted() + "', expected string, integer or float"};
+		}
+
+		return true;
 	}
 
 	void parseStatement(ErrorHandler& reporter, BufferWriter& writer, TokenStream stream) {
@@ -495,7 +585,7 @@ namespace asmio::x86 {
 			}
 
 			if (token.type == Token::NAME) {
-				parseInstruction(reporter, writer, stream, token.raw.c_str());
+				parseInstruction(reporter, writer, stream, token);
 
 				if (!stream.empty()) {
 					stream.expect(";");
@@ -504,7 +594,7 @@ namespace asmio::x86 {
 				return;
 			}
 
-			throw std::runtime_error{"Unexpected token " + token.quoted() + ", expected label or name"};
+			throw std::runtime_error {"Unexpected token " + token.quoted() + ", expected label or name"};
 		} catch (std::runtime_error& error) {
 			reporter.error(stream.first().line, -1, error.what());
 		}

@@ -104,7 +104,7 @@ namespace asmio::x86 {
 
 			template<typename T>
 			Location(T offset = 0) // can the same thing be archived with some smart overload?
-			: Location(UNSET, UNSET, 1, get_int_or(offset), get_ptr_or(offset), DWORD, false) {}
+			: Location(UNSET, UNSET, 1, util::get_int_or(offset), util::get_ptr_or(offset), DWORD, false) {}
 
 			Location(Registry registry)
 			: Location(registry, UNSET, 1, 0, nullptr, registry.size, false) {}
@@ -227,7 +227,7 @@ namespace asmio::x86 {
 			uint8_t get_mod_flag() const {
 				if (label != nullptr) return MOD_QUAD;
 				if (offset == 0) return MOD_NONE;
-				if (min_bytes(offset) == BYTE) return MOD_BYTE;
+				if (util::min_bytes(offset) == BYTE) return MOD_BYTE;
 				return MOD_QUAD;
 			}
 

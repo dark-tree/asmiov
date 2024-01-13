@@ -87,6 +87,7 @@ namespace asmio::x86 {
 			void put_qword(std::initializer_list<uint64_t> dword);
 			void put_qword_f(double dword);
 			void put_qword_f(std::initializer_list<double> dword);
+			void put_data(size_t bytes, void* date);
 
 			// general
 			INST put_mov(Location dst, Location src);   /// Move
@@ -302,9 +303,9 @@ namespace asmio::x86 {
 			INST put_fdivrp(Location dst);              /// Reverse Divide And Pop
 
 			void dump(bool verbose = false) const;
-			void assemble(size_t absolute, ErrorHandler* reporter = nullptr, bool debug = false);
+			void assemble(size_t absolute, tasml::ErrorHandler* reporter = nullptr, bool debug = false);
 			ExecutableBuffer bake(bool debug = false);
-			ElfBuffer bake_elf(ErrorHandler* reporter, uint32_t address = 0x08048000, const char* entry = "_start", bool debug = false);
+			ElfBuffer bake_elf(tasml::ErrorHandler* reporter, uint32_t address = 0x08048000, const char* entry = "_start", bool debug = false);
 
 	};
 

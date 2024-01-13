@@ -4,7 +4,7 @@
 #include "token.hpp"
 #include "error.hpp"
 
-namespace asmio {
+namespace tasml {
 
 	std::vector<Token> tokenize(ErrorHandler& reporter, const std::string &input);
 

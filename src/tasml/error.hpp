@@ -3,100 +3,104 @@
 #include "external.hpp"
 #include "util.hpp"
 
-struct ErrorHandler {
+namespace tasml {
 
-	public:
+	struct ErrorHandler {
 
-		class Report {
+		public:
 
-			public:
+			class Report {
 
-				enum Type : uint32_t {
-					WARNING,
-					ERROR,
-					FATAL,
-					LINK
-				};
+				public:
 
-				Report(Type type, uint32_t line, uint32_t column, const std::string& message, const std::string& unit)
-				: line(line), column(column), type(type), message(message), unit(unit) {}
+					enum Type : uint32_t {
+						WARNING,
+						ERROR,
+						FATAL,
+						LINK
+					};
 
-				const char* typestr(bool ansi) const {
-					if (type == WARNING) return ansi ? "\033[33;1mWarning:\033[0m" : "Warning:";
-					if (type == ERROR) return ansi ? "\033[31;1mError:\033[0m" : "Error:";
-					if (type == FATAL) return ansi ? "\033[31;1mFatal Error:\033[0m" : "Fatal Error:";
-					if (type == LINK) return ansi ? "\033[31;1mLink Error:\033[0m" : "Link Error:";
+					Report(Type type, uint32_t line, uint32_t column, const std::string& message, const std::string& unit)
+					: line(line), column(column), type(type), message(message), unit(unit) {}
 
-					return ansi ? "\033[31;1mInvalid:\033[0m" : "Invalid:";
-				}
+					const char* typestr(bool ansi) const {
+						if (type == WARNING) return ansi ? "\033[33;1mWarning:\033[0m" : "Warning:";
+						if (type == ERROR) return ansi ? "\033[31;1mError:\033[0m" : "Error:";
+						if (type == FATAL) return ansi ? "\033[31;1mFatal Error:\033[0m" : "Fatal Error:";
+						if (type == LINK) return ansi ? "\033[31;1mLink Error:\033[0m" : "Link Error:";
 
-				void dump(bool ansi) const {
-					if (type == LINK) {
-						printf("%s at 0x%08x %s %s!\n", unit.c_str(), column, typestr(ansi), message.c_str());
-						return;
+						return ansi ? "\033[31;1mInvalid:\033[0m" : "Invalid:";
 					}
 
-					printf("%s:%d %s %s!\n", unit.c_str(), line, typestr(ansi), message.c_str());
+					void dump(bool ansi) const {
+						if (type == LINK) {
+							printf("%s at 0x%08x %s %s!\n", unit.c_str(), column, typestr(ansi), message.c_str());
+							return;
+						}
+
+						printf("%s:%d %s %s!\n", unit.c_str(), line, typestr(ansi), message.c_str());
+					}
+
+				private:
+
+					uint32_t line;
+					uint32_t column;
+					Type type;
+					std::string message;
+					std::string unit;
+
+			};
+
+			ErrorHandler(const std::string& unit, bool ansi)
+			: unit(unit), ansi(ansi), errors(0), warnings(0) {}
+
+			bool ok() const {
+				return errors == 0;
+			}
+
+			void dump() {
+				for (Report report : reports) {
+					report.dump(ansi);
 				}
 
-			private:
-
-				uint32_t line;
-				uint32_t column;
-				Type type;
-				std::string message;
-				std::string unit;
-
-		};
-
-		ErrorHandler(const std::string& unit, bool ansi)
-		: unit(unit), ansi(ansi), errors(0), warnings(0) {}
-
-		bool ok() const {
-			return errors == 0;
-		}
-
-		void dump() {
-			for (Report report : reports) {
-				report.dump(ansi);
+				reports.clear();
+				warnings = 0;
+				errors = 0;
 			}
 
-			reports.clear();
-			warnings = 0;
-			errors = 0;
-		}
+			void assert(int code) {
+				const bool failed = !ok();
+				dump();
 
-		void assert(int code) {
-			const bool failed = !ok();
-			dump();
-
-			if (failed) {
-				exit(code);
+				if (failed) {
+					exit(code);
+				}
 			}
-		}
 
-	public:
+		public:
 
-		void warn(int line, int column, const std::string& message) {
-			reports.emplace_back(Report::WARNING, line, column, message, unit);
-			warnings ++;
-		}
+			void warn(int line, int column, const std::string& message) {
+				reports.emplace_back(Report::WARNING, line, column, message, unit);
+				warnings ++;
+			}
 
-		void error(int line, int column, const std::string& message) {
-			reports.emplace_back(Report::ERROR, line, column, message, unit);
-			errors ++;
-		}
+			void error(int line, int column, const std::string& message) {
+				reports.emplace_back(Report::ERROR, line, column, message, unit);
+				errors ++;
+			}
 
-		void link(uint32_t offset, const std::string& message) {
-			reports.emplace_back(Report::LINK, -1, offset, message, unit);
-			errors ++;
-		}
+			void link(uint32_t offset, const std::string& message) {
+				reports.emplace_back(Report::LINK, -1, offset, message, unit);
+				errors ++;
+			}
 
-	private:
+		private:
 
-		std::list<Report> reports;
-		const std::string unit;
-		const bool ansi;
-		int errors, warnings;
+			std::list<Report> reports;
+			const std::string unit;
+			const bool ansi;
+			int errors, warnings;
 
-};
+	};
+
+}

@@ -39,13 +39,13 @@ namespace asmio::elf {
 			 */
 			explicit ElfBuffer(size_t length, uint32_t mount, uint32_t entrypoint)
 			: data_length(length) {
-				file_header_offset = insert_struct<FileHeader>(buffer);
-				segment_header_offset = insert_struct<SegmentHeader>(buffer);
-				segment_data_offset = insert_struct<uint8_t>(buffer, length);
+				file_header_offset = util::insert_struct<FileHeader>(buffer);
+				segment_header_offset = util::insert_struct<SegmentHeader>(buffer);
+				segment_data_offset = util::insert_struct<uint8_t>(buffer, length);
 
-				FileHeader& header = *buffer_view<FileHeader>(buffer, file_header_offset);
+				FileHeader& header = *util::buffer_view<FileHeader>(buffer, file_header_offset);
 				Identification& identifier = header.identifier;
-				SegmentHeader& segment = *buffer_view<SegmentHeader>(buffer, segment_header_offset);
+				SegmentHeader& segment = *util::buffer_view<SegmentHeader>(buffer, segment_header_offset);
 
 				// ELF magic number
 				identifier.magic[0] = 0x7f;
@@ -97,7 +97,7 @@ namespace asmio::elf {
 					throw std::runtime_error {"Invalid size!"};
 				}
 
-				memcpy(buffer_view<uint8_t>(buffer, segment_data_offset), content.data(), data_length);
+				memcpy(util::buffer_view<uint8_t>(buffer, segment_data_offset), content.data(), data_length);
 			}
 
 		public:

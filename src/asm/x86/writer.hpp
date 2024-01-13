@@ -25,8 +25,8 @@ namespace asmio::x86 {
 			void put_inst_imm(uint32_t immediate, uint8_t width);
 			void put_inst_label_imm(Location imm, uint8_t size);
 			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, uint8_t size, bool longer = false);
-			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool longer = false);
-			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool direction, bool wide, bool longer = false);
+			void put_inst_std_as(uint8_t opcode, Location dst, uint8_t reg, bool longer = false);
+			void put_inst_std_dw(uint8_t opcode, Location dst, uint8_t reg, uint8_t size, bool direction, bool wide, bool longer = false);
 			void put_inst_fpu(uint8_t opcode, uint8_t base, uint8_t sti = 0);
 
 			/**

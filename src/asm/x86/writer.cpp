@@ -85,7 +85,7 @@ namespace asmio::x86 {
 
 	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, uint8_t reg, uint8_t size, bool longer) {
 
-		// this assumes that both operands have same size
+		// this assumes that both operands have the same size
 		if (size == WORD) {
 			put_inst_16bit_operand_mark();
 		}
@@ -167,12 +167,12 @@ namespace asmio::x86 {
 
 	}
 
-	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool longer) {
+	void BufferWriter::put_inst_std_as(uint8_t opcode, Location dst, uint8_t reg, bool longer) {
 		put_inst_std(opcode, dst, reg, dst.size, longer);
 	}
 
-	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, uint8_t reg, bool direction, bool wide, bool longer) {
-		put_inst_std(pack_opcode_dw(opcode, direction, wide), dst, reg, longer);
+	void BufferWriter::put_inst_std_dw(uint8_t opcode, Location dst, uint8_t reg, uint8_t size, bool direction, bool wide, bool longer) {
+		put_inst_std(pack_opcode_dw(opcode, direction, wide), dst, reg, size, longer);
 	}
 
 	void BufferWriter::put_inst_fpu(uint8_t opcode, uint8_t base, uint8_t sti) {
@@ -189,7 +189,7 @@ namespace asmio::x86 {
 		uint8_t src_reg = src.base.reg;
 		uint8_t dst_len = dst.size;
 
-		put_inst_std(src.is_immediate() ? 0b110001 : 0b100010, dst, src_reg, direction, dst.is_wide());
+		put_inst_std_dw(src.is_immediate() ? 0b110001 : 0b100010, dst, src_reg, pair_size(dst, src), direction, dst.is_wide());
 
 		if (src.is_immediate()) {
 			put_inst_label_imm(src, dst_len);
@@ -227,7 +227,7 @@ namespace asmio::x86 {
 		bool dst_wide = dst.is_wide();
 
 		if (src.is_simple() && src.base.is(CL)) {
-			put_inst_std(0b110100, dst, inst, true, dst_wide);
+			put_inst_std_dw(0b110100, dst, inst, pair_size(src, dst), true, dst_wide);
 
 			return;
 		}
@@ -236,9 +236,9 @@ namespace asmio::x86 {
 			uint8_t src_val = src.offset;
 
 			if (src_val == 1) {
-				put_inst_std(0b110100, dst, inst, false, dst_wide);
+				put_inst_std_dw(0b110100, dst, inst, pair_size(src, dst), false, dst_wide);
 			} else {
-				put_inst_std(0b110000, dst, inst, false, dst_wide);
+				put_inst_std_dw(0b110000, dst, inst, pair_size(src, dst), false, dst_wide);
 				put_byte(src_val);
 			}
 
@@ -252,17 +252,17 @@ namespace asmio::x86 {
 	void BufferWriter::put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_reg) {
 
 		if (dst.is_simple() && src.is_memreg()) {
-			put_inst_std(opcode_rmr, src, dst.base.reg, true, dst.is_wide());
+			put_inst_std_dw(opcode_rmr, src, dst.base.reg, pair_size(src, dst), true, dst.is_wide());
 			return;
 		}
 
 		if (src.is_simple() && dst.reference) {
-			put_inst_std(opcode_rmr, src, dst.base.reg, false, src.is_wide());
+			put_inst_std_dw(opcode_rmr, src, dst.base.reg, pair_size(src, dst), false, src.is_wide());
 			return;
 		}
 
 		if (dst.is_memreg() && src.is_immediate()) {
-			put_inst_std(0b100000, dst, opcode_reg, false /* TODO: sign field (???) */, dst.is_wide());
+			put_inst_std_dw(0b100000, dst, opcode_reg, pair_size(src, dst), false /* TODO: sign flag */, dst.is_wide());
 			put_inst_label_imm(src, dst.size);
 			return;
 		}
@@ -278,12 +278,12 @@ namespace asmio::x86 {
 
 		if (dst.size == WORD || dst.size == DWORD) {
 			if (dst.is_memreg() && src.is_simple()) {
-				put_inst_std(opcode, dst, src.base.reg, true, true, true);
+				put_inst_std_dw(opcode, dst, src.base.reg, pair_size(dst, src), true, true, true);
 				return;
 			}
 
 			if (dst.is_memreg() && src.is_immediate()) {
-				put_inst_std(0b10111010, dst, inst, true);
+				put_inst_std(0b10111010, dst, inst, pair_size(src, dst), true);
 				put_byte(src.offset);
 				return;
 			}
@@ -325,7 +325,7 @@ namespace asmio::x86 {
 	 * Used for constructing the 'set byte' family of instructions
 	 */
 	void BufferWriter::put_inst_setx(Location dst, uint8_t lopcode) {
-		put_inst_std(0b1001'0000 | lopcode, dst, 0, true);
+		put_inst_std_as(0b1001'0000 | lopcode, dst, 0, true);
 	}
 
 	void BufferWriter::put_inst_16bit_operand_mark() {

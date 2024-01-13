@@ -56,12 +56,12 @@ namespace asmio::x86 {
 		// lea deals with addresses, addresses use 32 bits,
 		// so this is quite a logical limitation
 		if (dst.base.size != DWORD) {
-			throw std::runtime_error {"Invalid operands, non-dword target register can't be used here"};
+			throw std::runtime_error {"Invalid operands, non-dword destination register can't be used here"};
 		}
 
 		// handle EXP to REG
 		if (dst.is_simple() && !src.reference) {
-			put_inst_std(0b10001101, src, dst.base.reg);
+			put_inst_std(0b10001101, src, dst.base.reg, DWORD);
 			return;
 		}
 
@@ -82,12 +82,12 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_simple() && src.is_memreg()) {
-			put_inst_std(0b100001, src, dst.base.reg, true, src.is_wide());
+			put_inst_std_dw(0b100001, src, dst.base.reg, pair_size(src, dst), true, src.is_wide());
 			return;
 		}
 
 		if (dst.is_memreg() && src.is_simple()) {
-			put_inst_std(0b100001, dst, src.base.reg, true, dst.is_wide());
+			put_inst_std_dw(0b100001, dst, src.base.reg, pair_size(src, dst), true, dst.is_wide());
 			return;
 		}
 
@@ -130,7 +130,7 @@ namespace asmio::x86 {
 		}
 
 		if (src.is_memreg()) {
-			put_inst_std(0b11111111, src, 0b110);
+			put_inst_std_as(0b11111111, src, 0b110);
 			return;
 		}
 
@@ -158,7 +158,7 @@ namespace asmio::x86 {
 		}
 
 		if (src.is_memreg()) {
-			put_inst_std(0b10001111, src, 0b000);
+			put_inst_std_as(0b10001111, src, 0b000);
 			return;
 		}
 
@@ -181,7 +181,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memreg()) {
-			put_inst_std(0b111111, dst, 0b000, true, dst.is_wide());
+			put_inst_std_dw(0b111111, dst, 0b000, dst.size, true, dst.is_wide());
 			return;
 		}
 
@@ -203,7 +203,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memreg()) {
-			put_inst_std(0b111111, dst, 0b001, true, dst.is_wide());
+			put_inst_std_dw(0b111111, dst, 0b001, dst.size, true, dst.is_wide());
 			return;
 		}
 
@@ -213,7 +213,7 @@ namespace asmio::x86 {
 	/// Negate
 	void BufferWriter::put_neg(Location dst) {
 		if (dst.is_memreg()) {
-			put_inst_std(0b111101, dst, 0b011, true, dst.is_wide());
+			put_inst_std_dw(0b111101, dst, 0b011, dst.size, true, dst.is_wide());
 			return;
 		}
 
@@ -283,7 +283,7 @@ namespace asmio::x86 {
 	/// Multiply (Unsigned)
 	void BufferWriter::put_mul(Location src) {
 		if (src.is_memreg()) {
-			put_inst_std(0b111101, src, 0b100, true, src.is_wide());
+			put_inst_std_dw(0b111101, src, 0b100, src.size, true, src.is_wide());
 			return;
 		}
 
@@ -295,12 +295,12 @@ namespace asmio::x86 {
 
 		// short form
 		if (dst.is_simple() && src.is_memreg() && src.size == dst.size && dst.base.is(Registry::ACCUMULATOR)) {
-			put_inst_std(0b111101, src, 0b101, true, src.is_wide());
+			put_inst_std_dw(0b111101, src, 0b101, pair_size(src, dst), true, src.is_wide());
 		 	return;
 		}
 
 		if (dst.is_simple() && src.is_memreg() && dst.base.size != BYTE) {
-			put_inst_std(0b10101111, src, dst.base.reg, true);
+			put_inst_std(0b10101111, src, dst.base.reg, pair_size(src, dst), true);
 			return;
 		}
 
@@ -315,7 +315,7 @@ namespace asmio::x86 {
 	/// Integer multiply (Signed), triple arg version
 	void BufferWriter::put_imul(Location dst, Location src, Location val) {
 		if (dst.is_simple() && src.is_memreg() && val.is_immediate() && dst.base.size != BYTE) {
-			put_inst_std(0b011010, src, dst.base.reg, true /* TODO: sign flag */, true);
+			put_inst_std_dw(0b011010, src, dst.base.reg, pair_size(src, dst), true /* TODO: sign flag */, true);
 
 			// not sure why but it looks like IMUL uses 8bit immediate values
 			put_byte(val.offset);
@@ -328,7 +328,7 @@ namespace asmio::x86 {
 	/// Divide (Unsigned)
 	void BufferWriter::put_div(Location src) {
 		if (src.is_memreg()) {
-			put_inst_std(0b111101, src, 0b110, true, src.size != BYTE);
+			put_inst_std_dw(0b111101, src, 0b110, src.size, true, src.is_wide());
 			return;
 		}
 
@@ -338,7 +338,7 @@ namespace asmio::x86 {
 	/// Integer divide (Signed)
 	void BufferWriter::put_idiv(Location src) {
 		if (src.is_memreg()) {
-			put_inst_std(0b111101, src, 0b111, true, src.size != BYTE);
+			put_inst_std_dw(0b111101, src, 0b111, src.size, true, src.is_wide());
 			return;
 		}
 
@@ -348,7 +348,7 @@ namespace asmio::x86 {
 	/// Invert
 	void BufferWriter::put_not(Location dst) {
 		if (dst.is_memreg()) {
-			put_inst_std(0b111101, dst, 0b010, true, dst.is_wide());
+			put_inst_std_dw(0b111101, dst, 0b010, dst.size, true, dst.is_wide());
 			return;
 		}
 
@@ -483,7 +483,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memreg()) {
-			put_inst_std(0b11111111, dst, 0b100);
+			put_inst_std_as(0b11111111, dst, 0b100);
 			return;
 		}
 
@@ -500,7 +500,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memreg()) {
-			put_inst_std(0b11111111, dst, 0b010);
+			put_inst_std_as(0b11111111, dst, 0b010);
 			return;
 		}
 
@@ -1081,12 +1081,12 @@ namespace asmio::x86 {
 	void BufferWriter::put_test(Location dst, Location src) {
 
 		if (src.is_memreg() && dst.is_simple()) {
-			put_inst_std(0b100001, src, dst.base.reg, false, dst.is_wide());
+			put_inst_std_dw(0b100001, src, dst.base.reg, pair_size(src, dst), false, dst.is_wide());
 			return;
 		}
 
 		if (src.is_simple() && dst.is_memreg()) {
-			put_inst_std(0b100001, dst, src.base.reg, false, src.is_wide());
+			put_inst_std_dw(0b100001, dst, src.base.reg, pair_size(src, dst), false, src.is_wide());
 			return;
 		}
 
@@ -1113,13 +1113,13 @@ namespace asmio::x86 {
 		}
 
 		if (src.is_immediate() && dst.is_memreg()) {
-			put_inst_std(0b111101, dst, 0b000, true, dst.is_wide());
+			put_inst_std_dw(0b111101, dst, 0b000, pair_size(src, dst), true, dst.is_wide());
 			put_inst_imm(src.offset, dst.size);
 			return;
 		}
 
 		if (src.is_memreg() && dst.is_immediate()) {
-			put_inst_std(0b111101, src, 0b000, true, src.is_wide());
+			put_inst_std_dw(0b111101, src, 0b000, pair_size(src, dst), true, src.is_wide());
 			put_inst_imm(dst.offset, src.size);
 			return;
 		}

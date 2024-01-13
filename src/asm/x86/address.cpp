@@ -50,4 +50,32 @@ namespace asmio::x86 {
 		return location.ref();
 	}
 
+	uint8_t pair_size(const Location& a, const Location& b) {
+		if (a.size == b.size) {
+			return a.size;
+		}
+
+		const bool immediate_a = a.is_immediate();
+		const bool immediate_b = b.is_immediate();
+
+		if (immediate_a && immediate_b) {
+			throw std::runtime_error {"Both operands can't be immediate"};
+		}
+
+		if (a.is_memory() && b.is_memory()) {
+			throw std::runtime_error {"Both operands can't reference memory"};
+		}
+
+		if (b.is_simple() || immediate_a) {
+			return b.size;
+		}
+
+		if (a.is_simple() || immediate_b) {
+			return a.size;
+		}
+
+		// how did we get here?
+		throw std::runtime_error {"Invalid operands for reasons undefined"};
+	}
+
 }

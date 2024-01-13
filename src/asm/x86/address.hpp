@@ -256,5 +256,7 @@ namespace asmio::x86 {
 		return location.cast(size_hint);
 	}
 
+	uint8_t pair_size(const Location& a, const Location& b);
+
 }
 

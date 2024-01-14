@@ -1617,6 +1617,130 @@ TEST (writer_exec_shld_shrd) {
 
 }
 
+TEST (writer_exec_lods) {
+
+	BufferWriter writer;
+
+	writer.label("main");
+	writer.put_mov(EAX, 0);
+	writer.put_mov(ESI, "src");
+	writer.put_lodsw();
+	writer.put_lodsb();
+	writer.put_ret();
+
+	writer.label("src").put_ascii("Ugus!");
+
+	ExecutableBuffer buffer = writer.bake(true);
+	CHECK(buffer.call_u32("main"), (('g' << 8) | 'u'));
+
+}
+
+TEST (writer_exec_stos) {
+
+	BufferWriter writer;
+
+	writer.label("main");
+	writer.put_mov(EDI, "dst");
+	writer.put_mov(AL, 'H');
+	writer.put_stosb();
+	writer.put_mov(AL, 'e');
+	writer.put_stosb();
+	writer.put_mov(AX, (('l' << 8) + 'l'));
+	writer.put_stosw();
+	writer.put_mov(AL, 'o');
+	writer.put_stosb();
+	writer.put_mov(AL, '!');
+	writer.put_stosb();
+	writer.put_mov(AL, '\0');
+	writer.put_stosb();
+	writer.put_ret();
+
+	writer.label("dst").put_space(16);
+
+	ExecutableBuffer buffer = writer.bake();
+	buffer.call_u32("main");
+
+	ASSERT(strcmp((char*) buffer.address("dst"), "Hello!") == 0);
+
+}
+
+TEST (writer_exec_movs) {
+
+	BufferWriter writer;
+
+	writer.label("main");
+	writer.put_mov(ESI, "src");
+	writer.put_mov(EDI, "dst");
+	writer.put_mov(ECX, 10);
+	writer.put_rep().put_movsb();
+	writer.put_ret();
+
+	writer.label("src").put_ascii("123456789ABCDEF"); // null byte included
+	writer.label("dst").put_space(16);
+
+	ExecutableBuffer buffer = writer.bake();
+	buffer.call_u32("main");
+
+	ASSERT(strcmp((char*) buffer.address("dst"), "123456789A") == 0);
+
+}
+
+TEST (writer_exec_cmps) {
+
+	BufferWriter writer;
+
+	writer.label("main_1");
+	writer.put_mov(ESI, "src");
+	writer.put_mov(EDI, "dst_1");
+	writer.put_mov(ECX, 10);
+	writer.put_repe().put_cmpsb();
+	writer.put_jne("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("main_2");
+	writer.put_mov(ESI, "src");
+	writer.put_mov(EDI, "dst_2");
+	writer.put_mov(ECX, 10);
+	writer.put_repe().put_cmpsb();
+	writer.put_je("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("invalid");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	writer.label("src"  ).put_ascii("123456789ABCDEF");
+	writer.label("dst_1").put_ascii("123456789AB---F");
+	writer.label("dst_2").put_ascii("123456-89ABCDEF");
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32("main_1"), 1);
+	CHECK(buffer.call_u32("main_2"), 1);
+
+}
+
+TEST (writer_exec_scas) {
+
+	BufferWriter writer;
+
+	writer.label("main");
+	writer.put_mov(EDI, "src");
+	writer.put_mov(ECX, 16);
+	writer.put_mov(AL, 'D');
+	writer.put_repne().put_scasb();
+	writer.put_sub(EDI, "src");
+	writer.put_mov(EAX, EDI);
+	writer.put_ret();
+
+	writer.label("src").put_ascii("123456789ABCDEF");
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32("main"), 13);
+
+}
+
 TEST (writer_exec_tricky_encodings) {
 
 	BufferWriter writer;

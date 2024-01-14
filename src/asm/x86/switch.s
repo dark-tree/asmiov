@@ -23,18 +23,20 @@ x86_switch_mode:
         mov     ecx, [code_segment]
         mov     [rbx+4], ecx
 
-        // store value of DS
+        // store value of DS and ES
         mov     r11, ds
+        mov     r10, es
 
-        // set DS to the selected segment
+        // set DS and ES to the selected segment
         mov     ecx, [data_segment]
         mov     ds, ecx
+        mov     es, ecx
 
         // before the lcall, switch to a stack below 4GB
         // this assumes that the data segment is below 4GB
         mov     rsp, offset stack+0xf0
 
-        // make sure our 32 bit code can't modify our registers
+        // make sure the 32 bit code can't modify our registers
         // even if the 32 bit code tries to save (push) and restore (pop)
         // the required registers (ebp, ebx, esi, edi) it will still clear
         // the high part of our 64 bit RBP and RBX registers
@@ -48,8 +50,9 @@ x86_switch_mode:
         // restore RBP
         pop     rbp
 
-        // restore value of DS
+        // restore value of DS and ES
         mov     ds, r11
+        mov     es, r10
 
         // restore RSP to the original stack
         leave

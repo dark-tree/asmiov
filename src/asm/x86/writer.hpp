@@ -93,6 +93,35 @@ namespace asmio::x86 {
 			void put_qword_f(double dword);
 			void put_qword_f(std::initializer_list<double> dword);
 			void put_data(size_t bytes, void* date);
+			void put_space(size_t bytes, uint8_t value = 0);
+
+			// string
+			BufferWriter& put_rep();                    /// Repeat
+			BufferWriter& put_repe();                   /// Repeat while equal
+			BufferWriter& put_repz();                   /// Repeat while zero
+			BufferWriter& put_repne();                  /// Repeat while not equal
+			BufferWriter& put_repnz();                  /// Repeat while not zero
+			INST put_movsb();                           /// Move byte from [ESI] to [EDI]
+			INST put_movsw();                           /// Move word from [ESI] to [EDI]
+			INST put_movsd();                           /// Move dword from [ESI] to [EDI]
+			INST put_insb();                            /// Input byte from I/O port specified in DX into [EDI]
+			INST put_insw();                            /// Input word from I/O port specified in DX into [EDI]
+			INST put_insd();                            /// Input dword from I/O port specified in DX into [EDI]
+			INST put_outsb();                           /// Output byte from [ESI] to I/O port specified in DX
+			INST put_outsw();                           /// Output word from [ESI] to I/O port specified in DX
+			INST put_outsd();                           /// Output dword from [ESI] to I/O port specified in DX
+			INST put_cmpsb();                           /// Compares byte at [ESI] with byte at [EDI]
+			INST put_cmpsw();                           /// Compares word at [ESI] with word at [EDI]
+			INST put_cmpsd();                           /// Compares dword at [ESI] with dword at [EDI]
+			INST put_scasb();                           /// Compare AL with byte at [EDI]
+			INST put_scasw();                           /// Compare AX with word at [EDI]
+			INST put_scasd();                           /// Compare EAX with dword at [EDI]
+			INST put_lodsb();                           /// Load byte at [ESI] into AL
+			INST put_lodsw();                           /// Load word at [ESI] into AX
+			INST put_lodsd();                           /// Load dword at [ESI] into EAX
+			INST put_stosb();                           /// Store byte AL at address [EDI]
+			INST put_stosw();                           /// Store word AX at address [EDI]
+			INST put_stosd();                           /// Store dword EAX at address [EDI]
 
 			// general
 			INST put_mov(Location dst, Location src);   /// Move

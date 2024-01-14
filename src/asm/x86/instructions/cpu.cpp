@@ -2,6 +2,145 @@
 
 namespace asmio::x86 {
 
+	/// Repeat
+	BufferWriter& BufferWriter::put_rep() {
+		return put_repnz();
+	}
+
+	/// Repeat while equal
+	BufferWriter& BufferWriter::put_repe() {
+		return put_repz();
+	}
+
+	/// Repeat while zero
+	BufferWriter& BufferWriter::put_repz() {
+		put_byte(0b11110011);
+		return *this;
+	}
+
+	/// Repeat while not equal
+	BufferWriter& BufferWriter::put_repne() {
+		return put_repnz();
+	}
+
+	/// Repeat while not zero
+	BufferWriter& BufferWriter::put_repnz() {
+		put_byte(0b11110010);
+		return *this;
+	}
+
+	/// Move byte from [ESI] to [EDI]
+	void BufferWriter::put_movsb() {
+		put_byte(INST_MOVS);
+	}
+
+	/// Move word from [ESI] to [EDI]
+	void BufferWriter::put_movsw() {
+		put_inst_16bit_operand_mark();
+		put_byte(INST_MOVS | 1);
+	}
+
+	/// Move dword from [ESI] to [EDI]
+	void BufferWriter::put_movsd() {
+		put_byte(INST_MOVS | 1);
+	}
+
+	/// Input byte from I/O port specified in DX into [EDI]
+	void BufferWriter::put_insb() {
+		put_byte(INST_INS);
+	}
+
+	/// Input word from I/O port specified in DX into [EDI]
+	void BufferWriter::put_insw() {
+		put_inst_16bit_operand_mark();
+		put_byte(INST_INS | 1);
+	}
+
+	/// Input dword from I/O port specified in DX into [EDI]
+	void BufferWriter::put_insd() {
+		put_byte(INST_INS | 1);
+	}
+
+	/// Output byte from [ESI] to I/O port specified in DX
+	void BufferWriter::put_outsb() {
+		put_byte(INST_OUTS);
+	}
+
+	/// Output word from [ESI] to I/O port specified in DX
+	void BufferWriter::put_outsw() {
+		put_inst_16bit_operand_mark();
+		put_byte(INST_OUTS | 1);
+	}
+
+	/// Output dword from [ESI] to I/O port specified in DX
+	void BufferWriter::put_outsd() {
+		put_byte(INST_OUTS | 1);
+	}
+
+	/// Compares byte at [ESI] with byte at [EDI]
+	void BufferWriter::put_cmpsb() {
+		put_byte(INST_CMPS);
+	}
+
+	/// Compares word at [ESI] with word at [EDI]
+	void BufferWriter::put_cmpsw() {
+		put_inst_16bit_operand_mark();
+		put_byte(INST_CMPS | 1);
+	}
+
+	/// Compares dword at [ESI] with dword at [EDI]
+	void BufferWriter::put_cmpsd() {
+		put_byte(INST_CMPS | 1);
+	}
+
+	/// Compare AL with byte at [EDI]
+	void BufferWriter::put_scasb() {
+		put_byte(INST_SCAS);
+	}
+
+	/// Compare AX with word at [EDI]
+	void BufferWriter::put_scasw() {
+		put_inst_16bit_operand_mark();
+		put_byte(INST_SCAS | 1);
+	}
+
+	/// Compare EAX with dword at [EDI]
+	void BufferWriter::put_scasd() {
+		put_byte(INST_SCAS | 1);
+	}
+
+	/// Load byte at [ESI] into AL
+	void BufferWriter::put_lodsb() {
+		put_byte(INST_LODS);
+	}
+
+	/// Load word at [ESI] into AX
+	void BufferWriter::put_lodsw() {
+		put_inst_16bit_operand_mark();
+		put_byte(INST_LODS | 1);
+	}
+
+	/// Load dword at [ESI] into EAX
+	void BufferWriter::put_lodsd() {
+		put_byte(INST_LODS | 1);
+	}
+
+	/// Store byte AL at address [EDI]
+	void BufferWriter::put_stosb() {
+		put_byte(INST_STOS);
+	}
+
+	/// Store word AX at address [EDI]
+	void BufferWriter::put_stosw() {
+		put_inst_16bit_operand_mark();
+		put_byte(INST_STOS | 1);
+	}
+
+	/// Store dword EAX at address [EDI]
+	void BufferWriter::put_stosd() {
+		put_byte(INST_STOS | 1);
+	}
+
 	/// Move
 	void BufferWriter::put_mov(Location dst, Location src) {
 

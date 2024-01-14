@@ -448,6 +448,10 @@ namespace asmio::x86 {
 		util::insert_buffer(buffer, (uint8_t*) date, bytes);
 	}
 
+	void BufferWriter::put_space(size_t bytes, uint8_t value) {
+		buffer.resize(buffer.size() + bytes, value);
+	}
+
 	void BufferWriter::dump(bool verbose) const {
 		int i = 0;
 

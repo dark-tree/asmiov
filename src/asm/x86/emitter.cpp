@@ -285,6 +285,27 @@ namespace asmio::x86 {
 		const char* name = token.raw.c_str();
 
 		// auto generated using ingen.py
+		if (argc == 0 && strcmp(name, "movsb") == 0) return parseCall<0>(reporter, &BufferWriter::put_movsb, writer, stream);
+		if (argc == 0 && strcmp(name, "movsw") == 0) return parseCall<0>(reporter, &BufferWriter::put_movsw, writer, stream);
+		if (argc == 0 && strcmp(name, "movsd") == 0) return parseCall<0>(reporter, &BufferWriter::put_movsd, writer, stream);
+		if (argc == 0 && strcmp(name, "insb") == 0) return parseCall<0>(reporter, &BufferWriter::put_insb, writer, stream);
+		if (argc == 0 && strcmp(name, "insw") == 0) return parseCall<0>(reporter, &BufferWriter::put_insw, writer, stream);
+		if (argc == 0 && strcmp(name, "insd") == 0) return parseCall<0>(reporter, &BufferWriter::put_insd, writer, stream);
+		if (argc == 0 && strcmp(name, "outsb") == 0) return parseCall<0>(reporter, &BufferWriter::put_outsb, writer, stream);
+		if (argc == 0 && strcmp(name, "outsw") == 0) return parseCall<0>(reporter, &BufferWriter::put_outsw, writer, stream);
+		if (argc == 0 && strcmp(name, "outsd") == 0) return parseCall<0>(reporter, &BufferWriter::put_outsd, writer, stream);
+		if (argc == 0 && strcmp(name, "cmpsb") == 0) return parseCall<0>(reporter, &BufferWriter::put_cmpsb, writer, stream);
+		if (argc == 0 && strcmp(name, "cmpsw") == 0) return parseCall<0>(reporter, &BufferWriter::put_cmpsw, writer, stream);
+		if (argc == 0 && strcmp(name, "cmpsd") == 0) return parseCall<0>(reporter, &BufferWriter::put_cmpsd, writer, stream);
+		if (argc == 0 && strcmp(name, "scasb") == 0) return parseCall<0>(reporter, &BufferWriter::put_scasb, writer, stream);
+		if (argc == 0 && strcmp(name, "scasw") == 0) return parseCall<0>(reporter, &BufferWriter::put_scasw, writer, stream);
+		if (argc == 0 && strcmp(name, "scasd") == 0) return parseCall<0>(reporter, &BufferWriter::put_scasd, writer, stream);
+		if (argc == 0 && strcmp(name, "lodsb") == 0) return parseCall<0>(reporter, &BufferWriter::put_lodsb, writer, stream);
+		if (argc == 0 && strcmp(name, "lodsw") == 0) return parseCall<0>(reporter, &BufferWriter::put_lodsw, writer, stream);
+		if (argc == 0 && strcmp(name, "lodsd") == 0) return parseCall<0>(reporter, &BufferWriter::put_lodsd, writer, stream);
+		if (argc == 0 && strcmp(name, "stosb") == 0) return parseCall<0>(reporter, &BufferWriter::put_stosb, writer, stream);
+		if (argc == 0 && strcmp(name, "stosw") == 0) return parseCall<0>(reporter, &BufferWriter::put_stosw, writer, stream);
+		if (argc == 0 && strcmp(name, "stosd") == 0) return parseCall<0>(reporter, &BufferWriter::put_stosd, writer, stream);
 		if (argc == 2 && strcmp(name, "mov") == 0) return parseCall<2>(reporter, &BufferWriter::put_mov, writer, stream);
 		if (argc == 2 && strcmp(name, "movsx") == 0) return parseCall<2>(reporter, &BufferWriter::put_movsx, writer, stream);
 		if (argc == 2 && strcmp(name, "movzx") == 0) return parseCall<2>(reporter, &BufferWriter::put_movzx, writer, stream);
@@ -513,6 +534,8 @@ namespace asmio::x86 {
 		if (parseDataDefinition(reporter, writer, stream, token)) {
 			return;
 		}
+
+		// TODO: add rep/repe/repz/repne/repnz prefix support
 
 		throw std::runtime_error {"Unknown " + std::to_string(argc) + " argument mnemonic '" + std::string {name} + "'"};
 	}

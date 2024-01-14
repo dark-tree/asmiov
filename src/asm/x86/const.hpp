@@ -46,6 +46,27 @@ namespace asmio::x86 {
 	// arithmetic shift right (preserve sign)
 	constexpr const uint8_t INST_SAR     = 0b111;
 
+	// Move Data From String to String
+	constexpr const uint8_t INST_MOVS    = 0b10100100;
+
+	// Input String from Port
+	constexpr const uint8_t INST_INS     = 0b01101100;
+
+	// Output String to Port
+	constexpr const uint8_t INST_OUTS    = 0b01101110;
+
+	// Compare Strings
+	constexpr const uint8_t INST_CMPS    = 0b10100110;
+
+	// Scan String
+	constexpr const uint8_t INST_SCAS    = 0b10101110;
+
+	// Load String
+	constexpr const uint8_t INST_LODS    = 0b10101100;
+
+	// Store String
+	constexpr const uint8_t INST_STOS    = 0b10101010;
+
 	// used for an absolute value reference
 	constexpr const uint8_t NO_BASE      = 0b101;
 

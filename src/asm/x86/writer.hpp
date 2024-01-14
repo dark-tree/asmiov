@@ -45,6 +45,11 @@ namespace asmio::x86 {
 			void put_inst_shift(Location dst, Location src, uint8_t inst);
 
 			/**
+			 * Used to for constructing the double shift instructions
+			 */
+			void put_inst_double_shift(uint8_t opcode, Location dst, Location src, Location cnt);
+
+			/**
 			 * Used for constructing a range of two argument instructions
 			 */
 			void put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_reg);
@@ -128,6 +133,8 @@ namespace asmio::x86 {
 			INST put_shr(Location dst, Location src);   /// Shift Right
 			INST put_sal(Location dst, Location src);   /// Arithmetic Shift Left
 			INST put_sar(Location dst, Location src);   /// Arithmetic Shift Right
+			INST put_shld(Location dst, Location src, Location cnt); /// Double Left Shift
+			INST put_shrd(Location dst, Location src, Location cnt); /// Double Right Shift
 			INST put_jmp(Location dst);                 /// Unconditional Jump
 			INST put_call(Location dst);                /// Procedure Call
 			INST put_jo(Location label);                /// Jump on Overflow
@@ -163,6 +170,10 @@ namespace asmio::x86 {
 			INST put_jcxz(Location label);              /// Jump on CX Zero
 			INST put_jecxz(Location label);             /// Jump on ECX Zero
 			INST put_loop(Location label);              /// Loop Times
+			INST put_loope(Location label);             /// Loop if equal
+			INST put_loopz(Location label);             /// Loop if zero
+			INST put_loopne(Location label);            /// Loop if not equal
+			INST put_loopnz(Location label);            /// Loop if not zero
 			INST put_seto(Location dst);                /// Set Byte on Overflow
 			INST put_setno(Location dst);               /// Set Byte on Not Overflow
 			INST put_setb(Location dst);                /// Set Byte on Below
@@ -194,6 +205,8 @@ namespace asmio::x86 {
 			INST put_setng(Location dst);               /// Alias to JLE, Jump on Not Greater
 			INST put_setg(Location dst);                /// Alias to JNLE, Jump on Greater
 			INST put_int(Location type);                /// Interrupt
+			INST put_into();                            /// Interrupt if Overflow
+			INST put_iret();                            /// Return from Interrupt
 			INST put_nop();                             /// No Operation
 			INST put_hlt();                             /// Halt
 			INST put_wait();                            /// Wait
@@ -229,7 +242,8 @@ namespace asmio::x86 {
 			INST put_xlat();                            /// Table Look-up Translation
 			INST put_in(Location dst, Location src);    /// Input from Port
 			INST put_out(Location dst, Location src);   /// Output to Port
-			INST put_test(Location dst, Location src);  /// And Function to Flags, no Result
+			INST put_test(Location dst, Location src);  /// Test For Bit Pattern
+			INST put_test(Location src);                /// Sets flags accordingly to the value of register given, ASMIOV extension
 			INST put_ret();                             /// Return from procedure
 			INST put_ret(Location bytes);               /// Return from procedure and pop X bytes
 

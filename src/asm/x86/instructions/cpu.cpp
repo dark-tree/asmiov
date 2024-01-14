@@ -492,6 +492,32 @@ namespace asmio::x86 {
 		put_inst_shift(dst, src, INST_SAR);
 	}
 
+	/// Double Left Shift
+	void BufferWriter::put_shld(Location dst, Location src, Location cnt) {
+
+		//       + - + ------- + - +    + - + ------- + - +
+		// CF <- | M |   dst   | L | <- | M |   src   | L |
+		//       + - + ------- + - +    + - + ------- + - +
+		//       |             |
+		//       |             \_ Least Significant Bit (LB)
+		//       \_ Most Significant Bit (MB)
+
+		put_inst_double_shift(0b1010'0100, dst, src, cnt);
+	}
+
+	/// Double Right Shift
+	INST BufferWriter::put_shrd(Location dst, Location src, Location cnt) {
+
+		//       + - + ------- + - +    + - + ------- + - +
+		//       | M |   src   | L | -> | M |   dst   | L | -> CF
+		//       + - + ------- + - +    + - + ------- + - +
+		//       |             |
+		//       |             \_ Least Significant Bit (LB)
+		//       \_ Most Significant Bit (MB)
+
+		put_inst_double_shift(0b1010'1100, dst, src, cnt);
+	}
+
 	/// Unconditional Jump
 	void BufferWriter::put_jmp(Location dst) {
 
@@ -716,6 +742,16 @@ namespace asmio::x86 {
 		put_byte(0b11001101);
 		put_byte(type.offset);
 
+	}
+
+	/// Interrupt if Overflow
+	void BufferWriter::put_into() {
+		put_byte(0b11001110);
+	}
+
+	/// Return from Interrupt
+	void BufferWriter::put_iret() {
+		put_byte(0b11001111);
 	}
 
 	/// No Operation
@@ -982,6 +1018,42 @@ namespace asmio::x86 {
 		throw std::runtime_error {"Invalid operand"};
 	}
 
+	/// Loop if equal
+	INST BufferWriter::put_loope(Location dst) {
+		put_loopz(dst);
+	}
+
+	/// Loop if zero
+	INST BufferWriter::put_loopz(Location dst) {
+
+		// FIXME: no range check
+		if (dst.is_jump_label()) {
+			put_byte(0b11100001);
+			put_label(dst.label, BYTE, dst.offset);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand"};
+	}
+
+	/// Loop if not equal
+	INST BufferWriter::put_loopne(Location dst) {
+		put_loopnz(dst);
+	}
+
+	/// Loop if not zero
+	INST BufferWriter::put_loopnz(Location dst) {
+
+		// FIXME: no range check
+		if (dst.is_jump_label()) {
+			put_byte(0b11100000);
+			put_label(dst.label, BYTE, dst.offset);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand"};
+	}
+
 	/// Alias to SETB, Set Byte on Carry
 	void BufferWriter::put_setc(Location dst) {
 		put_setb(dst);
@@ -1139,7 +1211,7 @@ namespace asmio::x86 {
 
 	}
 
-	/// And Function to Flags, no Result
+	/// Test For Bit Pattern
 	void BufferWriter::put_test(Location dst, Location src) {
 
 		if (src.is_memreg() && dst.is_simple()) {
@@ -1187,7 +1259,17 @@ namespace asmio::x86 {
 		}
 
 		throw std::runtime_error {"Invalid operands"};
+	}
 
+	/// Sets flags accordingly to the value of register given, ASMIOV extension
+	void BufferWriter::put_test(Location src) {
+
+		if (src.is_simple()) {
+			put_test(src, src);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand, register expected"};
 	}
 
 	/// Return from procedure

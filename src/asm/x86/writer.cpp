@@ -256,6 +256,26 @@ namespace asmio::x86 {
 
 	}
 
+	/**
+	 * Used to for constructing the double shift instructions
+	 */
+	void BufferWriter::put_inst_double_shift(uint8_t opcode, Location dst, Location src, Location cnt) {
+
+		if (cnt.is_immediate()) {
+			put_inst_std(opcode | 0, dst, src.base.reg, pair_size(src, dst), true);
+			put_byte(cnt.offset);
+			return;
+		}
+
+		if (cnt.is_simple() && cnt.base.is(CL)) {
+			put_inst_std(opcode | 1, dst, src.base.reg, pair_size(src, dst), true);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operands"};
+
+	}
+
 	void BufferWriter::put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_reg) {
 
 		if (dst.is_simple() && src.is_memreg()) {

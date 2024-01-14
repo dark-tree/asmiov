@@ -323,6 +323,8 @@ namespace asmio::x86 {
 		if (argc == 2 && strcmp(name, "shr") == 0) return parseCall<2>(reporter, &BufferWriter::put_shr, writer, stream);
 		if (argc == 2 && strcmp(name, "sal") == 0) return parseCall<2>(reporter, &BufferWriter::put_sal, writer, stream);
 		if (argc == 2 && strcmp(name, "sar") == 0) return parseCall<2>(reporter, &BufferWriter::put_sar, writer, stream);
+		if (argc == 3 && strcmp(name, "shld") == 0) return parseCall<3>(reporter, &BufferWriter::put_shld, writer, stream);
+		if (argc == 3 && strcmp(name, "shrd") == 0) return parseCall<3>(reporter, &BufferWriter::put_shrd, writer, stream);
 		if (argc == 1 && strcmp(name, "jmp") == 0) return parseCall<1>(reporter, &BufferWriter::put_jmp, writer, stream);
 		if (argc == 1 && strcmp(name, "call") == 0) return parseCall<1>(reporter, &BufferWriter::put_call, writer, stream);
 		if (argc == 1 && strcmp(name, "jo") == 0) return parseCall<1>(reporter, &BufferWriter::put_jo, writer, stream);
@@ -358,6 +360,10 @@ namespace asmio::x86 {
 		if (argc == 1 && strcmp(name, "jcxz") == 0) return parseCall<1>(reporter, &BufferWriter::put_jcxz, writer, stream);
 		if (argc == 1 && strcmp(name, "jecxz") == 0) return parseCall<1>(reporter, &BufferWriter::put_jecxz, writer, stream);
 		if (argc == 1 && strcmp(name, "loop") == 0) return parseCall<1>(reporter, &BufferWriter::put_loop, writer, stream);
+		if (argc == 1 && strcmp(name, "loope") == 0) return parseCall<1>(reporter, &BufferWriter::put_loope, writer, stream);
+		if (argc == 1 && strcmp(name, "loopz") == 0) return parseCall<1>(reporter, &BufferWriter::put_loopz, writer, stream);
+		if (argc == 1 && strcmp(name, "loopne") == 0) return parseCall<1>(reporter, &BufferWriter::put_loopne, writer, stream);
+		if (argc == 1 && strcmp(name, "loopnz") == 0) return parseCall<1>(reporter, &BufferWriter::put_loopnz, writer, stream);
 		if (argc == 1 && strcmp(name, "seto") == 0) return parseCall<1>(reporter, &BufferWriter::put_seto, writer, stream);
 		if (argc == 1 && strcmp(name, "setno") == 0) return parseCall<1>(reporter, &BufferWriter::put_setno, writer, stream);
 		if (argc == 1 && strcmp(name, "setb") == 0) return parseCall<1>(reporter, &BufferWriter::put_setb, writer, stream);
@@ -389,6 +395,8 @@ namespace asmio::x86 {
 		if (argc == 1 && strcmp(name, "setng") == 0) return parseCall<1>(reporter, &BufferWriter::put_setng, writer, stream);
 		if (argc == 1 && strcmp(name, "setg") == 0) return parseCall<1>(reporter, &BufferWriter::put_setg, writer, stream);
 		if (argc == 1 && strcmp(name, "int") == 0) return parseCall<1>(reporter, &BufferWriter::put_int, writer, stream);
+		if (argc == 0 && strcmp(name, "into") == 0) return parseCall<0>(reporter, &BufferWriter::put_into, writer, stream);
+		if (argc == 0 && strcmp(name, "iret") == 0) return parseCall<0>(reporter, &BufferWriter::put_iret, writer, stream);
 		if (argc == 0 && strcmp(name, "nop") == 0) return parseCall<0>(reporter, &BufferWriter::put_nop, writer, stream);
 		if (argc == 0 && strcmp(name, "hlt") == 0) return parseCall<0>(reporter, &BufferWriter::put_hlt, writer, stream);
 		if (argc == 0 && strcmp(name, "wait") == 0) return parseCall<0>(reporter, &BufferWriter::put_wait, writer, stream);
@@ -425,6 +433,7 @@ namespace asmio::x86 {
 		if (argc == 2 && strcmp(name, "in") == 0) return parseCall<2>(reporter, &BufferWriter::put_in, writer, stream);
 		if (argc == 2 && strcmp(name, "out") == 0) return parseCall<2>(reporter, &BufferWriter::put_out, writer, stream);
 		if (argc == 2 && strcmp(name, "test") == 0) return parseCall<2>(reporter, &BufferWriter::put_test, writer, stream);
+		if (argc == 1 && strcmp(name, "test") == 0) return parseCall<1>(reporter, &BufferWriter::put_test, writer, stream);
 		if (argc == 0 && strcmp(name, "ret") == 0) return parseCall<0>(reporter, &BufferWriter::put_ret, writer, stream);
 		if (argc == 1 && strcmp(name, "ret") == 0) return parseCall<1>(reporter, &BufferWriter::put_ret, writer, stream);
 		if (argc == 0 && strcmp(name, "fnop") == 0) return parseCall<0>(reporter, &BufferWriter::put_fnop, writer, stream);

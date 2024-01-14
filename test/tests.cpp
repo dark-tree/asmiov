@@ -1545,6 +1545,78 @@ TEST (writer_exec_test) {
 
 }
 
+TEST (writer_exec_test_eax_eax) {
+
+	BufferWriter writer;
+
+	writer.label("main_1");
+	writer.put_mov(EDX, 0);
+	writer.put_test(EDX);
+	writer.put_jnz("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("main_2");
+	writer.put_mov(EDX, 1);
+	writer.put_test(EDX);
+	writer.put_jz("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("main_3");
+	writer.put_mov(EDX, 7);
+	writer.put_test(EDX);
+	writer.put_jz("invalid");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("invalid");
+	writer.put_mov(EAX, 0);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_i32("main_1"), 1);
+	CHECK(buffer.call_i32("main_2"), 1);
+	CHECK(buffer.call_i32("main_3"), 1);
+
+}
+
+TEST (writer_exec_shld_shrd) {
+
+	BufferWriter writer;
+
+	writer.label("shld");
+	writer.put_xor(EAX, EAX);
+	writer.put_xor(EDX, EDX);
+	writer.put_mov(AX, 0b01001000'01001110);
+	writer.put_mov(DX, 0b10100001'00010001);
+	writer.put_mov(CL, 4);
+	writer.put_shld(AX, DX, CL);
+
+	writer.put_shl(EDX, 4*4);
+	writer.put_shld(ref("var"), EDX, 4*4);
+	writer.put_ret();
+
+	writer.label("shrd");
+	writer.put_xor(EAX, EAX);
+	writer.put_mov(AX, 0b01001000'01001110);
+	writer.put_mov(DX, 0b10100001'00010001);
+	writer.put_shrd(AX, DX, 4);
+	writer.put_ret();
+
+	writer.label("check");
+	writer.put_mov(EAX, ref("var"));
+	writer.put_ret();
+
+	writer.label("var").put_dword(0b11110111'00110001);
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32("shld"), 0b10000100'11101010);
+	CHECK(buffer.call_u32("shrd"), 0b00010100'10000100);
+	CHECK(buffer.call_u32("check"), 0b11110111'00110001'10100001'00010001);
+
+}
+
 TEST (writer_exec_tricky_encodings) {
 
 	BufferWriter writer;

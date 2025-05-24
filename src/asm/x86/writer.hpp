@@ -29,46 +29,31 @@ namespace asmio::x86 {
 			void put_inst_std_dw(uint8_t opcode, Location dst, uint8_t reg, uint8_t size, bool direction, bool wide, bool longer = false);
 			void put_inst_fpu(uint8_t opcode, uint8_t base, uint8_t sti = 0);
 
-			/**
-			 * Used for constructing the MOV instruction
-			 */
+			/// Used for constructing the MOV instruction
 			void put_inst_mov(Location dst, Location src, bool direction);
 
-			/**
-			 * Used for constructing the MOVSX and MOVZX instructions
-			 */
+			/// Used for constructing the MOVSX and MOVZX instructions
 			void put_inst_movx(uint8_t opcode, Location dst, Location src);
 
-			/**
-			 * Used to for constructing the shift instructions
-			 */
+			/// Used to for constructing the shift instructions
 			void put_inst_shift(Location dst, Location src, uint8_t inst);
 
-			/**
-			 * Used to for constructing the double shift instructions
-			 */
+			/// Used to for constructing the double shift instructions
 			void put_inst_double_shift(uint8_t opcode, Location dst, Location src, Location cnt);
 
-			/**
-			 * Used for constructing a range of two argument instructions
-			 */
+			/// Used for constructing a range of two argument instructions
 			void put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_reg);
 
-			/**
-			 * Used for constructing the Bit Test family of instructions
-			 */
+			/// Used for constructing the Bit Test family of instructions
 			void put_inst_btx(Location dst, Location src, uint8_t opcode, uint8_t inst);
 
-			/**
-			 * Used for constructing the conditional jump family of instructions
-			 */
+			/// Used for constructing the conditional jump family of instructions
 			void put_inst_jx(Location label, uint8_t sopcode, uint8_t lopcode);
 
-			/**
-			 * Used for constructing the 'set byte' family of instructions
-			 */
+			/// Used for constructing the 'set byte' family of instructions
 			void put_inst_setx(Location dst, uint8_t lopcode);
 
+			void put_inst_rex(uint8_t wrxb);
 			void put_inst_16bit_operand_mark();
 			void put_inst_16bit_address_mark();
 			void put_label(const Label& label, uint8_t size, long shift);

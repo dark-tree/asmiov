@@ -36,7 +36,7 @@ namespace asmio::x86 {
 		// + --- + ----- + ----- +
 		// |     |       |
 		// |     |       \_ encodes register
-		// |     \_ encodes register of instruction specific data
+		// |     \_ encodes register or instruction specific data
 		// \_ offset size
 
 		// If mod is set to MOD_SHORT (0b11) then both reg and r/m are treated
@@ -353,6 +353,10 @@ namespace asmio::x86 {
 	 */
 	void BufferWriter::put_inst_setx(Location dst, uint8_t lopcode) {
 		put_inst_std_as(0b1001'0000 | lopcode, dst, 0, true);
+	}
+
+	void BufferWriter::put_inst_rex(uint8_t wrxb) {
+		put_byte(0b0100'0000 | wrxb);
 	}
 
 	void BufferWriter::put_inst_16bit_operand_mark() {

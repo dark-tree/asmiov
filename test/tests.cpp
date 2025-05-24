@@ -1630,7 +1630,7 @@ TEST (writer_exec_lods) {
 
 	writer.label("src").put_ascii("Ugus!");
 
-	ExecutableBuffer buffer = writer.bake(true);
+	ExecutableBuffer buffer = writer.bake();
 	CHECK(buffer.call_u32("main"), (('g' << 8) | 'u'));
 
 }

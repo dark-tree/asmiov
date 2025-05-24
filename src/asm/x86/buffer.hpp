@@ -14,7 +14,7 @@ namespace asmio::x86 {
 			size_t length;
 
 			__attribute__((__always_inline__)) void raw_call(uint32_t offset) {
-				reinterpret_cast<uint32_t (*)()>(buffer + offset)();
+				x86_call_into(reinterpret_cast<uint32_t (*)()>(buffer + offset));
 			}
 
 		public:

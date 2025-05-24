@@ -7,7 +7,17 @@ code_segment: .long 0x23
 
 .text
 .code64
+.global x86_call_into
 .global x86_switch_mode
+
+// this is mostly redundant and exists to somewhat emulate the old x86_switch_mode
+x86_call_into:
+        push    rbp
+
+        call rdi
+
+        pop rbp
+        ret
 
 // executes the given callback in 32 bit mode
 x86_switch_mode:

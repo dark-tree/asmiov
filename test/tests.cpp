@@ -54,7 +54,7 @@ TEST (switch_mode_rbp_protection) {
 
 	BufferWriter writer;
 
-	writer.put_push(RBP);
+	writer.put_push(0);
 	writer.put_pop(RBP);
 	writer.put_ret();
 

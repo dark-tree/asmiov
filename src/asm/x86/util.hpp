@@ -7,5 +7,6 @@
 
 extern "C" {
 	extern int x86_check_mode();
+	extern int x86_call_into(uint32_t (*)());
 	extern int x86_switch_mode(uint32_t (*)());
 }

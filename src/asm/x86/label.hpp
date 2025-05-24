@@ -37,7 +37,7 @@ namespace asmio::x86 {
 			: str(label.str), hash(label.hash), allocated(label.allocated) {}
 
 			~Label() {
-				if (allocated) free((void *) str);
+				if (allocated) free((void*) str);
 			}
 
 			bool operator == (const Label& label) const {
@@ -50,7 +50,7 @@ namespace asmio::x86 {
 
 			struct HashFunction {
 
-				size_t operator () (const Label &label) const {
+				size_t operator () (const Label& label) const {
 					return label.hash;
 				}
 

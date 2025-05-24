@@ -103,7 +103,6 @@ namespace tasml {
 				continue;
 			}
 
-
 			if (in_multiline_comment) {
 				if (c == '*' && n == '/') {
 					// End of multi-line comment

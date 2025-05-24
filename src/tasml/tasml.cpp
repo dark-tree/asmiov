@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
 		handler.assert(EXIT_LINKE_ERROR);
 
 		// write to output file
-		if (!writer.bake_elf(&handler).save(output.c_str())) {
+		if (!elf.save(output.c_str())) {
 			printf("Failed to save output!\n");
 			return EXIT_ERROR;
 		}

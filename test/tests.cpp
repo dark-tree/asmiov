@@ -13,12 +13,49 @@
 
 using namespace asmio::x86;
 
+TEST (writer_push_check) {
+
+	BufferWriter writer;
+
+	// 16 bit
+	writer.put_push(AX);
+	writer.put_push(BX);
+	writer.put_push(BP);
+	writer.put_push(R9W);
+	writer.put_push(cast<WORD>(ref(RAX)));
+
+	// 64 bit
+	writer.put_push(RAX);
+	writer.put_push(RBX);
+	writer.put_push(RBP);
+	writer.put_push(R11);
+	writer.put_push(R13);
+	writer.put_push(R15);
+	writer.put_push(cast<QWORD>(ref(RAX)));
+
+	// 8 bit
+	EXPECT_ANY({ writer.put_push(AL); });
+	EXPECT_ANY({ writer.put_push(AH); });
+	EXPECT_ANY({ writer.put_push(SPL); });
+	EXPECT_ANY({ writer.put_push(cast<BYTE>(ref(RAX))); });
+
+	// 32 bit
+	EXPECT_ANY({ writer.put_push(EAX); });
+	EXPECT_ANY({ writer.put_push(R10D); });
+	EXPECT_ANY({ writer.put_push(R15D); });
+	EXPECT_ANY({ writer.put_push(cast<DWORD>(ref(RAX))); });
+
+	// too large imm
+	EXPECT_ANY({ writer.put_push(0xffffffffff); });
+
+}
+
 TEST (switch_mode_rbp_protection) {
 
 	BufferWriter writer;
 
-	writer.put_push(EBP);
-	writer.put_pop(EBP);
+	writer.put_push(RBP);
+	writer.put_pop(RBP);
 	writer.put_ret();
 
 	writer.bake().call_u32();

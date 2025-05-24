@@ -7,27 +7,28 @@
 
 namespace asmio::x86 {
 
-	constexpr const uint8_t VOID = 0;
-	constexpr const uint8_t BYTE = 1;
-	constexpr const uint8_t WORD = 2;
-	constexpr const uint8_t DWORD = 4;
-	constexpr const uint8_t QWORD = 8;
-	constexpr const uint8_t TWORD = 10;
+	constexpr uint8_t VOID = 0;
+	constexpr uint8_t BYTE = 1;
+	constexpr uint8_t WORD = 2;
+	constexpr uint8_t DWORD = 4;
+	constexpr uint8_t QWORD = 8;
+	constexpr uint8_t TWORD = 10;
 
 	struct __attribute__((__packed__)) Registry {
 
 		// a bit useless rn
 		enum Flag {
-			NONE        = 0b0000,
-			PSEUDO      = 0b0001,
-			GENERAL     = 0b0010,
-			FLOATING    = 0b0100,
-			ACCUMULATOR = 0b1000
+			NONE        = 0b00000,
+			PSEUDO      = 0b00001,
+			GENERAL     = 0b00010,
+			FLOATING    = 0b00100,
+			ACCUMULATOR = 0b01000,
+			REX         = 0b10000,
 		};
 
-		const uint8_t size : 8; // size in bytes
-		const uint8_t flag : 5; // additional flags
-		const uint8_t reg  : 3; // registry x86 code
+		const uint8_t size; // size in bytes
+		const uint8_t flag; // additional flags
+		const uint8_t reg;  // registry x86 code
 
 		constexpr Registry(uint8_t size, uint8_t reg, uint8_t flag)
 		: size(size), flag(flag), reg(reg) {}
@@ -42,32 +43,82 @@ namespace asmio::x86 {
 
 	};
 
-	constexpr const Registry UNSET {VOID,  0b000, Registry::PSEUDO};
-	constexpr const Registry EAX   {DWORD, 0b000, Registry::GENERAL | Registry::ACCUMULATOR};
-	constexpr const Registry AX    {WORD,  0b000, Registry::GENERAL | Registry::ACCUMULATOR};
-	constexpr const Registry AL    {BYTE,  0b000, Registry::GENERAL | Registry::ACCUMULATOR};
-	constexpr const Registry AH    {BYTE,  0b100, Registry::GENERAL};
-	constexpr const Registry EBX   {DWORD, 0b011, Registry::GENERAL};
-	constexpr const Registry BX    {WORD,  0b011, Registry::GENERAL};
-	constexpr const Registry BL    {BYTE,  0b011, Registry::GENERAL};
-	constexpr const Registry BH    {BYTE,  0b111, Registry::GENERAL};
-	constexpr const Registry ECX   {DWORD, 0b001, Registry::GENERAL};
-	constexpr const Registry CX    {WORD,  0b001, Registry::GENERAL};
-	constexpr const Registry CL    {BYTE,  0b001, Registry::GENERAL};
-	constexpr const Registry CH    {BYTE,  0b101, Registry::GENERAL};
-	constexpr const Registry EDX   {DWORD, 0b010, Registry::GENERAL};
-	constexpr const Registry DX    {WORD,  0b010, Registry::GENERAL};
-	constexpr const Registry DL    {BYTE,  0b010, Registry::GENERAL};
-	constexpr const Registry DH    {BYTE,  0b110, Registry::GENERAL};
-	constexpr const Registry ESI   {DWORD, 0b110, Registry::GENERAL};
-	constexpr const Registry SI    {WORD,  0b110, Registry::GENERAL};
-	constexpr const Registry EDI   {DWORD, 0b111, Registry::GENERAL};
-	constexpr const Registry DI    {WORD,  0b111, Registry::GENERAL};
-	constexpr const Registry EBP   {DWORD, 0b101, Registry::GENERAL};
-	constexpr const Registry BP    {WORD,  0b101, Registry::GENERAL};
-	constexpr const Registry ESP   {DWORD, 0b100, Registry::GENERAL};
-	constexpr const Registry SP    {WORD,  0b100, Registry::GENERAL};
-	constexpr const Registry ST    {TWORD, 0b000, Registry::FLOATING};
+	// 386
+	constexpr Registry UNSET {VOID,  0b0000, Registry::PSEUDO};
+	constexpr Registry EAX   {DWORD, 0b0000, Registry::GENERAL | Registry::ACCUMULATOR};
+	constexpr Registry AX    {WORD,  0b0000, Registry::GENERAL | Registry::ACCUMULATOR};
+	constexpr Registry AL    {BYTE,  0b0000, Registry::GENERAL | Registry::ACCUMULATOR};
+	constexpr Registry AH    {BYTE,  0b0100, Registry::GENERAL};
+	constexpr Registry EBX   {DWORD, 0b0011, Registry::GENERAL};
+	constexpr Registry BX    {WORD,  0b0011, Registry::GENERAL};
+	constexpr Registry BL    {BYTE,  0b0011, Registry::GENERAL};
+	constexpr Registry BH    {BYTE,  0b0111, Registry::GENERAL};
+	constexpr Registry ECX   {DWORD, 0b0001, Registry::GENERAL};
+	constexpr Registry CX    {WORD,  0b0001, Registry::GENERAL};
+	constexpr Registry CL    {BYTE,  0b0001, Registry::GENERAL};
+	constexpr Registry CH    {BYTE,  0b0101, Registry::GENERAL};
+	constexpr Registry EDX   {DWORD, 0b0010, Registry::GENERAL};
+	constexpr Registry DX    {WORD,  0b0010, Registry::GENERAL};
+	constexpr Registry DL    {BYTE,  0b0010, Registry::GENERAL};
+	constexpr Registry DH    {BYTE,  0b0110, Registry::GENERAL};
+	constexpr Registry ESI   {DWORD, 0b0110, Registry::GENERAL};
+	constexpr Registry SI    {WORD,  0b0110, Registry::GENERAL};
+	constexpr Registry EDI   {DWORD, 0b0111, Registry::GENERAL};
+	constexpr Registry DI    {WORD,  0b0111, Registry::GENERAL};
+	constexpr Registry EBP   {DWORD, 0b0101, Registry::GENERAL};
+	constexpr Registry BP    {WORD,  0b0101, Registry::GENERAL};
+	constexpr Registry ESP   {DWORD, 0b0100, Registry::GENERAL};
+	constexpr Registry SP    {WORD,  0b0100, Registry::GENERAL};
+	constexpr Registry ST    {TWORD, 0b0000, Registry::FLOATING};
+
+	// amd64 surrogates - uniform byte registers
+	constexpr Registry SPL   {BYTE,  0b0100, Registry::GENERAL | Registry::REX};
+	constexpr Registry BPL   {BYTE,  0b0101, Registry::GENERAL | Registry::REX};
+	constexpr Registry SIL   {BYTE,  0b0110, Registry::GENERAL | Registry::REX};
+	constexpr Registry DIL   {BYTE,  0b0111, Registry::GENERAL | Registry::REX};
+
+	// amd64
+	constexpr Registry RAX   {QWORD, 0b0000, Registry::GENERAL | Registry::ACCUMULATOR | Registry::REX};
+	constexpr Registry RBX   {QWORD, 0b0011, Registry::GENERAL | Registry::REX};
+	constexpr Registry RCX   {QWORD, 0b0001, Registry::GENERAL | Registry::REX};
+	constexpr Registry RDX   {QWORD, 0b0010, Registry::GENERAL | Registry::REX};
+	constexpr Registry RSI   {QWORD, 0b0110, Registry::GENERAL | Registry::REX};
+	constexpr Registry RDI   {QWORD, 0b0111, Registry::GENERAL | Registry::REX};
+	constexpr Registry RBP   {QWORD, 0b0101, Registry::GENERAL | Registry::REX};
+	constexpr Registry RSP   {QWORD, 0b0100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R8L   {BYTE,  0b1000, Registry::GENERAL | Registry::REX};
+	constexpr Registry R8W   {WORD,  0b1000, Registry::GENERAL | Registry::REX};
+	constexpr Registry R8D   {DWORD, 0b1000, Registry::GENERAL | Registry::REX};
+	constexpr Registry R8    {QWORD, 0b1000, Registry::GENERAL | Registry::REX};
+	constexpr Registry R9L   {BYTE,  0b1001, Registry::GENERAL | Registry::REX};
+	constexpr Registry R9W   {WORD,  0b1001, Registry::GENERAL | Registry::REX};
+	constexpr Registry R9D   {DWORD, 0b1001, Registry::GENERAL | Registry::REX};
+	constexpr Registry R9    {QWORD, 0b1001, Registry::GENERAL | Registry::REX};
+	constexpr Registry R10L  {BYTE,  0b1010, Registry::GENERAL | Registry::REX};
+	constexpr Registry R10W  {WORD,  0b1010, Registry::GENERAL | Registry::REX};
+	constexpr Registry R10D  {DWORD, 0b1010, Registry::GENERAL | Registry::REX};
+	constexpr Registry R10   {QWORD, 0b1010, Registry::GENERAL | Registry::REX};
+	constexpr Registry R11L  {BYTE,  0b1011, Registry::GENERAL | Registry::REX};
+	constexpr Registry R11W  {WORD,  0b1011, Registry::GENERAL | Registry::REX};
+	constexpr Registry R11D  {DWORD, 0b1011, Registry::GENERAL | Registry::REX};
+	constexpr Registry R11   {QWORD, 0b1011, Registry::GENERAL | Registry::REX};
+	constexpr Registry R12L  {BYTE,  0b1100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R12W  {WORD,  0b1100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R12D  {DWORD, 0b1100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R12   {QWORD, 0b1100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R13L  {BYTE,  0b1101, Registry::GENERAL | Registry::REX};
+	constexpr Registry R13W  {WORD,  0b1101, Registry::GENERAL | Registry::REX};
+	constexpr Registry R13D  {DWORD, 0b1101, Registry::GENERAL | Registry::REX};
+	constexpr Registry R13   {QWORD, 0b1101, Registry::GENERAL | Registry::REX};
+	constexpr Registry R14L  {BYTE,  0b1110, Registry::GENERAL | Registry::REX};
+	constexpr Registry R14W  {WORD,  0b1110, Registry::GENERAL | Registry::REX};
+	constexpr Registry R14D  {DWORD, 0b1110, Registry::GENERAL | Registry::REX};
+	constexpr Registry R14   {QWORD, 0b1110, Registry::GENERAL | Registry::REX};
+	constexpr Registry R15L  {BYTE,  0b1111, Registry::GENERAL | Registry::REX};
+	constexpr Registry R15W  {WORD,  0b1111, Registry::GENERAL | Registry::REX};
+	constexpr Registry R15D  {DWORD, 0b1111, Registry::GENERAL | Registry::REX};
+	constexpr Registry R15   {QWORD, 0b1111, Registry::GENERAL | Registry::REX};
+
 
 	void assertValidScale(Registry registry, uint8_t multiplier);
 	void assertNonReferencial(class Location const* location, const char* why);
@@ -169,6 +220,13 @@ namespace asmio::x86 {
 			}
 
 			/**
+			 * Checks if this location is a simple un-referenced register of size word/qword
+			 */
+			bool is_inlineable() const {
+				return is_simple() && (base.size == WORD || base.size == QWORD);
+			}
+
+			/**
 			 * Checks if this location is a simple un-referenced accumulator, used when encoding short-forms
 			 */
 			bool is_accum() const {
@@ -200,7 +258,7 @@ namespace asmio::x86 {
 			 * Checks if this location is 'wide' (word or double word)
 			 */
 			bool is_wide() const {
-				return size == 2 || size == 4;
+				return size == 2 || size == 4 || size == 8;
 			}
 
 			/**

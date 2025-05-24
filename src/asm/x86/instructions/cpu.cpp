@@ -244,6 +244,12 @@ namespace asmio::x86 {
 				put_byte(0b01101010);
 				put_inst_label_imm(src, BYTE);
 			} else {
+
+				// we would lose information otherwise
+				if (imm_len > DWORD) {
+					throw std::runtime_error {"Invalid operand, immediate value exceeds bounds"};
+				}
+
 				put_byte(0b01101000);
 				put_inst_label_imm(src, DWORD);
 			}
@@ -253,8 +259,8 @@ namespace asmio::x86 {
 
 		// for some reason push & pop don't handle the wide flag,
 		// so we can only accept wide registers
-		if (!src.is_wide()) {
-			throw std::runtime_error {"Invalid operands, byte register can't be used here"};
+		if (src.size != WORD && src.size != QWORD) {
+			throw std::runtime_error {"Invalid operand, byte/dword can't be used here"};
 		}
 
 		// short-form
@@ -268,7 +274,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		if (src.is_memreg()) {
+		if (src.is_memory()) {
 			put_inst_std_as(0b11111111, src, 0b110);
 			return;
 		}

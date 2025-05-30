@@ -14,9 +14,9 @@ code_segment: .long 0x23
 x86_call_into:
         push    rbp
 
-        call rdi
+        call    rdi
 
-        pop rbp
+        pop     rbp
         ret
 
 // executes the given callback in 32 bit mode

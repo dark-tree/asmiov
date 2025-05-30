@@ -19,14 +19,23 @@ namespace asmio::x86 {
 			std::vector<uint8_t> buffer;
 			std::vector<LabelCommand> commands;
 
+			uint8_t pack_rex(bool w, bool r, bool x, bool b);
 			uint8_t pack_opcode_dw(uint8_t opcode, bool d, bool w);
 			void put_inst_mod_reg_rm(uint8_t mod, uint8_t reg, uint8_t r_m);
 			void put_inst_sib(uint8_t ss, uint8_t index, uint8_t base);
-			void put_inst_imm(uint32_t immediate, uint8_t width);
+			void put_inst_imm(uint64_t immediate, uint8_t width);
 			void put_inst_label_imm(Location imm, uint8_t size);
-			void put_inst_std(uint8_t opcode, Location dst, uint8_t reg, uint8_t size, bool longer = false);
-			void put_inst_std_as(uint8_t opcode, Location dst, uint8_t reg, bool longer = false);
-			void put_inst_std_dw(uint8_t opcode, Location dst, uint8_t reg, uint8_t size, bool direction, bool wide, bool longer = false);
+
+			/// Encode a 'standard' ModRM/SIB instruction with REX/size prefixes
+			void put_inst_std(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool longer = false);
+			void put_inst_std_ri(uint8_t opcode, Location dst, uint8_t inst);
+			void put_inst_std_as(uint8_t opcode, Location dst, RegInfo packed, bool longer = false);
+			void put_inst_std_dw(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool direction, bool wide, bool longer = false);
+
+			/// Encode a directional instruction and deduce the 'wide' flag
+			void put_inst_std_ds(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool direction, bool longer = false);
+
+			/// Encode many simple FPU instructions
 			void put_inst_fpu(uint8_t opcode, uint8_t base, uint8_t sti = 0);
 
 			/// Used for constructing the MOV instruction
@@ -54,8 +63,13 @@ namespace asmio::x86 {
 			void put_inst_setx(Location dst, uint8_t lopcode);
 
 			void put_inst_rex(uint8_t wrxb);
-			void put_inst_16bit_operand_mark();
-			void put_inst_16bit_address_mark();
+
+			/// Override the operand size from 32 to 16 bit, don't use in combination with REX.W
+			void put_16bit_operand_prefix();
+
+			/// Override the default address size of 64 bit to 32 bit, don't use in combination with REX.W
+			void put_32bit_address_prefix();
+
 			void put_label(const Label& label, uint8_t size, long shift);
 			bool has_label(const Label& label);
 			int get_label(const Label& label);
@@ -116,6 +130,7 @@ namespace asmio::x86 {
 			INST put_xchg(Location dst, Location src);  /// Exchange
 			INST put_push(Location src);                /// Push
 			INST put_pop(Location src);                 /// Pop
+			INST put_pop();                             /// Pop & Discard
 			INST put_inc(Location dst);                 /// Increment
 			INST put_dec(Location dst);                 /// Decrement
 			INST put_neg(Location dst);                 /// Negate
@@ -249,8 +264,6 @@ namespace asmio::x86 {
 			INST put_daa();                             /// Decimal adjust for add
 			INST put_aas();                             /// ASCII adjust for subtract
 			INST put_das();                             /// Decimal adjust for subtract
-			INST put_aad();                             /// ASCII adjust for division
-			INST put_aam();                             /// ASCII adjust for multiplication
 			INST put_cbw();                             /// Convert byte to word
 			INST put_cwd();                             /// Convert word to double word
 			INST put_xlat();                            /// Table Look-up Translation

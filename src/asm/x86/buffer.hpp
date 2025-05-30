@@ -58,6 +58,11 @@ namespace asmio::x86 {
 
 		public:
 
+			uint64_t call_u64(uint32_t offset = 0) {
+				raw_call(offset);
+				RETURN_TRANSIENT(uint64_t, "=r");
+			}
+
 			uint32_t call_u32(uint32_t offset = 0) {
 				raw_call(offset);
 				RETURN_TRANSIENT(uint32_t, "=r");

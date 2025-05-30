@@ -7,8 +7,8 @@ using namespace tasml;
 namespace asmio::x86 {
 
 	// forward defs
-	Location parseExpression(int cast, bool reference, tasml::TokenStream stream);
-	Location parseLocation(tasml::ErrorHandler& reporter, tasml::TokenStream stream, bool& write);
+	Location parseExpression(TokenStream stream);
+	Location parseLocation(ErrorHandler& reporter, TokenStream stream, bool& write);
 	bool parseDataDefinition(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token);
 
 	template <uint32_t argc> struct Instruction {};
@@ -64,11 +64,13 @@ namespace asmio::x86 {
 			{"real", TWORD},
 		};
 
-		try {
-			return types.at(raw);
-		} catch (std::out_of_range& error) {
+		auto it = types.find(raw);
+
+		if (it == types.end()) {
 			return -1;
 		}
+
+		return it->second;
 	}
 
 	int countArgs(TokenStream stream) {
@@ -121,7 +123,7 @@ namespace asmio::x86 {
 		throw std::runtime_error {"Unknown registry " + token->quoted()};
 	}
 
-	Location parseExpression(int cast, bool reference, TokenStream stream) {
+	Location parseExpression(TokenStream stream) {
 		const Token* base  = nullptr;
 		const Token* index = nullptr;
 		const Token* scale = nullptr;
@@ -250,29 +252,29 @@ namespace asmio::x86 {
 
 		const char* name = (label == nullptr) ? nullptr : label->raw.c_str() + 1 /* skip the '@' */;
 		const uint32_t scale_value = (scale == nullptr) ? 0 : scale->parseInt();
-		const int cast_value = (cast == -1) ? DWORD : cast;
 
-		return Location {getRegistryByToken(base), getRegistryByToken(index), scale_value, offset, name, cast_value, reference};
+		return getRegistryByToken(base) + getRegistryByToken(index) * scale_value + offset + name;
+	}
+
+	Location parseInner(ErrorHandler& reporter, TokenStream stream, bool& write) {
+		if (stream.accept("[")) {
+			return parseExpression(stream.block("[]", "expression")).ref();
+		}
+
+		return parseExpression(stream);
 	}
 
 	Location parseLocation(ErrorHandler& reporter, TokenStream stream, bool& write) {
 		try {
-			const Token *name = &stream.peek();
-			const int cast = getTypeByToken(name);
+			const Token* name = &stream.peek();
+			const int size = getTypeByToken(name);
 
-			if (cast != -1) {
+			if (size != -1) {
 				stream.next(); // consume 'name' token if it was a cast
+				return parseInner(reporter, stream, write).cast(size);
 			}
 
-			if (stream.accept("[")) {
-				return parseExpression(cast, true, stream.block("[]", "expression"));
-			}
-
-			if (cast == -1) {
-				return parseExpression(cast, false, stream);
-			}
-
-			throw std::runtime_error {"Invalid expression"};
+			return parseInner(reporter, stream, write);
 		} catch (std::runtime_error& error) {
 			reporter.error(stream.first().line, -1, error.what());
 			write = false;
@@ -446,8 +448,6 @@ namespace asmio::x86 {
 		if (argc == 0 && strcmp(name, "daa") == 0) return parseCall<0>(reporter, &BufferWriter::put_daa, writer, stream);
 		if (argc == 0 && strcmp(name, "aas") == 0) return parseCall<0>(reporter, &BufferWriter::put_aas, writer, stream);
 		if (argc == 0 && strcmp(name, "das") == 0) return parseCall<0>(reporter, &BufferWriter::put_das, writer, stream);
-		if (argc == 0 && strcmp(name, "aad") == 0) return parseCall<0>(reporter, &BufferWriter::put_aad, writer, stream);
-		if (argc == 0 && strcmp(name, "aam") == 0) return parseCall<0>(reporter, &BufferWriter::put_aam, writer, stream);
 		if (argc == 0 && strcmp(name, "cbw") == 0) return parseCall<0>(reporter, &BufferWriter::put_cbw, writer, stream);
 		if (argc == 0 && strcmp(name, "cwd") == 0) return parseCall<0>(reporter, &BufferWriter::put_cwd, writer, stream);
 		if (argc == 0 && strcmp(name, "xlat") == 0) return parseCall<0>(reporter, &BufferWriter::put_xlat, writer, stream);

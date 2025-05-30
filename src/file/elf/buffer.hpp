@@ -61,7 +61,7 @@ namespace asmio::elf {
 
 				// fill the file header
 				header.type = FileType::EXEC;
-				header.machine = Machine::I386;
+				header.machine = Machine::X86_64;
 				header.version = VERSION;
 				header.entrypoint = mount + segment_data_offset + entrypoint;
 				header.flags = 0;

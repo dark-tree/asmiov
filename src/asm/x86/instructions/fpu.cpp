@@ -45,7 +45,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memory() && dst.size == WORD) {
-			put_inst_std_as(0xDD, dst, 7);
+			put_inst_std_ri(0xDD, dst, 7);
 			return;
 		}
 
@@ -67,7 +67,7 @@ namespace asmio::x86 {
 	void BufferWriter::put_fnstcw(Location dst) {
 
 		if (dst.is_memory() && dst.size == WORD) {
-			put_inst_std_as(0xD9, dst, 7);
+			put_inst_std_ri(0xD9, dst, 7);
 			return;
 		}
 
@@ -119,7 +119,7 @@ namespace asmio::x86 {
 
 		// fldcw src:m2byte
 		if (src.is_memory() && src.size == WORD) {
-			put_inst_std_as(0xD9, src, 5);
+			put_inst_std_ri(0xD9, src, 5);
 			return;
 		}
 
@@ -211,19 +211,19 @@ namespace asmio::x86 {
 
 		// fld src:m32fp
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xD9, src, 0);
+			put_inst_std_ri(0xD9, src, 0);
 			return;
 		}
 
 		// fld src:m64fp
 		if (src.is_memory() && src.size == QWORD) {
-			put_inst_std_as(0xDD, src, 0);
+			put_inst_std_ri(0xDD, src, 0);
 			return;
 		}
 
 		// fld src:m80fp
 		if (src.is_memory() && src.size == TWORD) {
-			put_inst_std_as(0xDB, src, 5);
+			put_inst_std_ri(0xDB, src, 5);
 			return;
 		}
 
@@ -246,19 +246,19 @@ namespace asmio::x86 {
 
 		// fild src:m16int
 		if (src.is_memory() && src.size == WORD) {
-			put_inst_std_as(0xDF, src, 0);
+			put_inst_std_ri(0xDF, src, 0);
 			return;
 		}
 
 		// fild src:m32int
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xDB, src, 0);
+			put_inst_std_ri(0xDB, src, 0);
 			return;
 		}
 
 		// fild src:m64int
 		if (src.is_memory() && src.size == QWORD) {
-			put_inst_std_as(0xDF, src, 5);
+			put_inst_std_ri(0xDF, src, 5);
 			return;
 		}
 
@@ -275,13 +275,13 @@ namespace asmio::x86 {
 
 		// fst dst:m32fp
 		if (dst.is_memory() && dst.size == DWORD) {
-			put_inst_std_as(0xD9, dst, 2);
+			put_inst_std_ri(0xD9, dst, 2);
 			return;
 		}
 
 		// fst dst:m64fp
 		if (dst.is_memory() && dst.size == QWORD) {
-			put_inst_std_as(0xDD, dst, 2);
+			put_inst_std_ri(0xDD, dst, 2);
 			return;
 		}
 
@@ -304,19 +304,19 @@ namespace asmio::x86 {
 
 		// fstp dst:m32fp
 		if (dst.is_memory() && dst.size == DWORD) {
-			put_inst_std_as(0xD9, dst, 3);
+			put_inst_std_ri(0xD9, dst, 3);
 			return;
 		}
 
 		// fstp dst:m64fp
 		if (dst.is_memory() && dst.size == QWORD) {
-			put_inst_std_as(0xDD, dst, 3);
+			put_inst_std_ri(0xDD, dst, 3);
 			return;
 		}
 
 		// fstp dst:m80fp
 		if (dst.is_memory() && dst.size == TWORD) {
-			put_inst_std_as(0xDB, dst, 7);
+			put_inst_std_ri(0xDB, dst, 7);
 			return;
 		}
 
@@ -339,13 +339,13 @@ namespace asmio::x86 {
 
 		// fist src:m16int
 		if (dst.is_memory() && dst.size == WORD) {
-			put_inst_std_as(0xDF, dst, 2);
+			put_inst_std_ri(0xDF, dst, 2);
 			return;
 		}
 
 		// fist src:m32int
 		if (dst.is_memory() && dst.size == DWORD) {
-			put_inst_std_as(0xDB, dst, 2);
+			put_inst_std_ri(0xDB, dst, 2);
 			return;
 		}
 
@@ -362,19 +362,19 @@ namespace asmio::x86 {
 
 		// fist src:m16int
 		if (dst.is_memory() && dst.size == WORD) {
-			put_inst_std_as(0xDF, dst, 3);
+			put_inst_std_ri(0xDF, dst, 3);
 			return;
 		}
 
 		// fist src:m32int
 		if (dst.is_memory() && dst.size == DWORD) {
-			put_inst_std_as(0xDB, dst, 3);
+			put_inst_std_ri(0xDB, dst, 3);
 			return;
 		}
 
 		// fist src:m64int
 		if (dst.is_memory() && dst.size == QWORD) {
-			put_inst_std_as(0xDF, dst, 7);
+			put_inst_std_ri(0xDF, dst, 7);
 			return;
 		}
 
@@ -391,19 +391,19 @@ namespace asmio::x86 {
 
 		// fist src:m16int
 		if (dst.is_memory() && dst.size == WORD) {
-			put_inst_std_as(0xDF, dst, 1);
+			put_inst_std_ri(0xDF, dst, 1);
 			return;
 		}
 
 		// fist src:m32int
 		if (dst.is_memory() && dst.size == DWORD) {
-			put_inst_std_as(0xDB, dst, 1);
+			put_inst_std_ri(0xDB, dst, 1);
 			return;
 		}
 
 		// fist src:m64int
 		if (dst.is_memory() && dst.size == QWORD) {
-			put_inst_std_as(0xDD, dst, 1);
+			put_inst_std_ri(0xDD, dst, 1);
 			return;
 		}
 
@@ -528,13 +528,13 @@ namespace asmio::x86 {
 
 		// fcom src:m32fp
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xD8, src, 2);
+			put_inst_std_ri(0xD8, src, 2);
 			return;
 		}
 
 		// fcom src:m64fp
 		if (src.is_memory() && src.size == QWORD) {
-			put_inst_std_as(0xDC, src, 2);
+			put_inst_std_ri(0xDC, src, 2);
 			return;
 		}
 
@@ -557,13 +557,13 @@ namespace asmio::x86 {
 
 		// fcomp src:m32fp
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xD8, src, 3);
+			put_inst_std_ri(0xD8, src, 3);
 			return;
 		}
 
 		// fcomp src:m64fp
 		if (src.is_memory() && src.size == QWORD) {
-			put_inst_std_as(0xDC, src, 3);
+			put_inst_std_ri(0xDC, src, 3);
 			return;
 		}
 
@@ -591,13 +591,13 @@ namespace asmio::x86 {
 
 		// ficom src:m16int
 		if (src.is_memory() && src.size == WORD) {
-			put_inst_std_as(0xDE, src, 2);
+			put_inst_std_ri(0xDE, src, 2);
 			return;
 		}
 
 		// ficom src:m32int
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xDA, src, 2);
+			put_inst_std_ri(0xDA, src, 2);
 			return;
 		}
 
@@ -614,13 +614,13 @@ namespace asmio::x86 {
 
 		// ficom src:m16int
 		if (src.is_memory() && src.size == WORD) {
-			put_inst_std_as(0xDE, src, 3);
+			put_inst_std_ri(0xDE, src, 3);
 			return;
 		}
 
 		// ficom src:m32int
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xDA, src, 3);
+			put_inst_std_ri(0xDA, src, 3);
 			return;
 		}
 
@@ -689,13 +689,13 @@ namespace asmio::x86 {
 
 		// fmul src:m32fp
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xD8, src, 1);
+			put_inst_std_ri(0xD8, src, 1);
 			return;
 		}
 
 		// fmul src:m64fp
 		if (src.is_memory() && src.size == QWORD) {
-			put_inst_std_as(0xDC, src, 1);
+			put_inst_std_ri(0xDC, src, 1);
 			return;
 		}
 
@@ -712,13 +712,13 @@ namespace asmio::x86 {
 
 		// fmul src:m32int
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xDA, src, 1);
+			put_inst_std_ri(0xDA, src, 1);
 			return;
 		}
 
 		// fmul src:m16int
 		if (src.is_memory() && src.size == WORD) {
-			put_inst_std_as(0xDE, src, 1);
+			put_inst_std_ri(0xDE, src, 1);
 			return;
 		}
 
@@ -763,13 +763,13 @@ namespace asmio::x86 {
 
 		// fadd src:m32fp
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xD8, src, 0);
+			put_inst_std_ri(0xD8, src, 0);
 			return;
 		}
 
 		// fadd src:m64fp
 		if (src.is_memory() && src.size == QWORD) {
-			put_inst_std_as(0xDC, src, 0);
+			put_inst_std_ri(0xDC, src, 0);
 			return;
 		}
 
@@ -786,13 +786,13 @@ namespace asmio::x86 {
 
 		// fadd src:m32int
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xDA, src, 0);
+			put_inst_std_ri(0xDA, src, 0);
 			return;
 		}
 
 		// fadd src:m16int
 		if (src.is_memory() && src.size == WORD) {
-			put_inst_std_as(0xDE, src, 0);
+			put_inst_std_ri(0xDE, src, 0);
 			return;
 		}
 
@@ -841,13 +841,13 @@ namespace asmio::x86 {
 
 		// fdiv src:m32fp
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xD8, src, 6);
+			put_inst_std_ri(0xD8, src, 6);
 			return;
 		}
 
 		// fdiv src:m64fp
 		if (src.is_memory() && src.size == QWORD) {
-			put_inst_std_as(0xDC, src, 6);
+			put_inst_std_ri(0xDC, src, 6);
 			return;
 		}
 
@@ -864,13 +864,13 @@ namespace asmio::x86 {
 
 		// fidiv src:m32int
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xDA, src, 6);
+			put_inst_std_ri(0xDA, src, 6);
 			return;
 		}
 
 		// fidiv src:m16int
 		if (src.is_memory() && src.size == WORD) {
-			put_inst_std_as(0xDE, src, 6);
+			put_inst_std_ri(0xDE, src, 6);
 			return;
 		}
 
@@ -919,13 +919,13 @@ namespace asmio::x86 {
 
 		// fdivr src:m32fp
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xD8, src, 7);
+			put_inst_std_ri(0xD8, src, 7);
 			return;
 		}
 
 		// fdivr src:m64fp
 		if (src.is_memory() && src.size == QWORD) {
-			put_inst_std_as(0xDC, src, 7);
+			put_inst_std_ri(0xDC, src, 7);
 			return;
 		}
 
@@ -942,13 +942,13 @@ namespace asmio::x86 {
 
 		// fidivr src:m32int
 		if (src.is_memory() && src.size == DWORD) {
-			put_inst_std_as(0xDA, src, 7);
+			put_inst_std_ri(0xDA, src, 7);
 			return;
 		}
 
 		// fidivr src:m16int
 		if (src.is_memory() && src.size == WORD) {
-			put_inst_std_as(0xDE, src, 7);
+			put_inst_std_ri(0xDE, src, 7);
 			return;
 		}
 

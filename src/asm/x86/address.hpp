@@ -14,16 +14,40 @@ namespace asmio::x86 {
 	constexpr uint8_t QWORD = 8;
 	constexpr uint8_t TWORD = 10;
 
+	struct RegInfo {
+		uint8_t rex;
+		uint8_t reg;
+
+		RegInfo with_rex_prefix() const {
+			return {1, reg};
+		}
+
+		static RegInfo raw(uint8_t reg) {
+			return {0, reg};
+		}
+
+		/// Checks if REX prefix is needed
+		bool extended() const {
+			return mask() || rex;
+		}
+
+		/// Return a REX.W mask
+		uint8_t mask() const {
+			return reg & 0b1000;
+		}
+	};
+
 	struct __attribute__((__packed__)) Registry {
 
 		// a bit useless rn
-		enum Flag {
+		enum Flag : uint8_t {
 			NONE        = 0b00000,
-			PSEUDO      = 0b00001,
-			GENERAL     = 0b00010,
-			FLOATING    = 0b00100,
-			ACCUMULATOR = 0b01000,
-			REX         = 0b10000,
+
+			GENERAL     = 0b0000001,
+			FLOATING    = 0b0000010,
+			ACCUMULATOR = 0b0000100,
+			REX         = 0b0001000, // this registers requires the REX prefix to be encoded
+			HIGH_BYTE   = 0b0010000, // registers that CANT be used with REX prefix present
 		};
 
 		const uint8_t size; // size in bytes
@@ -33,7 +57,7 @@ namespace asmio::x86 {
 		constexpr Registry(uint8_t size, uint8_t reg, uint8_t flag)
 		: size(size), flag(flag), reg(reg) {}
 
-		bool is(Registry::Flag mask) const {
+		bool is(Flag mask) const {
 			return (flag & mask) != 0;
 		}
 
@@ -41,26 +65,42 @@ namespace asmio::x86 {
 			return this->size == registry.size && this->reg == registry.reg && this->flag == registry.flag;
 		}
 
+		RegInfo pack() const {
+			return {is(REX), reg};
+		}
+
+		uint8_t low() const {
+			return reg & 0b0111;
+		}
+
+		bool is_esp_like() const {
+			return low() == 0b100;
+		}
+
+		bool is_ebp_like() const {
+			return low() == 0b101;
+		}
+
 	};
 
 	// 386
-	constexpr Registry UNSET {VOID,  0b0000, Registry::PSEUDO};
+	constexpr Registry UNSET {VOID,  0b0000, Registry::NONE};
 	constexpr Registry EAX   {DWORD, 0b0000, Registry::GENERAL | Registry::ACCUMULATOR};
 	constexpr Registry AX    {WORD,  0b0000, Registry::GENERAL | Registry::ACCUMULATOR};
 	constexpr Registry AL    {BYTE,  0b0000, Registry::GENERAL | Registry::ACCUMULATOR};
-	constexpr Registry AH    {BYTE,  0b0100, Registry::GENERAL};
+	constexpr Registry AH    {BYTE,  0b0100, Registry::GENERAL | Registry::HIGH_BYTE};
 	constexpr Registry EBX   {DWORD, 0b0011, Registry::GENERAL};
 	constexpr Registry BX    {WORD,  0b0011, Registry::GENERAL};
 	constexpr Registry BL    {BYTE,  0b0011, Registry::GENERAL};
-	constexpr Registry BH    {BYTE,  0b0111, Registry::GENERAL};
+	constexpr Registry BH    {BYTE,  0b0111, Registry::GENERAL | Registry::HIGH_BYTE};
 	constexpr Registry ECX   {DWORD, 0b0001, Registry::GENERAL};
 	constexpr Registry CX    {WORD,  0b0001, Registry::GENERAL};
 	constexpr Registry CL    {BYTE,  0b0001, Registry::GENERAL};
-	constexpr Registry CH    {BYTE,  0b0101, Registry::GENERAL};
+	constexpr Registry CH    {BYTE,  0b0101, Registry::GENERAL | Registry::HIGH_BYTE};
 	constexpr Registry EDX   {DWORD, 0b0010, Registry::GENERAL};
 	constexpr Registry DX    {WORD,  0b0010, Registry::GENERAL};
 	constexpr Registry DL    {BYTE,  0b0010, Registry::GENERAL};
-	constexpr Registry DH    {BYTE,  0b0110, Registry::GENERAL};
+	constexpr Registry DH    {BYTE,  0b0110, Registry::GENERAL | Registry::HIGH_BYTE};
 	constexpr Registry ESI   {DWORD, 0b0110, Registry::GENERAL};
 	constexpr Registry SI    {WORD,  0b0110, Registry::GENERAL};
 	constexpr Registry EDI   {DWORD, 0b0111, Registry::GENERAL};
@@ -72,10 +112,10 @@ namespace asmio::x86 {
 	constexpr Registry ST    {TWORD, 0b0000, Registry::FLOATING};
 
 	// amd64 surrogates - uniform byte registers
-	constexpr Registry SPL   {BYTE,  0b0100, Registry::GENERAL | Registry::REX};
-	constexpr Registry BPL   {BYTE,  0b0101, Registry::GENERAL | Registry::REX};
-	constexpr Registry SIL   {BYTE,  0b0110, Registry::GENERAL | Registry::REX};
-	constexpr Registry DIL   {BYTE,  0b0111, Registry::GENERAL | Registry::REX};
+	constexpr Registry SPL   {BYTE,  AH.reg, Registry::GENERAL | Registry::REX};
+	constexpr Registry BPL   {BYTE,  CH.reg, Registry::GENERAL | Registry::REX};
+	constexpr Registry SIL   {BYTE,  DH.reg, Registry::GENERAL | Registry::REX};
+	constexpr Registry DIL   {BYTE,  BH.reg, Registry::GENERAL | Registry::REX};
 
 	// amd64
 	constexpr Registry RAX   {QWORD, 0b0000, Registry::GENERAL | Registry::ACCUMULATOR | Registry::REX};
@@ -121,7 +161,7 @@ namespace asmio::x86 {
 
 
 	void assertValidScale(Registry registry, uint8_t multiplier);
-	void assertNonReferencial(class Location const* location, const char* why);
+	void assertNonReferential(class Location const* location, const char* why);
 
 	struct ScaledRegistry {
 
@@ -148,22 +188,22 @@ namespace asmio::x86 {
 			const uint8_t scale  : 4; // the scale, as integer
 			const bool reference : 4; // is this location a memory reference
 			const uint8_t size;
-			const long offset;
+			const int64_t offset;
 			const char* label;
 
 		public:
 
 			template<typename T>
 			Location(T offset = 0) // can the same thing be archived with some smart overload?
-			: Location(UNSET, UNSET, 1, util::get_int_or(offset), util::get_ptr_or(offset), DWORD, false) {}
+			: Location(UNSET, UNSET, 1, util::get_int_or(offset), util::get_ptr_or(offset), VOID, false) {}
 
 			Location(Registry registry)
 			: Location(registry, UNSET, 1, 0, nullptr, registry.size, false) {}
 
 			Location(ScaledRegistry index)
-			: Location(UNSET, index.registry, index.scale, 0, nullptr, DWORD, false) {}
+			: Location(UNSET, index.registry, index.scale, 0, nullptr, index.registry.size, false) {}
 
-			explicit Location(Registry base, Registry index, uint32_t scale, long offset, const char* label, int size, bool reference)
+			explicit Location(Registry base, Registry index, uint32_t scale, int64_t offset, const char* label, int size, bool reference)
 			: base(base), index(index), scale(scale), offset(offset), label(label), size(size), reference(reference) {
 				assertValidScale(index, scale);
 			}
@@ -171,31 +211,36 @@ namespace asmio::x86 {
 		public:
 
 			Location ref() const {
-				assertNonReferencial(this, "Can't reference a reference!");
-				return Location {base, index, scale, offset, label, size, true};
+				assertNonReferential(this, "Can't reference a reference!");
+				return Location {base, index, scale, offset, label, VOID, true};
 			}
 
 			Location cast(uint8_t bytes) const {
 				if (reference || is_immediate()) {
-					return Location {base, index, scale, offset, label, bytes, true};
+					return Location {base, index, scale, offset, label, bytes, reference};
 				}
 
 				throw std::runtime_error {"The result of this expression is of fixed size!"};
 			}
 
-			Location operator + (int extend) const {
-				assertNonReferencial(this, "Can't modify a reference!");
+			Location operator + (int64_t extend) const {
+				assertNonReferential(this, "Can't modify a reference!");
 				return Location {base, index, scale, offset + extend, label, size, false};
 			}
 
-			Location operator - (int extend) const {
-				assertNonReferencial(this, "Can't modify a reference!");
+			Location operator - (int64_t extend) const {
+				assertNonReferential(this, "Can't modify a reference!");
 				return Location {base, index, scale, offset - extend, label, size, false};
 			}
 
 			Location operator + (const char* label) const {
-				assertNonReferencial(this, "Can't modify a reference!");
+				assertNonReferential(this, "Can't modify a reference!");
 				return Location {base, index, scale, offset, label, size, false};
+			}
+
+			/// Check if the size of this element hasn't yet been defined
+			bool is_indeterminate() const {
+				return size == VOID;
 			}
 
 			/**
@@ -255,10 +300,10 @@ namespace asmio::x86 {
 			}
 
 			/**
-			 * Checks if this location is 'wide' (word or double word)
+			 * Checks if this location is 'wide' (word, double word, or quad word)
 			 */
 			bool is_wide() const {
-				return size == 2 || size == 4 || size == 8;
+				return size == WORD || size == DWORD || size == QWORD;
 			}
 
 			/**
@@ -308,13 +353,18 @@ namespace asmio::x86 {
 	Location operator - (ScaledRegistry index, int offset);
 	Location operator + (ScaledRegistry index, Label label);
 	Location operator + (Registry base, Registry index);
-	Location ref(Location location);
 
 	/// investigate if immediate size ever matters, if not return to the old system
-	template<uint8_t size_hint = DWORD>
+	template<uint8_t size_hint>
 	Location cast(Location location) {
 		return location.cast(size_hint);
 	}
+
+	template<uint8_t size_hint = VOID>
+	Location ref(Location location) {
+		return location.ref().cast(size_hint);
+	}
+
 
 	uint8_t pair_size(const Location& a, const Location& b);
 

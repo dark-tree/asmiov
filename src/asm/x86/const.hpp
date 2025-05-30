@@ -70,4 +70,13 @@ namespace asmio::x86 {
 	/// used for an absolute value reference
 	constexpr uint8_t NO_BASE      = 0b101;
 
+	/// The fixed bit pattern of the REX prefix
+	constexpr uint8_t REX_PREFIX   = 0b0100'0000;
+
+	/// REX W bit, used to switch addressing to 64 bit
+	constexpr uint8_t REX_BIT_W    = 0b1000;
+
+	/// Often used as a prefix byte before instructions
+	constexpr uint8_t LONG_OPCODE  = 0x0F;
+
 }

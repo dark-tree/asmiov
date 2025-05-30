@@ -78,6 +78,10 @@ namespace asmio::x86 {
 				RETURN_TRANSIENT(float, "=t");
 			}
 
+			uint32_t call_u64(Label label) {
+				return call_u64(labels.at(label));
+			}
+
 			uint32_t call_u32(Label label) {
 				return call_u32(labels.at(label));
 			}

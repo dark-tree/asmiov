@@ -1443,4 +1443,48 @@ namespace asmio::x86 {
 		throw std::runtime_error {"Invalid operand"};
 	}
 
+	/// Convert Doubleword to Quadword
+	void BufferWriter::put_cqo() {
+		put_rex_w();
+		put_cwd();
+	}
+
+	/// Swap GS Base Register
+	void BufferWriter::put_swapgs() {
+		put_byte(0x0F);
+		put_byte(0x01);
+		put_byte(0xF8);
+	}
+
+	/// Read From Model Specific Register
+	void BufferWriter::put_rdmsr() {
+		put_byte(0x0F);
+		put_byte(0x32);
+	}
+
+	/// Write to Model Specific Register
+	void BufferWriter::put_wrmsr() {
+		put_byte(0x0F);
+		put_byte(0x30);
+	}
+
+	/// Fast System Call
+	void BufferWriter::put_syscall() {
+		put_byte(0x0F);
+		put_byte(0x05);
+	}
+
+	/// Return From Fast System Call into Long Mode
+	void BufferWriter::put_sysretl() {
+		put_rex_w();
+		put_byte(0x0F);
+		put_byte(0x07);
+	}
+
+	/// Return From Fast System Call into Compatibility Mode
+	void BufferWriter::put_sysretc() {
+		put_byte(0x0F);
+		put_byte(0x07);
+	}
+
 }

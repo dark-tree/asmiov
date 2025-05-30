@@ -2057,6 +2057,31 @@ TEST (writer_exec_bsf_bsr) {
 
 }
 
+TEST (writer_exec_cqo) {
+
+	BufferWriter writer;
+	writer.label("L1");
+	writer.put_mov(RDX, 0);
+	writer.put_mov(RAX, 0x8FFFFFFF'FFFFFFFF);
+
+	writer.put_cqo();
+	writer.put_mov(RAX, RDX);
+	writer.put_ret();
+
+	writer.label("L0");
+	writer.put_mov(RDX, 0);
+	writer.put_mov(RAX, 0x7FFFFFFF'FFFFFFFF);
+
+	writer.put_cqo();
+	writer.put_mov(RAX, RDX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64("L1"), 0xFFFFFFFF'FFFFFFFF);
+	CHECK(buffer.call_u64("L0"), 0);
+
+}
+
 TEST (writer_fail_redefinition) {
 
 	BufferWriter writer;
@@ -2161,7 +2186,7 @@ TEST (writer_fail_undefined_label) {
 
 }
 
-TEST (writer_elf_execve) {
+TEST (writer_elf_execve_int) {
 
 	using namespace asmio::elf;
 
@@ -2169,19 +2194,12 @@ TEST (writer_elf_execve) {
 
 	writer.label("text").put_ascii("Hello World!\n");
 
-	// padding so that the disassembly is correct
-	writer.put_nop();
-	writer.put_nop();
-	writer.put_nop();
-	writer.put_nop();
-	writer.put_nop();
-
 	writer.label("strlen");
 	writer.put_mov(RCX, RAX);
 	writer.put_dec(RAX);
 	writer.label("l_strlen_next");
 	writer.put_inc(RAX);
-	writer.put_cmp(cast<BYTE>(ref(RAX)), 0);
+	writer.put_cmp(ref<BYTE>(RAX), 0);
 	writer.put_jne("l_strlen_next");
 	writer.put_sub(RAX, RCX);
 	writer.put_ret();
@@ -2194,12 +2212,47 @@ TEST (writer_elf_execve) {
 	writer.put_int(0x80); // 32 bit syscall
 	writer.put_ret();
 
-	//ElfBuffer file = writer.bake_elf(nullptr);
-	//int status;
-	//RunResult result = file.execute("memfd-elf-1", &status);
+	ElfBuffer file = writer.bake_elf(nullptr);
+	int status;
+	RunResult result = file.execute("memfd-elf-1", &status);
 
-	//CHECK(result, RunResult::SUCCESS);
-	//CHECK(status, 13);
+	CHECK(result, RunResult::SUCCESS);
+	CHECK(status, 13);
+
+}
+
+TEST (writer_elf_execve_syscall) {
+
+	using namespace asmio::elf;
+
+	BufferWriter writer;
+
+	writer.label("text").put_ascii("My beloved syscall!\n");
+
+	writer.label("strlen");
+	writer.put_mov(RCX, RAX);
+	writer.put_dec(RAX);
+	writer.label("l_strlen_next");
+	writer.put_inc(RAX);
+	writer.put_cmp(ref<BYTE>(RAX), 0);
+	writer.put_jne("l_strlen_next");
+	writer.put_sub(RAX, RCX);
+	writer.put_ret();
+
+	writer.label("_start");
+	writer.put_lea(RAX, "text");
+	writer.put_call("strlen");
+	writer.put_mov(RDI, RAX); // exit code
+	writer.put_mov(RAX, 60); // sys_exit
+	writer.put_syscall();
+	writer.put_ret();
+
+	ElfBuffer file = writer.bake_elf(nullptr);
+	int status;
+	RunResult result = file.execute("memfd-elf-1", &status);
+
+	CHECK(result, RunResult::SUCCESS);
+	CHECK(status, 20);
 
 }
 

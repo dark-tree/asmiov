@@ -152,7 +152,7 @@ namespace asmio::x86 {
 
 			// two byte opcode, starts with 0x0F
 			if (longer) {
-				put_byte(0x0F);
+				put_byte(LONG_OPCODE);
 			}
 
 			put_byte(opcode);
@@ -240,7 +240,7 @@ namespace asmio::x86 {
 
 		// two byte opcode, starts with 0x0F
 		if (longer) {
-			put_byte(0x0F);
+			put_byte(LONG_OPCODE);
 		}
 
 		put_byte(opcode);
@@ -453,7 +453,11 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_inst_rex(uint8_t wrxb) {
-		put_byte(0b0100'0000 | wrxb);
+		put_byte(REX_PREFIX | wrxb);
+	}
+
+	void BufferWriter::put_rex_w() {
+		put_byte(REX_PREFIX | REX_BIT_W);
 	}
 
 	void BufferWriter::put_16bit_operand_prefix() {

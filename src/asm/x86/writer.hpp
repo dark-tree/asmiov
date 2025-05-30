@@ -64,6 +64,9 @@ namespace asmio::x86 {
 
 			void put_inst_rex(uint8_t wrxb);
 
+			/// Add the REX.W prefix
+			void put_rex_w();
+
 			/// Override the operand size from 32 to 16 bit, don't use in combination with REX.W
 			void put_16bit_operand_prefix();
 
@@ -94,7 +97,7 @@ namespace asmio::x86 {
 			void put_data(size_t bytes, void* date);
 			void put_space(size_t bytes, uint8_t value = 0);
 
-			// string
+			// string (i386)
 			BufferWriter& put_rep();                    /// Repeat
 			BufferWriter& put_repe();                   /// Repeat while equal
 			BufferWriter& put_repz();                   /// Repeat while zero
@@ -122,7 +125,7 @@ namespace asmio::x86 {
 			INST put_stosw();                           /// Store word AX at address [EDI]
 			INST put_stosd();                           /// Store dword EAX at address [EDI]
 
-			// general
+			// general (i386)
 			INST put_mov(Location dst, Location src);   /// Move
 			INST put_movsx(Location dst, Location src); /// Move with Sign Extension
 			INST put_movzx(Location dst, Location src); /// Move with Zero Extension
@@ -273,6 +276,15 @@ namespace asmio::x86 {
 			INST put_test(Location src);                /// Sets flags accordingly to the value of register given, ASMIOV extension
 			INST put_ret();                             /// Return from procedure
 			INST put_ret(Location bytes);               /// Return from procedure and pop X bytes
+
+			// x86-64
+			INST put_cqo();                             /// Convert Doubleword to Quadword
+			INST put_swapgs();                          /// Swap GS Base Register
+			INST put_rdmsr();                           /// Read From Model Specific Register
+			INST put_wrmsr();                           /// Write to Model Specific Register
+			INST put_syscall();                         /// Fast System Call
+			INST put_sysretl();                         /// Return From Fast System Call into Long Mode
+			INST put_sysretc();                         /// Return From Fast System Call into Compatibility Mode
 
 			// floating-point
 			INST put_fnop();                            /// No Operation

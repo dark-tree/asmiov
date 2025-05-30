@@ -2082,6 +2082,121 @@ TEST (writer_exec_cqo) {
 
 }
 
+TEST (writer_exec_xadd) {
+
+	BufferWriter writer;
+
+	writer.put_mov(RAX, 0);
+	writer.put_mov(RBX, 70000);
+	writer.put_mov(RCX, 30000);
+
+	// RBX = RBX + RCX
+	// RCX = RBX
+	writer.put_xadd(RBX, RCX);
+
+	writer.put_cmp(RCX, 70000);
+	writer.put_jne("end");
+	writer.put_mov(RAX, RBX);
+
+	writer.label("end");
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64(0), 100000);
+
+}
+
+TEST (writer_exec_xadd_mem) {
+
+	BufferWriter writer;
+
+	writer.label("L1");
+	writer.put_qword(0x1111);
+
+	writer.label("start");
+	writer.put_mov(RAX, 0);
+	writer.put_mov(R15, 0x2222);
+
+	// L1 = L1 + R15
+	// R15 = L1
+	writer.put_xadd(ref("L1"), R15);
+
+	writer.put_mov(R14, ref("L1"));
+	writer.put_cmp(R14, 0x3333);
+	writer.put_jne("end");
+	writer.put_mov(RAX, R15);
+
+	writer.label("end");
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64("start"), 0x1111);
+
+}
+
+TEST (writer_exec_bswap_qword) {
+
+	BufferWriter writer;
+	writer.put_mov(R15, 0x11223344'55667788);
+	writer.put_bswap(R15);
+	writer.put_mov(RAX, R15);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64(0), 0x88776655'44332211);
+
+}
+
+TEST (writer_exec_bswap_dword) {
+
+	BufferWriter writer;
+	writer.put_mov(R15D, 0x11223344);
+	writer.put_bswap(R15D);
+	writer.put_mov(EAX, R15D);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32(0), 0x44332211);
+
+}
+
+TEST (writer_exec_cmpxchg) {
+
+	BufferWriter writer;
+
+	writer.put_mov(R15, 0x1000);
+	writer.put_mov(RAX, 0x1000);
+	writer.put_mov(R14, 0x42);
+
+	writer.put_cmpxchg(R15, R14);
+	writer.put_mov(RAX, R15);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32(0), 0x42);
+
+}
+
+TEST (writer_exec_cmpxchg_mem) {
+
+	BufferWriter writer;
+
+	writer.label("L1");
+	writer.put_qword(0x1000);
+
+	writer.label("start");
+	writer.put_mov(RAX, 0x1000);
+	writer.put_mov(R14, 0x42);
+
+	writer.put_cmpxchg(ref("L1"), R14);
+	writer.put_mov(RAX, ref("L1"));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32("start"), 0x42);
+
+}
+
 TEST (writer_fail_redefinition) {
 
 	BufferWriter writer;

@@ -277,6 +277,13 @@ namespace asmio::x86 {
 			INST put_ret();                             /// Return from procedure
 			INST put_ret(Location bytes);               /// Return from procedure and pop X bytes
 
+			// i486
+			INST put_xadd(Location dst, Location src);  /// Exchange and Add
+			INST put_bswap(Location dst);               /// Byte Swap
+			INST put_invd();                            /// Invalidate Internal Caches
+			INST put_wbinvd();                          /// Write Back and Invalidate Cache
+			INST put_cmpxchg(Location dst, Location src); /// Compare and Exchange
+
 			// x86-64
 			INST put_cqo();                             /// Convert Doubleword to Quadword
 			INST put_swapgs();                          /// Swap GS Base Register

@@ -146,7 +146,7 @@ namespace asmio::x86 {
 		// simple registry to registry operation
 		if (dst.is_simple()) {
 
-			if (packed.extended() || size == QWORD) {
+			if (packed.extended() || dst.base.is(Registry::REX) || size == QWORD) {
 				put_byte(pack_rex(size == QWORD, packed.mask(), false, dst.base.reg & 0b1000));
 			}
 
@@ -156,7 +156,7 @@ namespace asmio::x86 {
 			}
 
 			put_byte(opcode);
-			put_inst_mod_reg_rm(MOD_SHORT, packed.reg, dst.base.reg);
+			put_inst_mod_reg_rm(MOD_SHORT, packed.reg, dst.base.low());
 			return;
 		}
 
@@ -229,12 +229,12 @@ namespace asmio::x86 {
 		}
 
 		// REX
-		if (size == QWORD || (packed.reg & 0b1000) || (sib_index & 0b01000) || (sib_base & 0b1000)) {
-			put_byte(0b0100'0000 | (
-				(size == QWORD) ? 0b1000 : 0 |
-				(packed.reg & 0b1000) >> 1 |
-				(sib_index & 0b01000) >> 2 |
-				((mrm_mem | sib_base) & 0b01000) >> 3
+		if (size == QWORD || packed.extended() || (sib_index & 0b01000) || (sib_base & 0b1000)) {
+			put_byte(pack_rex(
+				size == QWORD,
+				packed.mask(),
+				sib_index & 0b01000,
+				(mrm_mem | sib_base) & 0b01000
 			));
 		}
 
@@ -244,7 +244,7 @@ namespace asmio::x86 {
 		}
 
 		put_byte(opcode);
-		put_inst_mod_reg_rm(mrm_mod, packed.reg, mrm_mem);
+		put_inst_mod_reg_rm(mrm_mod, packed.low(), mrm_mem);
 
 		// if SIB was enabled write it
 		if (mrm_mem == RM_SIB) {

@@ -151,10 +151,10 @@ namespace asmio::x86 {
 			}
 
 			if (dst.base.is(Registry::REX)) {
-				put_inst_rex(dst.base.size == QWORD ? 0b1000 : 0);
+				put_byte(pack_rex(dst.size == QWORD, false, false, dst.base.reg & 0b1000));
 			}
 
-			put_byte((0b1011 << 4) | (dst.is_wide() << 3) | dst.base.reg);
+			put_byte((0b1011 << 4) | (dst.is_wide() << 3) | dst.base.low());
 			put_inst_label_imm(src, dst.base.size);
 			return;
 		}
@@ -1441,6 +1441,59 @@ namespace asmio::x86 {
 		}
 
 		throw std::runtime_error {"Invalid operand"};
+	}
+
+	void BufferWriter::put_xadd(Location dst, Location src) {
+
+		if (dst.is_memreg() && src.is_simple()) {
+			put_inst_std_ds(0xC0 >> 2, dst, src.base.pack(), pair_size(dst, src), false, true);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand"};
+
+	}
+
+	void BufferWriter::put_bswap(Location dst) {
+
+		if (!dst.is_simple()) {
+			throw std::runtime_error {"Invalid operand, only register can be used used here"};
+		}
+
+		if (dst.size != DWORD && dst.size != QWORD) {
+			throw std::runtime_error {"Invalid operand size, expected dword/qword"};
+		}
+
+		const uint8_t reg = dst.base.reg;
+
+		if (dst.base.is(Registry::REX)) {
+			put_byte(pack_rex(dst.size == QWORD, false, false, reg & 0b1000));
+		}
+
+		put_byte(LONG_OPCODE);
+		put_byte(0xC8 | reg);
+
+	}
+
+	void BufferWriter::put_invd() {
+		put_byte(LONG_OPCODE);
+		put_byte(0x08);
+	}
+
+	void BufferWriter::put_wbinvd() {
+		put_byte(LONG_OPCODE);
+		put_byte(0x09);
+	}
+
+	void BufferWriter::put_cmpxchg(Location dst, Location src) {
+
+		if (dst.is_memreg() && src.is_simple()) {
+			put_inst_std_ds(0xB0 >> 2, dst, src.base.pack(), pair_size(dst, src), false, true);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand"};
+
 	}
 
 	/// Convert Doubleword to Quadword

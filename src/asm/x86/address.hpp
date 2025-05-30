@@ -26,6 +26,11 @@ namespace asmio::x86 {
 			return {0, reg};
 		}
 
+		/// Return the lower 3 bit of the register number
+		uint8_t low() const {
+			return reg & 0b111;
+		}
+
 		/// Checks if REX prefix is needed
 		bool extended() const {
 			return mask() || rex;

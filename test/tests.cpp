@@ -167,7 +167,7 @@ TEST (legacy_rbp_protection) {
 
 	BufferWriter writer;
 
-	writer.put_push(cast<QWORD>(0));
+	writer.put_push(0);
 	writer.put_pop(RBP);
 	writer.put_ret();
 
@@ -819,17 +819,17 @@ TEST(writer_exec_functions) {
 	writer.put_mov(EAX, 0);
 
 	// add 20 to EAX
-	writer.put_push(cast<QWORD>(20));
+	writer.put_push(20);
 	writer.put_call("add");
 	writer.put_pop();
 
 	// add 12 to EAX
-	writer.put_push(cast<QWORD>(12));
+	writer.put_push(12);
 	writer.put_call("add");
 	writer.put_pop();
 
 	// add 10 to EAX
-	writer.put_push(cast<QWORD>(10));
+	writer.put_push(10);
 	writer.put_call("add");
 	writer.put_pop();
 
@@ -1567,9 +1567,9 @@ TEST (writer_exec_memory_push_pop) {
 	writer.label("main");
 	writer.put_xor(EBX, EBX);
 	writer.put_mov(EAX, 0);
-	writer.put_push(cast<QWORD>(666));
+	writer.put_push(666);
 	writer.put_push(ref<QWORD>(EAX + "foo"));
-	writer.put_push(cast<WORD>(ref(EAX + "bar")));
+	writer.put_push(ref<WORD>(EAX + "bar"));
 	writer.put_pop(BX);
 	writer.put_pop(EAX);
 	writer.put_pop(ref<QWORD>("car"));
@@ -2120,8 +2120,8 @@ TEST (writer_exec_retx) {
 
 	writer.label("main");
 	writer.put_mov(RCX, RSP);
-	writer.put_push(cast<QWORD>(21));
-	writer.put_push(cast<QWORD>(4300));
+	writer.put_push(21);
+	writer.put_push(4300);
 	writer.put_call("stdcall");
 	writer.put_sub(RCX, RSP);
 	writer.put_add(EAX, ECX);

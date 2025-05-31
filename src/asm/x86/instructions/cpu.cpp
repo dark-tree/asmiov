@@ -229,11 +229,6 @@ namespace asmio::x86 {
 	/// Push
 	void BufferWriter::put_push(Location src) {
 
-		// TODO allow indeterminate pushes
-		if (src.is_indeterminate()) {
-			throw std::runtime_error {"Operand can't be of indeterminate size"};
-		}
-
 		// handle immediate data
 		if (src.is_immediate()) {
 			uint8_t imm_len = util::min_bytes(src.offset);
@@ -253,6 +248,11 @@ namespace asmio::x86 {
 			}
 
 			return;
+		}
+
+		// push accepts only indeterminate immediate values
+		if (src.is_indeterminate()) {
+			throw std::runtime_error {"Operand can't be of indeterminate size"};
 		}
 
 		// for some reason push & pop don't handle the wide flag,

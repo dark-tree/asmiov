@@ -162,14 +162,12 @@ namespace asmio::x86 {
 		// handle REG/MEM to REG
 		if (dst.is_simple() && src.is_memreg()) {
 			put_inst_mov(src, dst, true);
-
 			return;
 		}
 
 		// handle REG/VAL to REG/MEM
 		if ((src.is_immediate() || src.is_simple()) && dst.is_memreg()) {
 			put_inst_mov(dst, src, src.is_immediate());
-
 			return;
 		}
 
@@ -1372,12 +1370,14 @@ namespace asmio::x86 {
 		}
 
 		if (src.is_immediate() && dst.is_memreg()) {
+			set_suffix(dst.size);
 			put_inst_std_ds(0b111101, dst, RegInfo::raw(0b000), pair_size(src, dst), true);
 			put_inst_imm(src.offset, dst.size);
 			return;
 		}
 
 		if (src.is_memreg() && dst.is_immediate()) {
+			set_suffix(dst.size);
 			put_inst_std_ds(0b111101, src, RegInfo::raw(0b000), pair_size(src, dst), true);
 			put_inst_imm(dst.offset, src.size);
 			return;

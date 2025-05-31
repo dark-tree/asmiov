@@ -1537,7 +1537,7 @@ TEST (writer_exec_memory_xchg) {
 	writer.put_ret();
 
 	writer.label("get_foo");
-	writer.put_mov(EAX, ref<DWORD>("foo"));
+	writer.put_mov(EAX, ref("foo"));
 	writer.put_ret();
 
 	writer.label("get_bar");

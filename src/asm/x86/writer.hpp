@@ -15,6 +15,10 @@ namespace asmio::x86 {
 
 		private:
 
+			// number of bytes after the 'standard' instruction body
+			// this is needed for the x86-64 RIP-relative addressing to work
+			uint32_t suffix = 0;
+
 			std::unordered_map<Label, size_t, Label::HashFunction> labels;
 			std::vector<uint8_t> buffer;
 			std::vector<LabelCommand> commands;
@@ -76,6 +80,9 @@ namespace asmio::x86 {
 			void put_label(const Label& label, uint8_t size, long shift);
 			bool has_label(const Label& label);
 			int get_label(const Label& label);
+
+			void set_suffix(int suffix);
+			int get_suffix();
 
 		public:
 

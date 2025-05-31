@@ -93,13 +93,16 @@ namespace asmio::x86 {
 
 	void BufferWriter::put_inst_label_imm(Location imm, uint8_t size) {
 		if (imm.is_labeled()) {
-			commands.emplace_back(imm.label, size, buffer.size(), imm.offset, false);
+			commands.emplace_back(imm.label, size, buffer.size(), imm.offset, ABSOLUTE);
 		}
 
 		put_inst_imm(imm.offset, size);
 	}
 
 	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool longer) {
+
+		// always query suffix size to clear it when not used
+		const int suffix_bytes = get_suffix();
 
 		if (size == VOID) {
 			throw std::runtime_error {"Unable to deduce operand size"};
@@ -167,6 +170,7 @@ namespace asmio::x86 {
 		uint8_t mrm_mod = dst.get_mod_flag();
 		uint8_t mrm_mem = dst.base.reg;
 		uint8_t imm_len = DWORD;
+		bool rip_relative = false;
 
 		// in most cases mod controls the size of offset (immediate value)
 		// but there are exceptions that cause those two to be different
@@ -178,15 +182,22 @@ namespace asmio::x86 {
 		if (dst.base.is(UNSET) && dst.index.is(UNSET)) {
 			mrm_mod = MOD_NONE;
 
-			// this encodes a RIP + offset in long mode
-			//mrm_mem = NO_BASE;
+			if (dst.is_labeled()) {
 
-			// for a direct virtual address (like it used to work in 32 bit)
-			// we need to use SIB with base=none, index=none
-			mrm_mem = RM_SIB;
-			sib_base = NO_BASE;
-			sib_index = NO_SIB_INDEX;
-			sib_scale = NO_SIB_SCALE;
+				// this encodes a RIP + offset in long mode
+				mrm_mem = NO_BASE;
+				rip_relative = true;
+
+			} else {
+
+				// for a direct virtual address (like it used to work in 32 bit)
+				// we need to use SIB with base=none, index=none
+				mrm_mem = RM_SIB;
+				sib_base = NO_BASE;
+				sib_index = NO_SIB_INDEX;
+				sib_scale = NO_SIB_SCALE;
+
+			}
 
 			// 32 bits unless REX.W prefix is present
 			imm_len = DWORD;
@@ -253,6 +264,14 @@ namespace asmio::x86 {
 
 		// if offset was present write it
 		if (imm_len != VOID) {
+
+			// if a displacement only reference was used we can encode it as RIP-relative
+			if (rip_relative) {
+				put_label(dst.label, imm_len, dst.offset - suffix_bytes);
+				return;
+			}
+
+			// otherwise just put the immediate as-is
 			put_inst_label_imm(dst, imm_len);
 		}
 
@@ -285,12 +304,16 @@ namespace asmio::x86 {
 	void BufferWriter::put_inst_mov(Location dst, Location src, bool direction) {
 
 		// for immediate values this will equal 0
-		uint8_t dst_len = dst.size;
-
-		put_inst_std_ds(src.is_immediate() ? 0b110001 : 0b100010, dst, src.base.pack(), pair_size(dst, src), direction);
+		uint8_t opr_size = pair_size(dst, src);
 
 		if (src.is_immediate()) {
-			put_inst_label_imm(src, dst_len);
+			set_suffix(opr_size);
+		}
+
+		put_inst_std_ds(src.is_immediate() ? 0b110001 : 0b100010, dst, src.base.pack(), opr_size, direction);
+
+		if (src.is_immediate()) {
+			put_inst_label_imm(src, opr_size);
 		}
 	}
 
@@ -353,6 +376,7 @@ namespace asmio::x86 {
 	void BufferWriter::put_inst_double_shift(uint8_t opcode, Location dst, Location src, Location cnt) {
 
 		if (cnt.is_immediate()) {
+			set_suffix(1);
 			put_inst_std(opcode | 0, dst, src.base.pack(), pair_size(src, dst), true);
 			put_byte(cnt.offset);
 			return;
@@ -382,8 +406,13 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memreg() && src.is_immediate()) {
+
+			// all tuple instruction use a 32-bit capped immediate values
+			uint8_t imm_size = std::min(DWORD, opr_size);
+
+			set_suffix(imm_size);
 			put_inst_std_ds(0b100000, dst, RegInfo::raw(opcode_reg), opr_size, false /* TODO: sign flag */);
-			put_inst_label_imm(src, std::min(DWORD, opr_size)); // all tuple instruction use a 32-bit capped immediate values
+			put_inst_label_imm(src, imm_size);
 			return;
 		}
 
@@ -408,6 +437,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memreg() && src.is_immediate()) {
+			set_suffix(1);
 			put_inst_std(0b10111010, dst, RegInfo::raw(inst), opr_size, true);
 			put_byte(src.offset);
 			return;
@@ -469,7 +499,7 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_label(const Label& label, uint8_t size, long shift) {
-		commands.emplace_back(label, size, buffer.size(), shift, true);
+		commands.emplace_back(label, size, buffer.size(), shift, RELATIVE);
 
 		while (size --> 0) {
 			put_byte(0);
@@ -486,6 +516,16 @@ namespace asmio::x86 {
 		} catch (...) {
 			throw std::runtime_error {std::string {"Undefined label '"} + label.c_str() + "' used"};
 		}
+	}
+
+	void BufferWriter::set_suffix(int suffix) {
+		this->suffix = suffix;
+	}
+
+	int BufferWriter::get_suffix() {
+		int suffix = this->suffix;
+		this->suffix = 0;
+		return suffix;
 	}
 
 	BufferWriter& BufferWriter::label(const Label& label) {
@@ -589,12 +629,12 @@ namespace asmio::x86 {
 
 		for (LabelCommand command : commands) {
 			try {
-				const long offset = command.relative ? command.offset + command.size : (-absolute);
-				const long imm_val = get_label(command.label) - offset + command.shift;
+				const int64_t offset = command.type == RELATIVE ? command.offset + command.size : (-absolute);
+				const int64_t imm_val = get_label(command.label) - offset + command.shift;
 				const uint8_t *imm_ptr = (uint8_t *) &imm_val;
 				memcpy(buffer.data() + command.offset, imm_ptr, command.size);
 			} catch (std::runtime_error& error) {
-				if (reporter != nullptr) reporter->link(command.offset, error.what()); else throw error;
+				if (reporter != nullptr) reporter->link(command.offset, error.what()); else throw;
 			}
 		}
 

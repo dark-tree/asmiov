@@ -5,19 +5,22 @@
 
 namespace asmio::x86 {
 
-	uint8_t BufferWriter::pack_rex(bool w, bool r, bool x, bool b) {
+	void BufferWriter::put_inst_rex(bool w, bool r, bool x, bool b) {
 
-		//   7   6   5   4   3   2   1   0
-		// + - + - + - + - + - + - + - + - +
-		// | 0   1   0   0 | W | R | X | B |
-		// + - + - + - + - + - + - + - + - +
-		//   |             |   |   |   |
-		//   FIXED         |   |   |   \_ bit 4 of MODRM.rm SIB.base
-		//   PATTERN       |   |   \_ bit 4 of SIB.index
-		//                 |   \_ bit 4 of MODRM.reg
-		//                 \_ 64 bit operand prefix
+		//   7 6 5 4   3   2   1   0
+		// + ------- + - + - + - + - +
+		// | 0 1 0 0 | W | R | X | B |
+		// + ------- + - + - + - + - +
+		//   |       |   |   |   |
+		//  Fixed    |   |   |   \_ bit 4 of MODRM.rm SIB.base
+		//  Pattern  |   |   \_ bit 4 of SIB.index
+		//           |   \_ bit 4 of MODRM.reg
+		//           \_ 64 bit operand prefix
 
-		return 0b0100'0000 | (w ? 0b1000 : 0) | (r ? 0b100 : 0) | (x ? 0b10 : 0) | (b ? 0b1 : 0);
+		// REX prefix with no flags set still has an effect on the encoding, when present
+		// High Byte Registers (AH, DH, ...) become unaccessible in favor of the new Low Byte Registers (SIL, DIL, ...)
+
+		put_byte(0b0100'0000 | (w ? 0b1000 : 0) | (r ? 0b0100 : 0) | (x ? 0b0010 : 0) | (b ? 0b0001 : 0));
 
 	}
 
@@ -150,7 +153,7 @@ namespace asmio::x86 {
 		if (dst.is_simple()) {
 
 			if (packed.extended() || dst.base.is(Registry::REX) || size == QWORD) {
-				put_byte(pack_rex(size == QWORD, packed.mask(), false, dst.base.reg & 0b1000));
+				put_inst_rex(size == QWORD, packed.mask(), false, dst.base.reg & 0b1000);
 			}
 
 			// two byte opcode, starts with 0x0F
@@ -241,12 +244,12 @@ namespace asmio::x86 {
 
 		// REX
 		if (size == QWORD || packed.extended() || (sib_index & 0b01000) || (sib_base & 0b1000)) {
-			put_byte(pack_rex(
+			put_inst_rex(
 				size == QWORD,
 				packed.mask(),
 				sib_index & 0b01000,
 				(mrm_mem | sib_base) & 0b01000
-			));
+			);
 		}
 
 		// two byte opcode, starts with 0x0F

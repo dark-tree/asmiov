@@ -23,7 +23,7 @@ namespace asmio::x86 {
 			std::vector<uint8_t> buffer;
 			std::vector<LabelCommand> commands;
 
-			uint8_t pack_rex(bool w, bool r, bool x, bool b);
+			void put_inst_rex(bool w, bool r, bool x, bool b);
 			uint8_t pack_opcode_dw(uint8_t opcode, bool d, bool w);
 			void put_inst_mod_reg_rm(uint8_t mod, uint8_t reg, uint8_t r_m);
 			void put_inst_sib(uint8_t ss, uint8_t index, uint8_t base);

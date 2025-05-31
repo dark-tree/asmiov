@@ -76,6 +76,15 @@ namespace asmio::x86 {
 	/// REX W bit, used to switch addressing to 64 bit
 	constexpr uint8_t REX_BIT_W    = 0b1000;
 
+	/// REX R bit, used as the bit 4 of MODRM.reg
+	constexpr uint8_t REX_BIT_R    = 0b0100;
+
+	/// REX X bit, used as the bit 4 of SIB.index
+	constexpr uint8_t REX_BIT_X    = 0b0010;
+
+	/// REX B bit, used as the bit 4 of MODRM.rm SIB.base
+	constexpr uint8_t REX_BIT_B    = 0b0001;
+
 	/// Often used as a prefix byte before instructions
 	constexpr uint8_t LONG_OPCODE  = 0x0F;
 

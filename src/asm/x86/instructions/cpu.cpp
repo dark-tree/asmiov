@@ -151,7 +151,7 @@ namespace asmio::x86 {
 			}
 
 			if (dst.base.is(Registry::REX)) {
-				put_byte(pack_rex(dst.size == QWORD, false, false, dst.base.reg & 0b1000));
+				put_inst_rex(dst.size == QWORD, false, false, dst.base.reg & 0b1000);
 			}
 
 			put_byte((0b1011 << 4) | (dst.is_wide() << 3) | dst.base.low());
@@ -1444,7 +1444,7 @@ namespace asmio::x86 {
 		const uint8_t reg = dst.base.reg;
 
 		if (dst.base.is(Registry::REX)) {
-			put_byte(pack_rex(dst.size == QWORD, false, false, reg & 0b1000));
+			put_inst_rex(dst.size == QWORD, false, false, reg & 0b1000);
 		}
 
 		put_byte(LONG_OPCODE);

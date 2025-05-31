@@ -189,14 +189,14 @@ namespace asmio::x86 {
 	/// Load Effective Address
 	void BufferWriter::put_lea(Location dst, Location src) {
 
-		// lea deals with addresses, addresses use 32 bits,
+		// lea deals with addresses, addresses use 32/64 bits,
 		// so this is quite a logical limitation
 		if (dst.base.size < DWORD) {
-			throw std::runtime_error {"Invalid operands, non-dword destination register can't be used here"};
+			throw std::runtime_error {"Invalid operands, non-dword/qword destination register can't be used here"};
 		}
 
 		// handle EXP to REG
-		if (dst.is_simple() && !src.reference) {
+		if (dst.is_simple() && !src.reference && src.is_indexal()) {
 			put_inst_std(0b10001101, src, dst.base.pack(), DWORD);
 			return;
 		}
@@ -308,25 +308,13 @@ namespace asmio::x86 {
 		throw std::runtime_error {"Invalid operand"};
 	}
 
+	/// Pop & Discard
 	void BufferWriter::put_pop() {
 		put_add(RSP, QWORD);
 	}
 
-
 	/// Increment
 	void BufferWriter::put_inc(Location dst) {
-
-		// short-form
-		// if (dst.is_simple() && dst.is_wide()) {
-		// 	Registry dst_reg = dst.base;
-		//
-		// 	if (dst.base.size == WORD) {
-		// 		put_inst_16bit_operand_mark();
-		// 	}
-		//
-		// 	put_byte((0b01000 << 3) | dst_reg.reg);
-		// 	return;
-		// }
 
 		if (dst.is_indeterminate()) {
 			throw std::runtime_error {"Operand can't be of indeterminate size"};
@@ -337,22 +325,11 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error {"Invalid operand"};
+		throw std::runtime_error {"Invalid operand, expected memory or register"};
 	}
 
 	/// Decrement
 	void BufferWriter::put_dec(Location dst) {
-
-		// short-form
-		// if (dst.is_simple() && dst.is_wide()) {
-		//
-		// 	if (dst.base.size == WORD) {
-		// 		put_inst_16bit_operand_mark();
-		// 	}
-		//
-		// 	put_byte((0b01001 << 3) | dst.base.reg);
-		// 	return;
-		// }
 
 		if (dst.is_indeterminate()) {
 			throw std::runtime_error {"Operand can't be of indeterminate size"};
@@ -363,7 +340,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error {"Invalid operand"};
+		throw std::runtime_error {"Invalid operand, expected memory or register"};
 	}
 
 	/// Negate

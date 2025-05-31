@@ -152,6 +152,17 @@ TEST (writer_check_mixed_addressing) {
 
 }
 
+TEST (writer_check_st_as_generic) {
+
+	BufferWriter writer;
+
+	EXPECT_ANY({ writer.put_inc(ST); });
+	EXPECT_ANY({ writer.put_mov(RAX, ST); });
+	EXPECT_ANY({ writer.put_lea(EAX, ST + 6); });
+
+
+}
+
 TEST (legacy_rbp_protection) {
 
 	BufferWriter writer;
@@ -205,6 +216,78 @@ TEST (writer_exec_mov_long_simple) {
 	uint64_t eax = buffer.call_u64();
 
 	CHECK(eax, 0x2000000000000000);
+
+}
+
+TEST (writer_exec_mov_add_long_regmem) {
+
+	BufferWriter writer;
+
+	writer.label("L1");
+	writer.put_qword(7);
+	writer.put_qword(3);
+	writer.put_qword(9);
+
+	writer.label("start");
+	writer.put_mov(RAX, 0);
+	writer.put_mov(R13, 42);
+	writer.put_mov(R12, 11);
+	writer.put_mov(R14, R12);
+
+	writer.put_mov(R15, 1);
+	writer.put_add(R13, R14);
+	writer.put_add(R13, ref(R15 * 8 + "L1"));
+
+	writer.put_mov(RAX, R13);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	uint64_t rax = buffer.call_u64("start");
+	CHECK(rax, 56);
+
+}
+
+TEST (writer_exec_mov_add_extended) {
+
+	BufferWriter writer;
+
+	writer.label("L1"); // => 7
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(R8L, 3);
+	writer.put_mov(R9L, 4);
+	writer.put_add(R8L, R9L);
+	writer.put_mov(AL, R8L);
+	writer.put_ret();
+
+	writer.label("L2"); // => 13
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(SIL, 11);
+	writer.put_mov(DIL, 2);
+	writer.put_add(SIL, DIL);
+	writer.put_mov(AL, SIL);
+	writer.put_ret();
+
+	writer.label("L3"); // => 1700
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(R12W, 900);
+	writer.put_mov(R13W, 800);
+	writer.put_add(R12W, R13W);
+	writer.put_mov(AX, R12W);
+	writer.put_ret();
+
+	writer.label("L4"); // => 170000
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(R12D, 90000);
+	writer.put_mov(R13D, 80000);
+	writer.put_add(R12D, R13D);
+	writer.put_mov(EAX, R12D);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64("L1"), 7);
+	CHECK(buffer.call_u64("L2"), 13);
+	CHECK(buffer.call_u64("L3"), 1700);
+	CHECK(buffer.call_u64("L4"), 170000);
 
 }
 
@@ -379,6 +462,47 @@ TEST(writer_exec_add_adc) {
 	int output = buffer.call_i32();
 
 	CHECK(output, 0x1);
+
+}
+
+TEST(writer_exec_add_long) {
+
+	BufferWriter writer;
+
+	writer.label("data");
+	writer.put_byte(0x16);
+	writer.put_byte(0x49);
+	writer.put_word(0x2137);
+	writer.put_dword(0x1111'2222);
+	writer.put_qword(0x1'0000'0000);
+
+	writer.label("code");
+	writer.put_mov(RAX, 0);
+	writer.put_mov(RDX, 0);
+	writer.put_mov(R15L, ref(RDX + "data")); // => 0x16
+	writer.put_inc(RDX);
+
+	writer.put_mov(R14L, ref(RDX + "data")); // => 0x49
+	writer.put_inc(RDX);
+
+	writer.put_mov(R13W, ref(RDX + "data")); // => 0x2137
+	writer.put_add(RDX, 2);
+
+	writer.put_mov(R12D, ref(RDX + "data")); // => 0x1111'2222
+	writer.put_add(RDX, 4);
+
+	writer.put_mov(R11, ref(RDX + "data")); // => 0x1'0000'0000
+
+	writer.put_add(R15L, R14L);
+	writer.put_add(R15W, R13W);
+	writer.put_add(R15D, R12D);
+	writer.put_add(R15, R11);
+
+	writer.put_mov(RAX, R15);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64("code"), (0x16 + 0x49 + 0x2137 + 0x1111'2222 + 0x1'0000'0000));
 
 }
 
@@ -572,6 +696,24 @@ TEST(writer_exec_bts_btr_btc) {
 	int output = buffer.call_i32();
 
 	CHECK(output, 0b1100'1010);
+
+}
+
+TEST(writer_exec_bts_long) {
+
+	BufferWriter writer;
+
+	writer.put_mov(R13, 0);
+
+	writer.put_bts(R13, 63);
+	writer.put_bts(R13, 40);
+	writer.put_bts(R13, 9);
+
+	writer.put_mov(RAX, R13);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64(), 0x8000'0100'0000'0200);
 
 }
 

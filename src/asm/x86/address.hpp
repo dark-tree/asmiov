@@ -248,86 +248,62 @@ namespace asmio::x86 {
 				return size == VOID;
 			}
 
-			/**
-			 * Checks if this location is a simple un-referenced constant (immediate) value
-			 */
+			/// Checks if this location is a simple un-referenced constant (immediate) value
 			bool is_immediate() const {
 				return base.is(UNSET) && index.is(UNSET) && !reference /* TODO: check - what about immediate labels? */;
 			}
 
-			/**
-			 * Checks if this location uses the index component
-			 */
+			/// Checks if this location uses the index component
 			bool is_indexed() const {
-				return !index.is(UNSET);
+				return index.is(Registry::GENERAL);
 			}
 
-			/**
-			 * Checks if this location is a simple un-referenced register
-			 */
+			/// Checks if this location is a simple un-referenced register
 			bool is_simple() const {
-				return (base.flag & Registry::GENERAL) && !is_indexed() && offset == 0 && !reference && !is_labeled();
+				return base.is(Registry::GENERAL) && !is_indexed() && offset == 0 && !reference && !is_labeled();
 			}
 
-			/**
-			 * Checks if this location is a simple un-referenced register of size word/qword
-			 */
-			bool is_inlineable() const {
-				return is_simple() && (base.size == WORD || base.size == QWORD);
-			}
-
-			/**
-			 * Checks if this location is a simple un-referenced accumulator, used when encoding short-forms
-			 */
+			/// Checks if this location is a simple un-referenced accumulator, used when encoding short-forms
 			bool is_accum() const {
 				return base.is(Registry::ACCUMULATOR) && is_simple();
 			}
 
-			/**
-			 * Checks if this location requires label resolution
-			 */
+			/// Checks if this location requires label resolution
 			bool is_labeled() const {
 				return label != nullptr;
 			}
 
-			/**
-			 * Checks if this location is a memory reference
-			 */
+			/// Checks if this location is a memory reference
 			bool is_memory() const {
 				return reference;
 			}
 
-			/**
-			 * Checks if this location is a simple un-referenced register OR memory reference
-			 */
+			/// Checks if this location is a simple un-referenced register OR memory reference
 			bool is_memreg() const {
 				return is_memory() || is_simple();
 			}
 
-			/**
-			 * Checks if this location is 'wide' (word, double word, or quad word)
-			 */
+			/// Check if this a valid scaled register expression
+			bool is_indexal() const {
+				return (base.is(Registry::GENERAL) || base.is(UNSET)) && (is_indexed() || index.is(UNSET));
+			}
+
+			/// Checks if this location is 'wide' (word, double word, or quad word)
 			bool is_wide() const {
 				return size == WORD || size == DWORD || size == QWORD;
 			}
 
-			/**
-			 * Checks if this location is a floating-point register
-			 */
+			/// Checks if this location is a floating-point register
 			bool is_floating() const {
 				return base.is(ST) && !is_indexed() && !reference && !is_labeled() && (offset >= 0) && (offset <= 7);
 			}
 
-			/**
-			 * Checks if this location is a floating-point register 'ST(0)'
-			 */
+			/// Checks if this location is a floating-point register 'ST(0)'
 			bool is_st0() const {
 				return is_floating() && (offset == 0);
 			}
 
-			/**
-			* Checks if this location contains a label an nothing else
-			*/
+			/// Checks if this location contains a label an nothing else
 			bool is_jump_label() {
 				return is_labeled() && base.is(UNSET) && index.is(UNSET) && !reference;
 			}

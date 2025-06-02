@@ -6,11 +6,15 @@ elf=$(mktemp)
 
 trap "rm -f $txt $obj $elf" EXIT
 
+echo "SECTION .DATA" >> $txt
+echo "data:" >> $txt
+echo "$1" >> $txt
+
 echo "SECTION .CODE" >> $txt
 echo "GLOBAL _start" >> $txt
 echo >> $txt
 echo "_start:" >> $txt
-echo "$@" >> $txt
+echo "$2" >> $txt
 
 echo "[1] nasm $txt"
 nasm -f elf64 $txt -o $obj

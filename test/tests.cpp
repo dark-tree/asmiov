@@ -190,6 +190,32 @@ TEST (writer_exec_mov_ret_nop) {
 
 }
 
+TEST (writer_exec_mov_scaled) {
+
+	BufferWriter writer;
+	writer.label("data");
+	writer.put_dword(23); // +0
+	writer.put_dword(44); // +4
+	writer.put_dword(67); // +8
+ 	writer.put_dword(51); // +12
+	writer.put_dword(30); // +16
+	writer.put_dword(17); // +20
+
+	writer.label("code");
+	writer.put_mov(R8D, 0);
+	writer.put_mov(R12, 5);
+	writer.put_mov(R15, "data");
+
+	writer.put_mov(R8D, ref(R12 + R15 + 3)); // ref(5 + data + 3) = ref(data + 8)
+	writer.put_mov(EAX, R8D);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	uint32_t eax = buffer.call_u32("code");
+	CHECK(eax, 67);
+
+}
+
 TEST (writer_exec_mov_long) {
 
 	BufferWriter writer;

@@ -258,11 +258,11 @@ namespace asmio::x86 {
 		}
 
 		put_byte(opcode);
-		put_inst_mod_reg_rm(mrm_mod, packed.low(), mrm_mem);
+		put_inst_mod_reg_rm(mrm_mod, packed.low(), mrm_mem & 0b111);
 
 		// if SIB was enabled write it
 		if (mrm_mem == RM_SIB) {
-			put_inst_sib(sib_scale, sib_index, sib_base);
+			put_inst_sib(sib_scale, sib_index & 0b111, sib_base & 0b111);
 		}
 
 		// if offset was present write it
@@ -613,7 +613,7 @@ namespace asmio::x86 {
 			}
 		}
 
-		std::cout << "./unasm.sh \"db ";
+		std::cout << "./unasm.sh \"\" \"db ";
 		bool first = true;
 
 		for (uint8_t byte : buffer) {

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.22)
 project(ASMIOV C CXX ASM)
 
 set(CMAKE_CXX_FLAGS "-no-pie")
@@ -19,14 +19,13 @@ set(CPP_SOURCES
 		src/tasml/tokenizer.cpp
 )
 
+include_directories(src/ .)
 add_library(asmiov ${ASM_SOURCES} ${CPP_SOURCES})
 
-include_directories(test src/ .)
 add_executable(test test/tests.cpp)
 target_link_libraries(test PRIVATE asmiov)
 
-include_directories(tasml src/ .)
 add_executable(tasml src/tasml/tasml.cpp)
-target_link_libraries(test PRIVATE asmiov)
+target_link_libraries(tasml PRIVATE asmiov)
 
 set_source_files_properties(${ASM_SOURCES} PROPERTIES LANGUAGE ASM)

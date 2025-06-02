@@ -62,6 +62,10 @@ namespace asmio::x86 {
 		constexpr Registry(uint8_t size, uint8_t reg, uint8_t flag)
 		: size(size), flag(flag), reg(reg) {}
 
+		bool operator==(Registry const& other) const {
+			return is(other);
+		}
+
 		bool is(Flag mask) const {
 			return (flag & mask) != 0;
 		}
@@ -180,6 +184,10 @@ namespace asmio::x86 {
 			explicit ScaledRegistry(Registry registry, uint8_t scale)
 			: registry(registry), scale(scale) {
 				assertValidScale(registry, scale);
+			}
+
+			bool operator==(ScaledRegistry const& other) const {
+				return (registry == other.registry) && (scale == other.scale);
 			}
 
 	};

@@ -13,6 +13,44 @@
 
 using namespace asmio::x86;
 
+TEST (syntax_registry_attributes) {
+
+	ASSERT(EAX.is(EAX));
+	ASSERT(EAX.is(Registry::ACCUMULATOR));
+	ASSERT(ESP.is_esp_like());
+	ASSERT(EBP.is_ebp_like());
+	ASSERT(AH.is(Registry::HIGH_BYTE));
+	ASSERT(R13D.is(Registry::REX));
+	ASSERT(RAX.is(Registry::REX));
+	ASSERT(SIL.is(Registry::REX));
+
+	ASSERT(EAX * 2 != EAX * 1);
+	ASSERT(EAX * 2 == EAX * 2);
+
+	ASSERT(EAX == EAX);
+	ASSERT(EAX != EDX);
+	ASSERT(RDX != EDX);
+
+}
+
+TEST (syntax_indetermiante) {
+
+	// indeterminate
+	ASSERT(ref(EAX).is_indeterminate());
+	ASSERT(Location {0}.is_indeterminate());
+
+	// determinate
+	ASSERT(!ref<DWORD>(EAX).is_indeterminate());
+	ASSERT(!cast<QWORD>(Location {0}).is_indeterminate());
+	ASSERT(!Location {EAX}.is_indeterminate());
+	ASSERT(!Location {EAX * 2}.is_indeterminate());
+
+	EXPECT_ANY({
+		Location {EAX}.cast(DWORD);
+	});
+
+}
+
 TEST (writer_check_push) {
 
 	BufferWriter writer;

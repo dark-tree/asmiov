@@ -152,8 +152,8 @@ namespace asmio::x86 {
 		// simple registry to registry operation
 		if (dst.is_simple()) {
 
-			if (packed.extended() || dst.base.is(Registry::REX) || size == QWORD) {
-				put_inst_rex(size == QWORD, packed.mask(), false, dst.base.reg & 0b1000);
+			if (packed.rex || dst.base.is(Registry::REX) || size == QWORD) {
+				put_inst_rex(size == QWORD, packed.is_extended(), false, dst.base.reg & 0b1000);
 			}
 
 			// two byte opcode, starts with 0x0F
@@ -243,10 +243,10 @@ namespace asmio::x86 {
 		}
 
 		// REX
-		if (size == QWORD || packed.extended() || (sib_index & 0b01000) || (sib_base & 0b1000)) {
+		if (size == QWORD || packed.rex || (sib_index & 0b01000) || (sib_base & 0b1000)) {
 			put_inst_rex(
 				size == QWORD,
-				packed.mask(),
+				packed.is_extended(),
 				sib_index & 0b01000,
 				(mrm_mem | sib_base) & 0b01000
 			);

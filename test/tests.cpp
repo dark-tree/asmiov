@@ -293,14 +293,14 @@ TEST (writer_exec_mov_add_long_regmem) {
 	writer.put_qword(9);
 
 	writer.label("start");
-	writer.put_mov(RAX, 0);
+	writer.put_mov(RAX, "L1");
 	writer.put_mov(R13, 42);
 	writer.put_mov(R12, 11);
 	writer.put_mov(R14, R12);
 
 	writer.put_mov(R15, 1);
 	writer.put_add(R13, R14);
-	writer.put_add(R13, ref(R15 * 8 + "L1"));
+	writer.put_add(R13, ref(RAX + R15 * 8));
 
 	writer.put_mov(RAX, R13);
 	writer.put_ret();
@@ -490,6 +490,23 @@ TEST(writer_exec_lea) {
 	CHECK(output, (edx + eax * 2 - 5) + eax);
 }
 
+TEST(writer_exec_lea_rex) {
+
+	BufferWriter writer;
+
+	writer.label("data");
+	writer.put_qword(42);
+
+	writer.label("code");
+	writer.put_lea(RAX, "data");
+	writer.put_mov(RAX, ref(RAX));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64(), 42);
+
+}
+
 TEST(writer_exec_add) {
 
 	int eax = 12, edx = 56, ecx = 60;
@@ -543,19 +560,20 @@ TEST(writer_exec_add_long) {
 	writer.label("code");
 	writer.put_mov(RAX, 0);
 	writer.put_mov(RDX, 0);
-	writer.put_mov(R15L, ref(RDX + "data")); // => 0x16
+	writer.put_mov(RSI, "data");
+	writer.put_mov(R15L, ref(RDX + RSI)); // => 0x16
 	writer.put_inc(RDX);
 
-	writer.put_mov(R14L, ref(RDX + "data")); // => 0x49
+	writer.put_mov(R14L, ref(RDX + RSI)); // => 0x49
 	writer.put_inc(RDX);
 
-	writer.put_mov(R13W, ref(RDX + "data")); // => 0x2137
+	writer.put_mov(R13W, ref(RDX + RSI)); // => 0x2137
 	writer.put_add(RDX, 2);
 
-	writer.put_mov(R12D, ref(RDX + "data")); // => 0x1111'2222
+	writer.put_mov(R12D, ref(RDX + RSI)); // => 0x1111'2222
 	writer.put_add(RDX, 4);
 
-	writer.put_mov(R11, ref(RDX + "data")); // => 0x1'0000'0000
+	writer.put_mov(R11, ref(RDX + RSI)); // => 0x1'0000'0000
 
 	writer.put_add(R15L, R14L);
 	writer.put_add(R15W, R13W);
@@ -934,8 +952,8 @@ TEST(writer_exec_absolute_jmp) {
 
 	writer.label("main");
 	writer.put_mov(EAX, 12);
-	writer.put_mov(EDX, "back");
-	writer.put_jmp(EDX);
+	writer.put_mov(RDX, "back");
+	writer.put_jmp(RDX);
 	writer.put_ret(); // invalid
 
 	ExecutableBuffer buffer = writer.bake();
@@ -1629,20 +1647,24 @@ TEST (writer_exec_memory_push_pop) {
 	writer.put_byte(0);
 
 	writer.label("main");
-	writer.put_xor(EBX, EBX);
-	writer.put_mov(EAX, 0);
+	writer.put_xor(RBX, RBX);
+	writer.put_mov(RAX, 0);
 	writer.put_push(666);
-	writer.put_push(ref<QWORD>(EAX + "foo"));
-	writer.put_push(ref<WORD>(EAX + "bar"));
+	writer.put_mov(RSI, "foo");
+	writer.put_push(ref<QWORD>(RAX + RSI));
+	writer.put_mov(RSI, "bar");
+	writer.put_push(ref<WORD>(RAX + RSI));
 	writer.put_pop(BX);
-	writer.put_pop(EAX);
-	writer.put_pop(ref<QWORD>("car"));
-	writer.put_add(EAX, EBX);
+	writer.put_pop(RAX);
+	writer.put_mov(RSI, "car");
+	writer.put_pop(ref<QWORD>(RSI));
+	writer.put_add(RAX, RBX);
 	writer.put_ret();
 
 	writer.label("get_car");
-	writer.put_xor(EAX, EAX);
-	writer.put_mov(EAX, ref("car"));
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(RSI, "car");
+	writer.put_mov(RAX, ref(RSI));
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -1807,12 +1829,12 @@ TEST (writer_exec_xlat) {
 	writer.put_byte(0); // 7 -> 0
 
 	writer.label("main");
-	writer.put_mov(EBX, "table");
+	writer.put_mov(RBX, "table");
 	writer.put_mov(AL, 2);
-	writer.put_xlat(); // AL := EBX[1] -> 6
-	writer.put_xlat(); // AL := EBX[6] -> 3
-	writer.put_xlat(); // AL := EBX[3] -> 1
-	writer.put_xlat(); // AL := EBX[1] -> 7
+	writer.put_xlat(); // AL := RBX[1] -> 6
+	writer.put_xlat(); // AL := RBX[6] -> 3
+	writer.put_xlat(); // AL := RBX[3] -> 1
+	writer.put_xlat(); // AL := RBX[1] -> 7
 	writer.put_cmp(AL, 7);
 	writer.put_jne("invalid");
 
@@ -1971,7 +1993,7 @@ TEST (writer_exec_lods) {
 
 	writer.label("main");
 	writer.put_mov(EAX, 0);
-	writer.put_mov(ESI, "src");
+	writer.put_mov(RSI, "src");
 	writer.put_lodsw();
 	writer.put_lodsb();
 	writer.put_ret();
@@ -1988,7 +2010,7 @@ TEST (writer_exec_stos) {
 	BufferWriter writer;
 
 	writer.label("main");
-	writer.put_mov(EDI, "dst");
+	writer.put_mov(RDI, "dst");
 	writer.put_mov(AL, 'H');
 	writer.put_stosb();
 	writer.put_mov(AL, 'e');
@@ -2017,8 +2039,8 @@ TEST (writer_exec_movs) {
 	BufferWriter writer;
 
 	writer.label("main");
-	writer.put_mov(ESI, "src");
-	writer.put_mov(EDI, "dst");
+	writer.put_mov(RSI, "src");
+	writer.put_mov(RDI, "dst");
 	writer.put_mov(ECX, 10);
 	writer.put_rep().put_movsb();
 	writer.put_ret();
@@ -2038,8 +2060,8 @@ TEST (writer_exec_cmps) {
 	BufferWriter writer;
 
 	writer.label("main_1");
-	writer.put_mov(ESI, "src");
-	writer.put_mov(EDI, "dst_1");
+	writer.put_mov(RSI, "src");
+	writer.put_mov(RDI, "dst_1");
 	writer.put_mov(ECX, 10);
 	writer.put_repe().put_cmpsb();
 	writer.put_jne("invalid");
@@ -2047,8 +2069,8 @@ TEST (writer_exec_cmps) {
 	writer.put_ret();
 
 	writer.label("main_2");
-	writer.put_mov(ESI, "src");
-	writer.put_mov(EDI, "dst_2");
+	writer.put_mov(RSI, "src");
+	writer.put_mov(RDI, "dst_2");
 	writer.put_mov(ECX, 10);
 	writer.put_repe().put_cmpsb();
 	writer.put_je("invalid");
@@ -2074,18 +2096,18 @@ TEST (writer_exec_scas) {
 	BufferWriter writer;
 
 	writer.label("main");
-	writer.put_mov(EDI, "src");
+	writer.put_mov(RDI, "src");
 	writer.put_mov(ECX, 16);
 	writer.put_mov(AL, 'D');
 	writer.put_repne().put_scasb();
-	writer.put_sub(EDI, "src");
-	writer.put_mov(EAX, EDI);
+	writer.put_sub(RDI, "src");
+	writer.put_mov(RAX, RDI);
 	writer.put_ret();
 
 	writer.label("src").put_ascii("123456789ABCDEF");
 
 	ExecutableBuffer buffer = writer.bake();
-	CHECK(buffer.call_u32("main"), 13);
+	CHECK(buffer.call_u64("main"), 13);
 
 }
 
@@ -2241,13 +2263,15 @@ TEST (writer_exec_bsf_bsr) {
 
 	writer.label("bsr_a");
 	writer.put_xor(EDX, EDX);
-	writer.put_bsr(EAX, ref(EDX + "a"));
+	writer.put_mov(RSI, "a");
+	writer.put_bsr(EAX, ref(RDX + RSI));
 	writer.put_ret();
 
 	writer.label("bsf_b");
 	writer.put_xor(EDX, EDX);
 	writer.put_mov(EAX, 0x80000000);
-	writer.put_bsf(AX, ref(EDX + "b"));
+	writer.put_mov(RSI, "b");
+	writer.put_bsf(AX, ref(RDX + RSI));
 	writer.put_ret();
 
 	writer.label("bsr_b");
@@ -2455,15 +2479,15 @@ TEST (writer_fail_invalid_reg_size) {
 	});
 
 	EXPECT(std::runtime_error, {
-		writer.put_xchg(cast<BYTE>(ref("bar")), EBX);
+		writer.put_xchg(ref<BYTE>("bar"), EBX);
 	});
 
 	EXPECT(std::runtime_error, {
-		writer.put_xchg(cast<WORD>(ref("bar")), EBX);
+		writer.put_xchg(ref<WORD>("bar"), EBX);
 	});
 
 	EXPECT(std::runtime_error, {
-		writer.put_xchg(cast<BYTE>(ref("bar")), BX);
+		writer.put_xchg(ref<BYTE>("bar"), BX);
 	});
 
 }
@@ -2475,8 +2499,8 @@ TEST (writer_fail_invalid_mem_size) {
 	writer.label("a");
 	writer.put_dword(0);
 
-	writer.put_mov(AL, cast<BYTE>(ref("a"))); // valid
-	writer.put_mov(AL, 0xFFFFFFFF);           // stupid, but valid
+	writer.put_mov(AL, ref("a"));   // valid
+	writer.put_mov(AL, 0xFFFFFFFF); // stupid, but valid
 
 	EXPECT(std::runtime_error, {
 		writer.put_fst(cast<TWORD>(ref("a")));
@@ -2584,19 +2608,19 @@ TEST (tasml_tokenize) {
 			byte "Hello!", 0
 
 		strlen:
-			mov ecx, /* inline comments! */ eax
-			dec eax
+			mov rcx, /* inline comments! */ rax
+			dec rax
 
 			l_strlen_next:
-				inc eax
-				cmp byte [eax], 0
+				inc rax
+				cmp byte [rax], 0
 			jne @l_strlen_next
 
-			sub eax, ecx
+			sub rax, rcx
 			ret
 
 		_start:
-			lea eax, @text
+			lea rax, @text
 			call @strlen
 			nop; nop; ret // multi-statements
 	)";

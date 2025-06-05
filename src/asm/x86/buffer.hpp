@@ -26,10 +26,11 @@ namespace asmio::x86 {
 				const size_t page = getpagesize();
 				const size_t size = ALIGN_UP(length, page);
 
-				buffer = (uint8_t*) valloc(size);
-				mprotect(buffer, size, PROT_EXEC | PROT_READ | PROT_WRITE);
+				constexpr uint32_t flags = MAP_ANONYMOUS | MAP_PRIVATE;
+				constexpr uint32_t protection = PROT_READ | PROT_WRITE | PROT_EXEC;
+				buffer = (uint8_t*) mmap(nullptr, size, protection, flags, -1, 0);
 
-				if (buffer == nullptr || errno) {
+				if (buffer == nullptr) {
 					throw std::runtime_error{"Failed to allocate an executable buffer!"};
 				}
 			}
@@ -43,7 +44,7 @@ namespace asmio::x86 {
 			}
 
 			~ExecutableBuffer() {
-				free(buffer);
+				munmap(buffer, length);
 			}
 
 			uint8_t* address() const {

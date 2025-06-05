@@ -195,7 +195,7 @@ namespace asmio::x86 {
 
 		// handle EXP to REG
 		if (dst.is_simple() && !src.reference && src.is_indexal()) {
-			put_inst_std(0b10001101, src, dst.base.pack(), DWORD);
+			put_inst_std(0b10001101, src, dst.base.pack(), pair_size(src, dst));
 			return;
 		}
 

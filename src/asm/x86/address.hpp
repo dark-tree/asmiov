@@ -15,15 +15,16 @@ namespace asmio::x86 {
 	constexpr uint8_t TWORD = 10;
 
 	struct RegInfo {
-		uint8_t rex;
+		uint8_t rex; // REX prefix is needed to encode this register
 		uint8_t reg;
 
-		RegInfo with_rex_prefix() const {
-			return {1, reg};
+		RegInfo(bool rex, uint8_t reg) {
+			this->rex = rex;
+			this->reg = reg;
 		}
 
 		static RegInfo raw(uint8_t reg) {
-			return {0, reg};
+			return {false, reg};
 		}
 
 		/// Return the lower 3 bit of the register number
@@ -31,13 +32,8 @@ namespace asmio::x86 {
 			return reg & 0b111;
 		}
 
-		/// Checks if REX prefix is needed
-		bool extended() const {
-			return mask() || rex;
-		}
-
-		/// Return a REX.W mask
-		uint8_t mask() const {
+		/// Checks if REX.R prefix is needed
+		bool is_extended() const {
 			return reg & 0b1000;
 		}
 	};

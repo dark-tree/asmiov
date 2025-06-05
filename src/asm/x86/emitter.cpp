@@ -7,8 +7,8 @@ using namespace tasml;
 namespace asmio::x86 {
 
 	// forward defs
-	Location parseExpression(int cast, bool reference, tasml::TokenStream stream);
-	Location parseLocation(tasml::ErrorHandler& reporter, tasml::TokenStream stream, bool& write);
+	Location parseExpression(TokenStream stream);
+	Location parseLocation(ErrorHandler& reporter, TokenStream stream, bool& write);
 	bool parseDataDefinition(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token);
 
 	template <uint32_t argc> struct Instruction {};
@@ -64,11 +64,13 @@ namespace asmio::x86 {
 			{"real", TWORD},
 		};
 
-		try {
-			return types.at(raw);
-		} catch (std::out_of_range& error) {
+		auto it = types.find(raw);
+
+		if (it == types.end()) {
 			return -1;
 		}
+
+		return it->second;
 	}
 
 	int countArgs(TokenStream stream) {
@@ -117,11 +119,55 @@ namespace asmio::x86 {
 		if (raw == "esp") return ESP;
 		if (raw == "sp") return SP;
 		if (raw == "st") return ST;
+		if (raw == "spl") return SPL;
+		if (raw == "bpl") return BPL;
+		if (raw == "sil") return SIL;
+		if (raw == "dil") return DIL;
+		if (raw == "rax") return RAX;
+		if (raw == "rbx") return RBX;
+		if (raw == "rcx") return RCX;
+		if (raw == "rdx") return RDX;
+		if (raw == "rsi") return RSI;
+		if (raw == "rdi") return RDI;
+		if (raw == "rbp") return RBP;
+		if (raw == "rsp") return RSP;
+		if (raw == "r8l") return R8L;
+		if (raw == "r8w") return R8W;
+		if (raw == "r8d") return R8D;
+		if (raw == "r8") return R8;
+		if (raw == "r9l") return R9L;
+		if (raw == "r9w") return R9W;
+		if (raw == "r9d") return R9D;
+		if (raw == "r9") return R9;
+		if (raw == "r10l") return R10L;
+		if (raw == "r10w") return R10W;
+		if (raw == "r10d") return R10D;
+		if (raw == "r10") return R10;
+		if (raw == "r11l") return R11L;
+		if (raw == "r11w") return R11W;
+		if (raw == "r11d") return R11D;
+		if (raw == "r11") return R11;
+		if (raw == "r12l") return R12L;
+		if (raw == "r12w") return R12W;
+		if (raw == "r12d") return R12D;
+		if (raw == "r12") return R12;
+		if (raw == "r31l") return R13L;
+		if (raw == "r13w") return R13W;
+		if (raw == "r13d") return R13D;
+		if (raw == "r13") return R13;
+		if (raw == "r14l") return R14L;
+		if (raw == "r14w") return R14W;
+		if (raw == "r14d") return R14D;
+		if (raw == "r14") return R14;
+		if (raw == "r15l") return R15L;
+		if (raw == "r15w") return R15W;
+		if (raw == "r15d") return R15D;
+		if (raw == "r15") return R15;
 
 		throw std::runtime_error {"Unknown registry " + token->quoted()};
 	}
 
-	Location parseExpression(int cast, bool reference, TokenStream stream) {
+	Location parseExpression(TokenStream stream) {
 		const Token* base  = nullptr;
 		const Token* index = nullptr;
 		const Token* scale = nullptr;
@@ -250,29 +296,29 @@ namespace asmio::x86 {
 
 		const char* name = (label == nullptr) ? nullptr : label->raw.c_str() + 1 /* skip the '@' */;
 		const uint32_t scale_value = (scale == nullptr) ? 0 : scale->parseInt();
-		const int cast_value = (cast == -1) ? DWORD : cast;
 
-		return Location {getRegistryByToken(base), getRegistryByToken(index), scale_value, offset, name, cast_value, reference};
+		return getRegistryByToken(base) + getRegistryByToken(index) * scale_value + offset + name;
+	}
+
+	Location parseInner(ErrorHandler& reporter, TokenStream stream, bool& write) {
+		if (stream.accept("[")) {
+			return parseExpression(stream.block("[]", "expression")).ref();
+		}
+
+		return parseExpression(stream);
 	}
 
 	Location parseLocation(ErrorHandler& reporter, TokenStream stream, bool& write) {
 		try {
-			const Token *name = &stream.peek();
-			const int cast = getTypeByToken(name);
+			const Token* name = &stream.peek();
+			const int size = getTypeByToken(name);
 
-			if (cast != -1) {
+			if (size != -1) {
 				stream.next(); // consume 'name' token if it was a cast
+				return parseInner(reporter, stream, write).cast(size);
 			}
 
-			if (stream.accept("[")) {
-				return parseExpression(cast, true, stream.block("[]", "expression"));
-			}
-
-			if (cast == -1) {
-				return parseExpression(cast, false, stream);
-			}
-
-			throw std::runtime_error {"Invalid expression"};
+			return parseInner(reporter, stream, write);
 		} catch (std::runtime_error& error) {
 			reporter.error(stream.first().line, -1, error.what());
 			write = false;
@@ -313,6 +359,7 @@ namespace asmio::x86 {
 		if (argc == 2 && strcmp(name, "xchg") == 0) return parseCall<2>(reporter, &BufferWriter::put_xchg, writer, stream);
 		if (argc == 1 && strcmp(name, "push") == 0) return parseCall<1>(reporter, &BufferWriter::put_push, writer, stream);
 		if (argc == 1 && strcmp(name, "pop") == 0) return parseCall<1>(reporter, &BufferWriter::put_pop, writer, stream);
+		if (argc == 0 && strcmp(name, "pop") == 0) return parseCall<0>(reporter, &BufferWriter::put_pop, writer, stream);
 		if (argc == 1 && strcmp(name, "inc") == 0) return parseCall<1>(reporter, &BufferWriter::put_inc, writer, stream);
 		if (argc == 1 && strcmp(name, "dec") == 0) return parseCall<1>(reporter, &BufferWriter::put_dec, writer, stream);
 		if (argc == 1 && strcmp(name, "neg") == 0) return parseCall<1>(reporter, &BufferWriter::put_neg, writer, stream);
@@ -446,8 +493,6 @@ namespace asmio::x86 {
 		if (argc == 0 && strcmp(name, "daa") == 0) return parseCall<0>(reporter, &BufferWriter::put_daa, writer, stream);
 		if (argc == 0 && strcmp(name, "aas") == 0) return parseCall<0>(reporter, &BufferWriter::put_aas, writer, stream);
 		if (argc == 0 && strcmp(name, "das") == 0) return parseCall<0>(reporter, &BufferWriter::put_das, writer, stream);
-		if (argc == 0 && strcmp(name, "aad") == 0) return parseCall<0>(reporter, &BufferWriter::put_aad, writer, stream);
-		if (argc == 0 && strcmp(name, "aam") == 0) return parseCall<0>(reporter, &BufferWriter::put_aam, writer, stream);
 		if (argc == 0 && strcmp(name, "cbw") == 0) return parseCall<0>(reporter, &BufferWriter::put_cbw, writer, stream);
 		if (argc == 0 && strcmp(name, "cwd") == 0) return parseCall<0>(reporter, &BufferWriter::put_cwd, writer, stream);
 		if (argc == 0 && strcmp(name, "xlat") == 0) return parseCall<0>(reporter, &BufferWriter::put_xlat, writer, stream);
@@ -457,6 +502,18 @@ namespace asmio::x86 {
 		if (argc == 1 && strcmp(name, "test") == 0) return parseCall<1>(reporter, &BufferWriter::put_test, writer, stream);
 		if (argc == 0 && strcmp(name, "ret") == 0) return parseCall<0>(reporter, &BufferWriter::put_ret, writer, stream);
 		if (argc == 1 && strcmp(name, "ret") == 0) return parseCall<1>(reporter, &BufferWriter::put_ret, writer, stream);
+		if (argc == 2 && strcmp(name, "xadd") == 0) return parseCall<2>(reporter, &BufferWriter::put_xadd, writer, stream);
+		if (argc == 1 && strcmp(name, "bswap") == 0) return parseCall<1>(reporter, &BufferWriter::put_bswap, writer, stream);
+		if (argc == 0 && strcmp(name, "invd") == 0) return parseCall<0>(reporter, &BufferWriter::put_invd, writer, stream);
+		if (argc == 0 && strcmp(name, "wbinvd") == 0) return parseCall<0>(reporter, &BufferWriter::put_wbinvd, writer, stream);
+		if (argc == 2 && strcmp(name, "cmpxchg") == 0) return parseCall<2>(reporter, &BufferWriter::put_cmpxchg, writer, stream);
+		if (argc == 0 && strcmp(name, "cqo") == 0) return parseCall<0>(reporter, &BufferWriter::put_cqo, writer, stream);
+		if (argc == 0 && strcmp(name, "swapgs") == 0) return parseCall<0>(reporter, &BufferWriter::put_swapgs, writer, stream);
+		if (argc == 0 && strcmp(name, "rdmsr") == 0) return parseCall<0>(reporter, &BufferWriter::put_rdmsr, writer, stream);
+		if (argc == 0 && strcmp(name, "wrmsr") == 0) return parseCall<0>(reporter, &BufferWriter::put_wrmsr, writer, stream);
+		if (argc == 0 && strcmp(name, "syscall") == 0) return parseCall<0>(reporter, &BufferWriter::put_syscall, writer, stream);
+		if (argc == 0 && strcmp(name, "sysretl") == 0) return parseCall<0>(reporter, &BufferWriter::put_sysretl, writer, stream);
+		if (argc == 0 && strcmp(name, "sysretc") == 0) return parseCall<0>(reporter, &BufferWriter::put_sysretc, writer, stream);
 		if (argc == 0 && strcmp(name, "fnop") == 0) return parseCall<0>(reporter, &BufferWriter::put_fnop, writer, stream);
 		if (argc == 0 && strcmp(name, "finit") == 0) return parseCall<0>(reporter, &BufferWriter::put_finit, writer, stream);
 		if (argc == 0 && strcmp(name, "fninit") == 0) return parseCall<0>(reporter, &BufferWriter::put_fninit, writer, stream);

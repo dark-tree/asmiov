@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include "external.hpp"
 #include "util.hpp"
 
@@ -14,7 +16,7 @@ namespace asmio::x86 {
 			size_t length;
 
 			__attribute__((__always_inline__)) void raw_call(uint32_t offset) {
-				x86_switch_mode(reinterpret_cast<uint32_t (*)()>(buffer + offset));
+				reinterpret_cast<uint32_t (*)()>(buffer + offset)();
 			}
 
 		public:
@@ -24,10 +26,11 @@ namespace asmio::x86 {
 				const size_t page = getpagesize();
 				const size_t size = ALIGN_UP(length, page);
 
-				buffer = (uint8_t*) valloc(size);
-				mprotect(buffer, size, PROT_EXEC | PROT_READ | PROT_WRITE);
+				constexpr uint32_t flags = MAP_ANONYMOUS | MAP_PRIVATE;
+				constexpr uint32_t protection = PROT_READ | PROT_WRITE | PROT_EXEC;
+				buffer = (uint8_t*) mmap(nullptr, size, protection, flags, -1, 0);
 
-				if (buffer == nullptr || errno) {
+				if (buffer == nullptr) {
 					throw std::runtime_error{"Failed to allocate an executable buffer!"};
 				}
 			}
@@ -41,7 +44,7 @@ namespace asmio::x86 {
 			}
 
 			~ExecutableBuffer() {
-				free(buffer);
+				munmap(buffer, length);
 			}
 
 			uint8_t* address() const {
@@ -58,6 +61,39 @@ namespace asmio::x86 {
 
 		public:
 
+			void dump(uint32_t offset = 0) {
+				std::cout << "./unasm.sh \"db ";
+				bool first = true;
+
+				for (int i = 0; i < offset; i++) {
+					if (!first) {
+						std::cout << ", ";
+					}
+
+					first = false;
+					std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) buffer[i]) << "h";
+				}
+
+				std::cout << "\" \"db ";
+				first = true;
+
+				for (int i = offset; i < length; i++) {
+					if (!first) {
+						std::cout << ", ";
+					}
+
+					first = false;
+					std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) buffer[i]) << "h";
+				}
+
+				std::cout << '"' << std::endl;
+			}
+
+			uint64_t call_u64(uint32_t offset = 0) {
+				raw_call(offset);
+				RETURN_TRANSIENT(uint64_t, "=r");
+			}
+
 			uint32_t call_u32(uint32_t offset = 0) {
 				raw_call(offset);
 				RETURN_TRANSIENT(uint32_t, "=r");
@@ -71,6 +107,14 @@ namespace asmio::x86 {
 			float call_f32(uint32_t offset = 0) {
 				raw_call(offset);
 				RETURN_TRANSIENT(float, "=t");
+			}
+
+			void dump(Label label) {
+				dump(labels.at(label));
+			}
+
+			uint32_t call_u64(Label label) {
+				return call_u64(labels.at(label));
 			}
 
 			uint32_t call_u32(Label label) {

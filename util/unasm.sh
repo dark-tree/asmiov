@@ -6,19 +6,23 @@ elf=$(mktemp)
 
 trap "rm -f $txt $obj $elf" EXIT
 
+echo "SECTION .DATA" >> $txt
+echo "data:" >> $txt
+echo "$1" >> $txt
+
 echo "SECTION .CODE" >> $txt
 echo "GLOBAL _start" >> $txt
 echo >> $txt
 echo "_start:" >> $txt
-echo "$@" >> $txt
+echo "$2" >> $txt
 
 echo "[1] nasm $txt"
-nasm -f elf32 $txt -o $obj
+nasm -f elf64 $txt -o $obj
 
 echo "[2] link $obj"
-ld -nostdlib -melf_i386 $obj -o $elf
+ld -nostdlib -melf_x86_64 $obj -o $elf
 strip $elf
 
 echo "[3] dump $elf"
 #readelf -lSWa $elf
-objdump -Mintel -xD $elf
+objdump -Mintel,intel64 -xD $elf

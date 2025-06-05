@@ -7,32 +7,62 @@
 
 namespace asmio::x86 {
 
-	constexpr const uint8_t VOID = 0;
-	constexpr const uint8_t BYTE = 1;
-	constexpr const uint8_t WORD = 2;
-	constexpr const uint8_t DWORD = 4;
-	constexpr const uint8_t QWORD = 8;
-	constexpr const uint8_t TWORD = 10;
+	constexpr uint8_t VOID = 0;
+	constexpr uint8_t BYTE = 1;
+	constexpr uint8_t WORD = 2;
+	constexpr uint8_t DWORD = 4;
+	constexpr uint8_t QWORD = 8;
+	constexpr uint8_t TWORD = 10;
+
+	struct RegInfo {
+		uint8_t rex; // REX prefix is needed to encode this register
+		uint8_t reg;
+
+		RegInfo(bool rex, uint8_t reg) {
+			this->rex = rex;
+			this->reg = reg;
+		}
+
+		static RegInfo raw(uint8_t reg) {
+			return {false, reg};
+		}
+
+		/// Return the lower 3 bit of the register number
+		uint8_t low() const {
+			return reg & REG_LOW;
+		}
+
+		/// Checks if REX.R prefix is needed
+		bool is_extended() const {
+			return reg & REG_HIGH;
+		}
+	};
 
 	struct __attribute__((__packed__)) Registry {
 
 		// a bit useless rn
-		enum Flag {
-			NONE        = 0b0000,
-			PSEUDO      = 0b0001,
-			GENERAL     = 0b0010,
-			FLOATING    = 0b0100,
-			ACCUMULATOR = 0b1000
+		enum Flag : uint8_t {
+			NONE        = 0b00000,
+
+			GENERAL     = 0b0000001,
+			FLOATING    = 0b0000010,
+			ACCUMULATOR = 0b0000100,
+			REX         = 0b0001000, // this registers requires the REX prefix to be encoded
+			HIGH_BYTE   = 0b0010000, // registers that CANT be used with REX prefix present
 		};
 
-		const uint8_t size : 8; // size in bytes
-		const uint8_t flag : 5; // additional flags
-		const uint8_t reg  : 3; // registry x86 code
+		const uint8_t size; // size in bytes
+		const uint8_t flag; // additional flags
+		const uint8_t reg;  // registry x86 code
 
 		constexpr Registry(uint8_t size, uint8_t reg, uint8_t flag)
 		: size(size), flag(flag), reg(reg) {}
 
-		bool is(Registry::Flag mask) const {
+		bool operator==(Registry const& other) const {
+			return is(other);
+		}
+
+		bool is(Flag mask) const {
 			return (flag & mask) != 0;
 		}
 
@@ -40,37 +70,103 @@ namespace asmio::x86 {
 			return this->size == registry.size && this->reg == registry.reg && this->flag == registry.flag;
 		}
 
+		RegInfo pack() const {
+			return {is(REX), reg};
+		}
+
+		uint8_t low() const {
+			return reg & 0b0111;
+		}
+
+		bool is_esp_like() const {
+			return low() == 0b100;
+		}
+
+		bool is_ebp_like() const {
+			return low() == 0b101;
+		}
+
 	};
 
-	constexpr const Registry UNSET {VOID,  0b000, Registry::PSEUDO};
-	constexpr const Registry EAX   {DWORD, 0b000, Registry::GENERAL | Registry::ACCUMULATOR};
-	constexpr const Registry AX    {WORD,  0b000, Registry::GENERAL | Registry::ACCUMULATOR};
-	constexpr const Registry AL    {BYTE,  0b000, Registry::GENERAL | Registry::ACCUMULATOR};
-	constexpr const Registry AH    {BYTE,  0b100, Registry::GENERAL};
-	constexpr const Registry EBX   {DWORD, 0b011, Registry::GENERAL};
-	constexpr const Registry BX    {WORD,  0b011, Registry::GENERAL};
-	constexpr const Registry BL    {BYTE,  0b011, Registry::GENERAL};
-	constexpr const Registry BH    {BYTE,  0b111, Registry::GENERAL};
-	constexpr const Registry ECX   {DWORD, 0b001, Registry::GENERAL};
-	constexpr const Registry CX    {WORD,  0b001, Registry::GENERAL};
-	constexpr const Registry CL    {BYTE,  0b001, Registry::GENERAL};
-	constexpr const Registry CH    {BYTE,  0b101, Registry::GENERAL};
-	constexpr const Registry EDX   {DWORD, 0b010, Registry::GENERAL};
-	constexpr const Registry DX    {WORD,  0b010, Registry::GENERAL};
-	constexpr const Registry DL    {BYTE,  0b010, Registry::GENERAL};
-	constexpr const Registry DH    {BYTE,  0b110, Registry::GENERAL};
-	constexpr const Registry ESI   {DWORD, 0b110, Registry::GENERAL};
-	constexpr const Registry SI    {WORD,  0b110, Registry::GENERAL};
-	constexpr const Registry EDI   {DWORD, 0b111, Registry::GENERAL};
-	constexpr const Registry DI    {WORD,  0b111, Registry::GENERAL};
-	constexpr const Registry EBP   {DWORD, 0b101, Registry::GENERAL};
-	constexpr const Registry BP    {WORD,  0b101, Registry::GENERAL};
-	constexpr const Registry ESP   {DWORD, 0b100, Registry::GENERAL};
-	constexpr const Registry SP    {WORD,  0b100, Registry::GENERAL};
-	constexpr const Registry ST    {TWORD, 0b000, Registry::FLOATING};
+	// 386
+	constexpr Registry UNSET {VOID,  0b0000, Registry::NONE};
+	constexpr Registry EAX   {DWORD, 0b0000, Registry::GENERAL | Registry::ACCUMULATOR};
+	constexpr Registry AX    {WORD,  0b0000, Registry::GENERAL | Registry::ACCUMULATOR};
+	constexpr Registry AL    {BYTE,  0b0000, Registry::GENERAL | Registry::ACCUMULATOR};
+	constexpr Registry AH    {BYTE,  0b0100, Registry::GENERAL | Registry::HIGH_BYTE};
+	constexpr Registry EBX   {DWORD, 0b0011, Registry::GENERAL};
+	constexpr Registry BX    {WORD,  0b0011, Registry::GENERAL};
+	constexpr Registry BL    {BYTE,  0b0011, Registry::GENERAL};
+	constexpr Registry BH    {BYTE,  0b0111, Registry::GENERAL | Registry::HIGH_BYTE};
+	constexpr Registry ECX   {DWORD, 0b0001, Registry::GENERAL};
+	constexpr Registry CX    {WORD,  0b0001, Registry::GENERAL};
+	constexpr Registry CL    {BYTE,  0b0001, Registry::GENERAL};
+	constexpr Registry CH    {BYTE,  0b0101, Registry::GENERAL | Registry::HIGH_BYTE};
+	constexpr Registry EDX   {DWORD, 0b0010, Registry::GENERAL};
+	constexpr Registry DX    {WORD,  0b0010, Registry::GENERAL};
+	constexpr Registry DL    {BYTE,  0b0010, Registry::GENERAL};
+	constexpr Registry DH    {BYTE,  0b0110, Registry::GENERAL | Registry::HIGH_BYTE};
+	constexpr Registry ESI   {DWORD, 0b0110, Registry::GENERAL};
+	constexpr Registry SI    {WORD,  0b0110, Registry::GENERAL};
+	constexpr Registry EDI   {DWORD, 0b0111, Registry::GENERAL};
+	constexpr Registry DI    {WORD,  0b0111, Registry::GENERAL};
+	constexpr Registry EBP   {DWORD, 0b0101, Registry::GENERAL};
+	constexpr Registry BP    {WORD,  0b0101, Registry::GENERAL};
+	constexpr Registry ESP   {DWORD, 0b0100, Registry::GENERAL};
+	constexpr Registry SP    {WORD,  0b0100, Registry::GENERAL};
+	constexpr Registry ST    {TWORD, 0b0000, Registry::FLOATING};
+
+	// amd64 surrogates - uniform byte registers
+	constexpr Registry SPL   {BYTE,  AH.reg, Registry::GENERAL | Registry::REX};
+	constexpr Registry BPL   {BYTE,  CH.reg, Registry::GENERAL | Registry::REX};
+	constexpr Registry SIL   {BYTE,  DH.reg, Registry::GENERAL | Registry::REX};
+	constexpr Registry DIL   {BYTE,  BH.reg, Registry::GENERAL | Registry::REX};
+
+	// amd64
+	constexpr Registry RAX   {QWORD, 0b0000, Registry::GENERAL | Registry::ACCUMULATOR | Registry::REX};
+	constexpr Registry RBX   {QWORD, 0b0011, Registry::GENERAL | Registry::REX};
+	constexpr Registry RCX   {QWORD, 0b0001, Registry::GENERAL | Registry::REX};
+	constexpr Registry RDX   {QWORD, 0b0010, Registry::GENERAL | Registry::REX};
+	constexpr Registry RSI   {QWORD, 0b0110, Registry::GENERAL | Registry::REX};
+	constexpr Registry RDI   {QWORD, 0b0111, Registry::GENERAL | Registry::REX};
+	constexpr Registry RBP   {QWORD, 0b0101, Registry::GENERAL | Registry::REX};
+	constexpr Registry RSP   {QWORD, 0b0100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R8L   {BYTE,  0b1000, Registry::GENERAL | Registry::REX};
+	constexpr Registry R8W   {WORD,  0b1000, Registry::GENERAL | Registry::REX};
+	constexpr Registry R8D   {DWORD, 0b1000, Registry::GENERAL | Registry::REX};
+	constexpr Registry R8    {QWORD, 0b1000, Registry::GENERAL | Registry::REX};
+	constexpr Registry R9L   {BYTE,  0b1001, Registry::GENERAL | Registry::REX};
+	constexpr Registry R9W   {WORD,  0b1001, Registry::GENERAL | Registry::REX};
+	constexpr Registry R9D   {DWORD, 0b1001, Registry::GENERAL | Registry::REX};
+	constexpr Registry R9    {QWORD, 0b1001, Registry::GENERAL | Registry::REX};
+	constexpr Registry R10L  {BYTE,  0b1010, Registry::GENERAL | Registry::REX};
+	constexpr Registry R10W  {WORD,  0b1010, Registry::GENERAL | Registry::REX};
+	constexpr Registry R10D  {DWORD, 0b1010, Registry::GENERAL | Registry::REX};
+	constexpr Registry R10   {QWORD, 0b1010, Registry::GENERAL | Registry::REX};
+	constexpr Registry R11L  {BYTE,  0b1011, Registry::GENERAL | Registry::REX};
+	constexpr Registry R11W  {WORD,  0b1011, Registry::GENERAL | Registry::REX};
+	constexpr Registry R11D  {DWORD, 0b1011, Registry::GENERAL | Registry::REX};
+	constexpr Registry R11   {QWORD, 0b1011, Registry::GENERAL | Registry::REX};
+	constexpr Registry R12L  {BYTE,  0b1100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R12W  {WORD,  0b1100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R12D  {DWORD, 0b1100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R12   {QWORD, 0b1100, Registry::GENERAL | Registry::REX};
+	constexpr Registry R13L  {BYTE,  0b1101, Registry::GENERAL | Registry::REX};
+	constexpr Registry R13W  {WORD,  0b1101, Registry::GENERAL | Registry::REX};
+	constexpr Registry R13D  {DWORD, 0b1101, Registry::GENERAL | Registry::REX};
+	constexpr Registry R13   {QWORD, 0b1101, Registry::GENERAL | Registry::REX};
+	constexpr Registry R14L  {BYTE,  0b1110, Registry::GENERAL | Registry::REX};
+	constexpr Registry R14W  {WORD,  0b1110, Registry::GENERAL | Registry::REX};
+	constexpr Registry R14D  {DWORD, 0b1110, Registry::GENERAL | Registry::REX};
+	constexpr Registry R14   {QWORD, 0b1110, Registry::GENERAL | Registry::REX};
+	constexpr Registry R15L  {BYTE,  0b1111, Registry::GENERAL | Registry::REX};
+	constexpr Registry R15W  {WORD,  0b1111, Registry::GENERAL | Registry::REX};
+	constexpr Registry R15D  {DWORD, 0b1111, Registry::GENERAL | Registry::REX};
+	constexpr Registry R15   {QWORD, 0b1111, Registry::GENERAL | Registry::REX};
+
 
 	void assertValidScale(Registry registry, uint8_t multiplier);
-	void assertNonReferencial(class Location const* location, const char* why);
+	void assertNonReferential(class Location const* location, const char* why);
 
 	struct ScaledRegistry {
 
@@ -86,6 +182,10 @@ namespace asmio::x86 {
 				assertValidScale(registry, scale);
 			}
 
+			bool operator==(ScaledRegistry const& other) const {
+				return (registry == other.registry) && (scale == other.scale);
+			}
+
 	};
 
 	class Location {
@@ -97,22 +197,22 @@ namespace asmio::x86 {
 			const uint8_t scale  : 4; // the scale, as integer
 			const bool reference : 4; // is this location a memory reference
 			const uint8_t size;
-			const long offset;
+			const int64_t offset;
 			const char* label;
 
 		public:
 
 			template<typename T>
 			Location(T offset = 0) // can the same thing be archived with some smart overload?
-			: Location(UNSET, UNSET, 1, util::get_int_or(offset), util::get_ptr_or(offset), DWORD, false) {}
+			: Location(UNSET, UNSET, 1, util::get_int_or(offset), util::get_ptr_or(offset), VOID, false) {}
 
 			Location(Registry registry)
 			: Location(registry, UNSET, 1, 0, nullptr, registry.size, false) {}
 
 			Location(ScaledRegistry index)
-			: Location(UNSET, index.registry, index.scale, 0, nullptr, DWORD, false) {}
+			: Location(UNSET, index.registry, index.scale, 0, nullptr, index.registry.size, false) {}
 
-			explicit Location(Registry base, Registry index, uint32_t scale, long offset, const char* label, int size, bool reference)
+			explicit Location(Registry base, Registry index, uint32_t scale, int64_t offset, const char* label, int size, bool reference)
 			: base(base), index(index), scale(scale), offset(offset), label(label), size(size), reference(reference) {
 				assertValidScale(index, scale);
 			}
@@ -120,106 +220,94 @@ namespace asmio::x86 {
 		public:
 
 			Location ref() const {
-				assertNonReferencial(this, "Can't reference a reference!");
-				return Location {base, index, scale, offset, label, size, true};
+				assertNonReferential(this, "Can't reference a reference!");
+				return Location {base, index, scale, offset, label, VOID, true};
 			}
 
 			Location cast(uint8_t bytes) const {
 				if (reference || is_immediate()) {
-					return Location {base, index, scale, offset, label, bytes, true};
+					return Location {base, index, scale, offset, label, bytes, reference};
 				}
 
 				throw std::runtime_error {"The result of this expression is of fixed size!"};
 			}
 
-			Location operator + (int extend) const {
-				assertNonReferencial(this, "Can't modify a reference!");
+			Location operator + (int64_t extend) const {
+				assertNonReferential(this, "Can't modify a reference!");
 				return Location {base, index, scale, offset + extend, label, size, false};
 			}
 
-			Location operator - (int extend) const {
-				assertNonReferencial(this, "Can't modify a reference!");
+			Location operator - (int64_t extend) const {
+				assertNonReferential(this, "Can't modify a reference!");
 				return Location {base, index, scale, offset - extend, label, size, false};
 			}
 
 			Location operator + (const char* label) const {
-				assertNonReferencial(this, "Can't modify a reference!");
+				assertNonReferential(this, "Can't modify a reference!");
 				return Location {base, index, scale, offset, label, size, false};
 			}
 
-			/**
-			 * Checks if this location is a simple un-referenced constant (immediate) value
-			 */
+			/// Check if the size of this element hasn't yet been defined
+			bool is_indeterminate() const {
+				return size == VOID;
+			}
+
+			/// Checks if this location is a simple un-referenced constant (immediate) value
 			bool is_immediate() const {
 				return base.is(UNSET) && index.is(UNSET) && !reference /* TODO: check - what about immediate labels? */;
 			}
 
-			/**
-			 * Checks if this location uses the index component
-			 */
+			/// Checks if this location uses the index component
 			bool is_indexed() const {
-				return !index.is(UNSET);
+				return index.is(Registry::GENERAL);
 			}
 
-			/**
-			 * Checks if this location is a simple un-referenced register
-			 */
+			/// Checks if this location is a simple un-referenced register
 			bool is_simple() const {
-				return (base.flag & Registry::GENERAL) && !is_indexed() && offset == 0 && !reference && !is_labeled();
+				return base.is(Registry::GENERAL) && !is_indexed() && offset == 0 && !reference && !is_labeled();
 			}
 
-			/**
-			 * Checks if this location is a simple un-referenced accumulator, used when encoding short-forms
-			 */
+			/// Checks if this location is a simple un-referenced accumulator, used when encoding short-forms
 			bool is_accum() const {
 				return base.is(Registry::ACCUMULATOR) && is_simple();
 			}
 
-			/**
-			 * Checks if this location requires label resolution
-			 */
+			/// Checks if this location requires label resolution
 			bool is_labeled() const {
 				return label != nullptr;
 			}
 
-			/**
-			 * Checks if this location is a memory reference
-			 */
+			/// Checks if this location is a memory reference
 			bool is_memory() const {
 				return reference;
 			}
 
-			/**
-			 * Checks if this location is a simple un-referenced register OR memory reference
-			 */
+			/// Checks if this location is a simple un-referenced register OR memory reference
 			bool is_memreg() const {
 				return is_memory() || is_simple();
 			}
 
-			/**
-			 * Checks if this location is 'wide' (word or double word)
-			 */
-			bool is_wide() const {
-				return size == 2 || size == 4;
+			/// Check if this a valid scaled register expression
+			bool is_indexal() const {
+				return (base.is(Registry::GENERAL) || base.is(UNSET)) && (is_indexed() || index.is(UNSET));
 			}
 
-			/**
-			 * Checks if this location is a floating-point register
-			 */
+			/// Checks if this location is 'wide' (word, double word, or quad word)
+			bool is_wide() const {
+				return size == WORD || size == DWORD || size == QWORD;
+			}
+
+			/// Checks if this location is a floating-point register
 			bool is_floating() const {
 				return base.is(ST) && !is_indexed() && !reference && !is_labeled() && (offset >= 0) && (offset <= 7);
 			}
 
-			/**
-			 * Checks if this location is a floating-point register 'ST(0)'
-			 */
+			/// Checks if this location is a floating-point register 'ST(0)'
 			bool is_st0() const {
 				return is_floating() && (offset == 0);
 			}
 
-			/**
-			* Checks if this location contains a label an nothing else
-			*/
+			/// Checks if this location contains a label an nothing else
 			bool is_jump_label() {
 				return is_labeled() && base.is(UNSET) && index.is(UNSET) && !reference;
 			}
@@ -250,13 +338,18 @@ namespace asmio::x86 {
 	Location operator - (ScaledRegistry index, int offset);
 	Location operator + (ScaledRegistry index, Label label);
 	Location operator + (Registry base, Registry index);
-	Location ref(Location location);
 
 	/// investigate if immediate size ever matters, if not return to the old system
-	template<uint8_t size_hint = DWORD>
+	template<uint8_t size_hint>
 	Location cast(Location location) {
 		return location.cast(size_hint);
 	}
+
+	template<uint8_t size_hint = VOID>
+	Location ref(Location location) {
+		return location.ref().cast(size_hint);
+	}
+
 
 	uint8_t pair_size(const Location& a, const Location& b);
 

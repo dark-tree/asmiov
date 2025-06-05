@@ -36,7 +36,7 @@ namespace asmio::x86 {
 
 	/// Move word from [ESI] to [EDI]
 	void BufferWriter::put_movsw() {
-		put_inst_16bit_operand_mark();
+		put_16bit_operand_prefix();
 		put_byte(INST_MOVS | 1);
 	}
 
@@ -52,7 +52,7 @@ namespace asmio::x86 {
 
 	/// Input word from I/O port specified in DX into [EDI]
 	void BufferWriter::put_insw() {
-		put_inst_16bit_operand_mark();
+		put_16bit_operand_prefix();
 		put_byte(INST_INS | 1);
 	}
 
@@ -68,7 +68,7 @@ namespace asmio::x86 {
 
 	/// Output word from [ESI] to I/O port specified in DX
 	void BufferWriter::put_outsw() {
-		put_inst_16bit_operand_mark();
+		put_16bit_operand_prefix();
 		put_byte(INST_OUTS | 1);
 	}
 
@@ -84,7 +84,7 @@ namespace asmio::x86 {
 
 	/// Compares word at [ESI] with word at [EDI]
 	void BufferWriter::put_cmpsw() {
-		put_inst_16bit_operand_mark();
+		put_16bit_operand_prefix();
 		put_byte(INST_CMPS | 1);
 	}
 
@@ -100,7 +100,7 @@ namespace asmio::x86 {
 
 	/// Compare AX with word at [EDI]
 	void BufferWriter::put_scasw() {
-		put_inst_16bit_operand_mark();
+		put_16bit_operand_prefix();
 		put_byte(INST_SCAS | 1);
 	}
 
@@ -116,7 +116,7 @@ namespace asmio::x86 {
 
 	/// Load word at [ESI] into AX
 	void BufferWriter::put_lodsw() {
-		put_inst_16bit_operand_mark();
+		put_16bit_operand_prefix();
 		put_byte(INST_LODS | 1);
 	}
 
@@ -132,7 +132,7 @@ namespace asmio::x86 {
 
 	/// Store word AX at address [EDI]
 	void BufferWriter::put_stosw() {
-		put_inst_16bit_operand_mark();
+		put_16bit_operand_prefix();
 		put_byte(INST_STOS | 1);
 	}
 
@@ -144,20 +144,17 @@ namespace asmio::x86 {
 	/// Move
 	void BufferWriter::put_mov(Location dst, Location src) {
 
-		// verify operand size
-		if (src.is_memreg() && dst.is_memreg()) {
-			if (src.size != dst.size) {
-				throw std::runtime_error {"Operands must have equal size"};
-			}
-		}
-
 		// short form, VAL to REG
 		if (src.is_immediate() && dst.is_simple()) {
 			if (dst.size == WORD) {
-				put_inst_16bit_operand_mark();
+				put_16bit_operand_prefix();
 			}
 
-			put_byte((0b1011 << 4) | (dst.is_wide() << 3) | dst.base.reg);
+			if (dst.base.is(Registry::REX)) {
+				put_inst_rex(dst.size == QWORD, false, false, dst.base.reg & 0b1000);
+			}
+
+			put_byte((0b1011 << 4) | (dst.is_wide() << 3) | dst.base.low());
 			put_inst_label_imm(src, dst.base.size);
 			return;
 		}
@@ -165,14 +162,12 @@ namespace asmio::x86 {
 		// handle REG/MEM to REG
 		if (dst.is_simple() && src.is_memreg()) {
 			put_inst_mov(src, dst, true);
-
 			return;
 		}
 
 		// handle REG/VAL to REG/MEM
 		if ((src.is_immediate() || src.is_simple()) && dst.is_memreg()) {
 			put_inst_mov(dst, src, src.is_immediate());
-
 			return;
 		}
 
@@ -192,15 +187,15 @@ namespace asmio::x86 {
 	/// Load Effective Address
 	void BufferWriter::put_lea(Location dst, Location src) {
 
-		// lea deals with addresses, addresses use 32 bits,
+		// lea deals with addresses, addresses use 32/64 bits,
 		// so this is quite a logical limitation
-		if (dst.base.size != DWORD) {
-			throw std::runtime_error {"Invalid operands, non-dword destination register can't be used here"};
+		if (dst.base.size < DWORD) {
+			throw std::runtime_error {"Invalid operands, non-dword/qword destination register can't be used here"};
 		}
 
 		// handle EXP to REG
-		if (dst.is_simple() && !src.reference) {
-			put_inst_std(0b10001101, src, dst.base.reg, DWORD);
+		if (dst.is_simple() && !src.reference && src.is_indexal()) {
+			put_inst_std(0b10001101, src, dst.base.pack(), pair_size(src, dst));
 			return;
 		}
 
@@ -214,19 +209,15 @@ namespace asmio::x86 {
 	/// Exchange
 	void BufferWriter::put_xchg(Location dst, Location src) {
 
-		if (src.is_memreg() && dst.is_memreg()) {
-			if (dst.size != src.size) {
-				throw std::runtime_error {"Operands must have equal size"};
-			}
-		}
+		const uint8_t opr_size = pair_size(src, dst);
 
 		if (dst.is_simple() && src.is_memreg()) {
-			put_inst_std_dw(0b100001, src, dst.base.reg, pair_size(src, dst), true, src.is_wide());
+			put_inst_std_ds(0b100001, src, dst.base.pack(), opr_size, true);
 			return;
 		}
 
 		if (dst.is_memreg() && src.is_simple()) {
-			put_inst_std_dw(0b100001, dst, src.base.reg, pair_size(src, dst), true, dst.is_wide());
+			put_inst_std_ds(0b100001, dst, src.base.pack(), opr_size, true);
 			return;
 		}
 
@@ -244,6 +235,12 @@ namespace asmio::x86 {
 				put_byte(0b01101010);
 				put_inst_label_imm(src, BYTE);
 			} else {
+
+				// we would lose information otherwise
+				if (imm_len > DWORD) {
+					throw std::runtime_error {"Invalid operand, immediate value exceeds bounds"};
+				}
+
 				put_byte(0b01101000);
 				put_inst_label_imm(src, DWORD);
 			}
@@ -251,25 +248,30 @@ namespace asmio::x86 {
 			return;
 		}
 
+		// push accepts only indeterminate immediate values
+		if (src.is_indeterminate()) {
+			throw std::runtime_error {"Operand can't be of indeterminate size"};
+		}
+
 		// for some reason push & pop don't handle the wide flag,
 		// so we can only accept wide registers
-		if (!src.is_wide()) {
-			throw std::runtime_error {"Invalid operands, byte register can't be used here"};
+		if (src.size != WORD && src.size != QWORD) {
+			throw std::runtime_error {"Invalid operand, byte/dword can't be used here"};
 		}
 
 		// short-form
 		if (src.is_simple()) {
 
 			if (src.base.size == WORD) {
-				put_inst_16bit_operand_mark();
+				put_16bit_operand_prefix();
 			}
 
 			put_byte((0b01010 << 3) | src.base.reg);
 			return;
 		}
 
-		if (src.is_memreg()) {
-			put_inst_std_as(0b11111111, src, 0b110);
+		if (src.is_memory()) {
+			put_inst_std_as(0b11111111, src, RegInfo::raw(0b110));
 			return;
 		}
 
@@ -289,7 +291,7 @@ namespace asmio::x86 {
 		if (src.is_simple()) {
 
 			if (src.base.size == WORD) {
-				put_inst_16bit_operand_mark();
+				put_16bit_operand_prefix();
 			}
 
 			put_byte((0b01011 << 3) | src.base.reg);
@@ -297,62 +299,52 @@ namespace asmio::x86 {
 		}
 
 		if (src.is_memreg()) {
-			put_inst_std_as(0b10001111, src, 0b000);
+			put_inst_std_as(0b10001111, src, RegInfo::raw(0b000));
 			return;
 		}
 
 		throw std::runtime_error {"Invalid operand"};
+	}
+
+	/// Pop & Discard
+	void BufferWriter::put_pop() {
+		put_add(RSP, QWORD);
 	}
 
 	/// Increment
 	void BufferWriter::put_inc(Location dst) {
 
-		// short-form
-		if (dst.is_simple() && dst.is_wide()) {
-			Registry dst_reg = dst.base;
-
-			if (dst.base.size == WORD) {
-				put_inst_16bit_operand_mark();
-			}
-
-			put_byte((0b01000 << 3) | dst_reg.reg);
-			return;
+		if (dst.is_indeterminate()) {
+			throw std::runtime_error {"Operand can't be of indeterminate size"};
 		}
 
 		if (dst.is_memreg()) {
-			put_inst_std_dw(0b111111, dst, 0b000, dst.size, true, dst.is_wide());
+			put_inst_std_ds(0b111111, dst, RegInfo::raw(0b000), dst.size, true);
 			return;
 		}
 
-		throw std::runtime_error {"Invalid operand"};
+		throw std::runtime_error {"Invalid operand, expected memory or register"};
 	}
 
 	/// Decrement
 	void BufferWriter::put_dec(Location dst) {
 
-		// short-form
-		if (dst.is_simple() && dst.is_wide()) {
-
-			if (dst.base.size == WORD) {
-				put_inst_16bit_operand_mark();
-			}
-
-			put_byte((0b01001 << 3) | dst.base.reg);
-			return;
+		if (dst.is_indeterminate()) {
+			throw std::runtime_error {"Operand can't be of indeterminate size"};
 		}
 
 		if (dst.is_memreg()) {
-			put_inst_std_dw(0b111111, dst, 0b001, dst.size, true, dst.is_wide());
+			put_inst_std_ds(0b111111, dst, RegInfo::raw(0b001), dst.size, true);
 			return;
 		}
 
-		throw std::runtime_error {"Invalid operand"};
+		throw std::runtime_error {"Invalid operand, expected memory or register"};
 	}
 
 	/// Negate
 	void BufferWriter::put_neg(Location dst) {
 		if (dst.is_memreg()) {
-			put_inst_std_dw(0b111101, dst, 0b011, dst.size, true, dst.is_wide());
+			put_inst_std_ds(0b111101, dst, RegInfo::raw(0b011), dst.size, true);
 			return;
 		}
 
@@ -423,12 +415,13 @@ namespace asmio::x86 {
 	void BufferWriter::put_bsf(Location dst, Location src) {
 		uint32_t size = pair_size(src, dst);
 
+		// FIXME
 		if (size != WORD && size != DWORD) {
 			throw std::runtime_error {"Invalid operand size, expected word or dword"};
 		}
 
 		if (dst.is_simple() && src.is_memreg()) {
-			put_inst_std(0b10111100, src, dst.base.reg, size, true);
+			put_inst_std(0b10111100, src, dst.base.pack(), size, true);
 			return;
 		}
 
@@ -439,12 +432,13 @@ namespace asmio::x86 {
 	void BufferWriter::put_bsr(Location dst, Location src) {
 		uint32_t size = pair_size(src, dst);
 
+		// FIXME
 		if (size != WORD && size != DWORD) {
 			throw std::runtime_error {"Invalid operand size, expected word or dword"};
 		}
 
 		if (dst.is_simple() && src.is_memreg()) {
-			put_inst_std(0b10111101, src, dst.base.reg, size, true);
+			put_inst_std(0b10111101, src, dst.base.pack(), size, true);
 			return;
 		}
 
@@ -453,8 +447,13 @@ namespace asmio::x86 {
 
 	/// Multiply (Unsigned)
 	void BufferWriter::put_mul(Location src) {
+
+		if (src.is_indeterminate()) {
+			throw std::runtime_error {"Operand can't be of indeterminate size"};
+		}
+
 		if (src.is_memreg()) {
-			put_inst_std_dw(0b111101, src, 0b100, src.size, true, src.is_wide());
+			put_inst_std_ds(0b111101, src, RegInfo::raw(0b100), src.size, true);
 			return;
 		}
 
@@ -466,12 +465,12 @@ namespace asmio::x86 {
 
 		// short form
 		if (dst.is_simple() && src.is_memreg() && src.size == dst.size && dst.base.is(Registry::ACCUMULATOR)) {
-			put_inst_std_dw(0b111101, src, 0b101, pair_size(src, dst), true, src.is_wide());
+			put_inst_std_ds(0b111101, src, RegInfo::raw(0b101), pair_size(src, dst), true);
 		 	return;
 		}
 
 		if (dst.is_simple() && src.is_memreg() && dst.base.size != BYTE) {
-			put_inst_std(0b10101111, src, dst.base.reg, pair_size(src, dst), true);
+			put_inst_std(0b10101111, src, dst.base.pack(), pair_size(src, dst), true);
 			return;
 		}
 
@@ -485,8 +484,13 @@ namespace asmio::x86 {
 
 	/// Integer multiply (Signed), triple arg version
 	void BufferWriter::put_imul(Location dst, Location src, Location val) {
-		if (dst.is_simple() && src.is_memreg() && val.is_immediate() && dst.base.size != BYTE) {
-			put_inst_std_dw(0b011010, src, dst.base.reg, pair_size(src, dst), true /* TODO: sign flag */, true);
+
+		if (dst.base.size == BYTE) {
+			throw std::runtime_error {"Invalid operand, byte register can't be used here"};
+		}
+
+		if (dst.is_simple() && src.is_memreg() && val.is_immediate()) {
+			put_inst_std_dw(0b011010, src, dst.base.pack(), pair_size(src, dst), true /* TODO: sign flag */, true);
 
 			// not sure why but it looks like IMUL uses 8bit immediate values
 			put_byte(val.offset);
@@ -499,7 +503,7 @@ namespace asmio::x86 {
 	/// Divide (Unsigned)
 	void BufferWriter::put_div(Location src) {
 		if (src.is_memreg()) {
-			put_inst_std_dw(0b111101, src, 0b110, src.size, true, src.is_wide());
+			put_inst_std_ds(0b111101, src, RegInfo::raw(0b110), src.size, true);
 			return;
 		}
 
@@ -509,7 +513,7 @@ namespace asmio::x86 {
 	/// Integer divide (Signed)
 	void BufferWriter::put_idiv(Location src) {
 		if (src.is_memreg()) {
-			put_inst_std_dw(0b111101, src, 0b111, src.size, true, src.is_wide());
+			put_inst_std_ds(0b111101, src, RegInfo::raw(0b111), src.size, true);
 			return;
 		}
 
@@ -519,7 +523,7 @@ namespace asmio::x86 {
 	/// Invert
 	void BufferWriter::put_not(Location dst) {
 		if (dst.is_memreg()) {
-			put_inst_std_dw(0b111101, dst, 0b010, dst.size, true, dst.is_wide());
+			put_inst_std_ds(0b111101, dst, RegInfo::raw(0b010), dst.size, true);
 			return;
 		}
 
@@ -680,7 +684,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memreg()) {
-			put_inst_std_as(0b11111111, dst, 0b100);
+			put_inst_std_as(0b11111111, dst, RegInfo::raw(0b100));
 			return;
 		}
 
@@ -697,7 +701,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_memreg()) {
-			put_inst_std_as(0b11111111, dst, 0b010);
+			put_inst_std_as(0b11111111, dst, RegInfo::raw(0b010));
 			return;
 		}
 
@@ -953,13 +957,13 @@ namespace asmio::x86 {
 
 	/// Push Flags
 	void BufferWriter::put_pushf() {
-		put_inst_16bit_operand_mark();
+		put_16bit_operand_prefix();
 		put_pushfd();
 	}
 
 	/// Pop Flags
 	void BufferWriter::put_popf() {
-		put_inst_16bit_operand_mark();
+		put_16bit_operand_prefix();
 		put_popfd();
 	}
 
@@ -1127,7 +1131,7 @@ namespace asmio::x86 {
 
 	/// Jump on CX Zero
 	void BufferWriter::put_jcxz(Location label) {
-		put_inst_16bit_address_mark();
+		put_32bit_address_prefix();
 		put_jecxz(label);
 	}
 
@@ -1263,26 +1267,6 @@ namespace asmio::x86 {
 		put_setnle(dst);
 	}
 
-	/// ASCII adjust for division
-	void BufferWriter::put_aad() {
-
-		// the operation performed by AAD:
-		// AH = AL + AH * 10
-		// AL = 0
-
-		put_word(0b00001010'11010101);
-	}
-
-	/// ASCII adjust for multiplication
-	void BufferWriter::put_aam() {
-
-		// the operation performed by AAM:
-		// AH = AL div 10
-		// AL = AL mod 10
-
-		put_word(0b00001010'11010100);
-	}
-
 	/// Convert byte to word
 	void BufferWriter::put_cbw() {
 		put_byte(0b10011000);
@@ -1306,7 +1290,7 @@ namespace asmio::x86 {
 		}
 
 		if (dst.size == WORD) {
-			put_inst_16bit_operand_mark();
+			put_16bit_operand_prefix();
 		}
 
 		if (src.is_immediate()) {
@@ -1332,7 +1316,7 @@ namespace asmio::x86 {
 		}
 
 		if (src.size == WORD) {
-			put_inst_16bit_operand_mark();
+			put_16bit_operand_prefix();
 		}
 
 		if (dst.is_immediate()) {
@@ -1354,22 +1338,22 @@ namespace asmio::x86 {
 	void BufferWriter::put_test(Location dst, Location src) {
 
 		if (src.is_memreg() && dst.is_simple()) {
-			put_inst_std_dw(0b100001, src, dst.base.reg, pair_size(src, dst), false, dst.is_wide());
+			put_inst_std_ds(0b100001, src, dst.base.pack(), pair_size(src, dst), false);
 			return;
 		}
 
 		if (src.is_simple() && dst.is_memreg()) {
-			put_inst_std_dw(0b100001, dst, src.base.reg, pair_size(src, dst), false, src.is_wide());
+			put_inst_std_ds(0b100001, dst, src.base.pack(), pair_size(src, dst), false);
 			return;
 		}
 
 		// short form
 		if (src.is_accum() && dst.is_immediate()) {
 			if (src.size == WORD) {
-				put_inst_16bit_operand_mark();
+				put_16bit_operand_prefix();
 			}
 
-			put_byte(10101000 | src.is_wide());
+			put_byte(0b10101000 | src.is_wide());
 			put_inst_imm(dst.offset, src.size);
 			return;
 		}
@@ -1377,22 +1361,24 @@ namespace asmio::x86 {
 		// short form
 		if (src.is_immediate() && dst.is_accum()) {
 			if (dst.size == WORD) {
-				put_inst_16bit_operand_mark();
+				put_16bit_operand_prefix();
 			}
 
-			put_byte(10101000 | dst.is_wide());
+			put_byte(0b10101000 | dst.is_wide());
 			put_inst_imm(src.offset, dst.size);
 			return;
 		}
 
 		if (src.is_immediate() && dst.is_memreg()) {
-			put_inst_std_dw(0b111101, dst, 0b000, pair_size(src, dst), true, dst.is_wide());
+			set_suffix(dst.size);
+			put_inst_std_ds(0b111101, dst, RegInfo::raw(0b000), pair_size(src, dst), true);
 			put_inst_imm(src.offset, dst.size);
 			return;
 		}
 
 		if (src.is_memreg() && dst.is_immediate()) {
-			put_inst_std_dw(0b111101, src, 0b000, pair_size(src, dst), true, src.is_wide());
+			set_suffix(dst.size);
+			put_inst_std_ds(0b111101, src, RegInfo::raw(0b000), pair_size(src, dst), true);
 			put_inst_imm(dst.offset, src.size);
 			return;
 		}
@@ -1432,6 +1418,103 @@ namespace asmio::x86 {
 		}
 
 		throw std::runtime_error {"Invalid operand"};
+	}
+
+	void BufferWriter::put_xadd(Location dst, Location src) {
+
+		if (dst.is_memreg() && src.is_simple()) {
+			put_inst_std_ds(0xC0 >> 2, dst, src.base.pack(), pair_size(dst, src), false, true);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand"};
+
+	}
+
+	void BufferWriter::put_bswap(Location dst) {
+
+		if (!dst.is_simple()) {
+			throw std::runtime_error {"Invalid operand, only register can be used used here"};
+		}
+
+		if (dst.size != DWORD && dst.size != QWORD) {
+			throw std::runtime_error {"Invalid operand size, expected dword/qword"};
+		}
+
+		const uint8_t reg = dst.base.reg;
+
+		if (dst.base.is(Registry::REX)) {
+			put_inst_rex(dst.size == QWORD, false, false, reg & 0b1000);
+		}
+
+		put_byte(LONG_OPCODE);
+		put_byte(0xC8 | reg);
+
+	}
+
+	void BufferWriter::put_invd() {
+		put_byte(LONG_OPCODE);
+		put_byte(0x08);
+	}
+
+	void BufferWriter::put_wbinvd() {
+		put_byte(LONG_OPCODE);
+		put_byte(0x09);
+	}
+
+	void BufferWriter::put_cmpxchg(Location dst, Location src) {
+
+		if (dst.is_memreg() && src.is_simple()) {
+			put_inst_std_ds(0xB0 >> 2, dst, src.base.pack(), pair_size(dst, src), false, true);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand"};
+
+	}
+
+	/// Convert Doubleword to Quadword
+	void BufferWriter::put_cqo() {
+		put_rex_w();
+		put_cwd();
+	}
+
+	/// Swap GS Base Register
+	void BufferWriter::put_swapgs() {
+		put_byte(0x0F);
+		put_byte(0x01);
+		put_byte(0xF8);
+	}
+
+	/// Read From Model Specific Register
+	void BufferWriter::put_rdmsr() {
+		put_byte(0x0F);
+		put_byte(0x32);
+	}
+
+	/// Write to Model Specific Register
+	void BufferWriter::put_wrmsr() {
+		put_byte(0x0F);
+		put_byte(0x30);
+	}
+
+	/// Fast System Call
+	void BufferWriter::put_syscall() {
+		put_byte(0x0F);
+		put_byte(0x05);
+	}
+
+	/// Return From Fast System Call into Long Mode
+	void BufferWriter::put_sysretl() {
+		put_rex_w();
+		put_byte(0x0F);
+		put_byte(0x07);
+	}
+
+	/// Return From Fast System Call into Compatibility Mode
+	void BufferWriter::put_sysretc() {
+		put_byte(0x0F);
+		put_byte(0x07);
 	}
 
 }

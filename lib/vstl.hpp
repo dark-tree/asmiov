@@ -272,6 +272,11 @@ namespace vstl {
 		printf("Test '%s' " VSTL_FAILED "! Error: Received SIGSEGV while trying to access: 0x%lx!\n", tests[test_id].name, (long) si->si_addr);
 		siglongjmp(vstl::jmp, 1);
 	}
+
+	void signal_handler_SIGILL(int sig, siginfo_t* si, void* unused) {
+		printf("Test '%s' " VSTL_FAILED "! Error: Received SIGILL while trying to access: 0x%lx!\n", tests[test_id].name, (long) si->si_addr);
+		siglongjmp(vstl::jmp, 1);
+	}
 	#endif
 
 	int run(std::ostream& out, TestMode mode) {
@@ -279,8 +284,15 @@ namespace vstl {
 		#ifdef _WIN32
 			signal(SIGSEGV, signal_handler)
 		#else
+
+			stack_t ss;
+			ss.ss_sp = malloc(SIGSTKSZ);
+			ss.ss_size = SIGSTKSZ;
+			ss.ss_flags = 0;
+			sigaltstack(&ss, NULL);
+
 			struct sigaction action;
-			action.sa_flags = SA_SIGINFO;
+			action.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
 			sigemptyset(&action.sa_mask);
 			action.sa_sigaction = signal_handler;
 
@@ -288,12 +300,23 @@ namespace vstl {
 				out << "WARN: Failed to setup SIGSEGV handler!";
 				out << std::endl;
 			}
+
+
+			struct sigaction action2;
+			action2.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
+			sigemptyset(&action2.sa_mask);
+			action2.sa_sigaction = signal_handler_SIGILL;
+
+			if (sigaction(SIGILL, &action2, NULL) == -1) {
+				out << "WARN: Failed to setup SIGILL handler!";
+				out << std::endl;
+			}
 		#endif
 
 		const auto start = std::chrono::steady_clock::now();
 
 		for (const Test& test : tests) {
-			if (sigsetjmp(jmp, 1)) {
+			if (sigsetjmp(jmp, 0xffffffff)) {
 				failed ++;
 				goto skip;
 			}

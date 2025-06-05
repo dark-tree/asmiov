@@ -58,13 +58,18 @@ namespace asmio::x86 {
 
 	};
 
+	enum LinkType {
+		RELATIVE,
+		ABSOLUTE,
+	};
+
 	struct LabelCommand {
 
 		Label label;
 		uint8_t size;
 		long offset;
 		long shift;
-		bool relative;
+		LinkType type;
 
 	};
 

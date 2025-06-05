@@ -13,15 +13,191 @@
 
 using namespace asmio::x86;
 
-TEST (switch_mode_rbp_protection) {
+TEST (syntax_registry_attributes) {
+
+	ASSERT(EAX.is(EAX));
+	ASSERT(EAX.is(Registry::ACCUMULATOR));
+	ASSERT(ESP.is_esp_like());
+	ASSERT(EBP.is_ebp_like());
+	ASSERT(AH.is(Registry::HIGH_BYTE));
+	ASSERT(R13D.is(Registry::REX));
+	ASSERT(RAX.is(Registry::REX));
+	ASSERT(SIL.is(Registry::REX));
+
+	ASSERT(EAX * 2 != EAX * 1);
+	ASSERT(EAX * 2 == EAX * 2);
+
+	ASSERT(EAX == EAX);
+	ASSERT(EAX != EDX);
+	ASSERT(RDX != EDX);
+
+}
+
+TEST (syntax_indetermiante) {
+
+	// indeterminate
+	ASSERT(ref(EAX).is_indeterminate());
+	ASSERT(Location {0}.is_indeterminate());
+
+	// determinate
+	ASSERT(!ref<DWORD>(EAX).is_indeterminate());
+	ASSERT(!cast<QWORD>(Location {0}).is_indeterminate());
+	ASSERT(!Location {EAX}.is_indeterminate());
+	ASSERT(!Location {EAX * 2}.is_indeterminate());
+
+	EXPECT_ANY({
+		Location {EAX}.cast(DWORD);
+	});
+
+}
+
+TEST (writer_check_push) {
 
 	BufferWriter writer;
 
-	writer.put_push(EBP);
-	writer.put_pop(EBP);
-	writer.put_ret();
+	// 16 bit
+	writer.put_push(AX);
+	writer.put_push(BX);
+	writer.put_push(BP);
+	writer.put_push(R9W);
+	writer.put_push(ref<WORD>(RAX));
 
-	writer.bake().call_u32();
+	// 64 bit
+	writer.put_push(RAX);
+	writer.put_push(RBX);
+	writer.put_push(RBP);
+	writer.put_push(R11);
+	writer.put_push(R13);
+	writer.put_push(R15);
+	writer.put_push(ref<QWORD>(RAX));
+
+	// 8 bit
+	EXPECT_ANY({ writer.put_push(AL); });
+	EXPECT_ANY({ writer.put_push(AH); });
+	EXPECT_ANY({ writer.put_push(SPL); });
+	EXPECT_ANY({ writer.put_push(ref<BYTE>(RAX)); });
+
+	// 32 bit
+	EXPECT_ANY({ writer.put_push(EAX); });
+	EXPECT_ANY({ writer.put_push(R10D); });
+	EXPECT_ANY({ writer.put_push(R15D); });
+	EXPECT_ANY({ writer.put_push(ref<DWORD>(RAX)); });
+
+	// too large imm
+	EXPECT_ANY({ writer.put_push(0xffffffffff); });
+
+}
+
+TEST (writer_check_mov_sizing) {
+
+	BufferWriter writer;
+
+	EXPECT_ANY({ writer.put_mov(EAX, AX); });
+	EXPECT_ANY({ writer.put_mov(ref(RAX), ref(RAX)); });
+
+}
+
+TEST (writer_check_mov_address_size) {
+
+	BufferWriter writer;
+
+	writer.put_mov(AL, ref(RDX)); // 8a 02
+	writer.put_mov(AL, ref(EDX)); // 67 8a 02
+
+	EXPECT_ANY({ writer.put_mov(AL, ref(DX)); });
+	EXPECT_ANY({ writer.put_mov(AL, ref(SIL)); });
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.size(), 5);
+
+}
+
+TEST (writer_check_high_byte_register) {
+
+	BufferWriter writer;
+
+	// ok, legacy low/high registers
+	writer.put_mov(AH, DH);
+	writer.put_mov(BH, AL);
+
+	// ok, only extended low registers
+	writer.put_mov(SIL, DIL);
+	writer.put_mov(BPL, SIL);
+
+	// ok, legacy/extended low registers
+	writer.put_mov(SIL, AL);
+	writer.put_mov(DL, BPL);
+
+	// error, extended low and legacy high
+	EXPECT_ANY({ writer.put_mov(SIL, AH); });
+	EXPECT_ANY({ writer.put_mov(BH, BPL); });
+
+}
+
+TEST (writer_check_stack_index_register) {
+
+	BufferWriter writer;
+
+	// ok, sanity checks
+	writer.put_mov(EAX, ESP);
+	writer.put_mov(RAX, RSP);
+	writer.put_mov(EAX, ref(RSP));
+	writer.put_mov(RAX, ref(RSP));
+	writer.put_mov(EAX, ref(RSP + 4));
+	writer.put_mov(RAX, ref(RSP + 4));
+
+	// ok, ESP/RSP is the base here
+	writer.put_mov(EAX, ref(RSP + RAX));
+	writer.put_mov(EAX, ref(ESP + EAX));
+
+	// error, ESP/RSP can't be used as index
+	EXPECT_ANY({ writer.put_mov(EAX, ref(RAX + RSP * 2 + 4)); });
+	EXPECT_ANY({ writer.put_mov(EAX, ref(RAX + RSP * 2)); });
+	EXPECT_ANY({ writer.put_mov(EAX, ref(EAX + ESP * 2 + 4)); });
+	EXPECT_ANY({ writer.put_mov(EAX, ref(EAX + ESP * 2)); });
+
+	// this can be made correct by swapping registers
+	EXPECT_ANY({ writer.put_mov(EAX, ref(RAX + RSP)); });
+	EXPECT_ANY({ writer.put_mov(EAX, ref(EAX + ESP)); });
+
+}
+
+TEST (writer_check_lea_sizing) {
+
+	BufferWriter writer;
+
+	// ok
+	writer.put_lea(RAX, 0);
+
+	// ok, use address size prefix
+	writer.put_lea(EAX, 0);
+
+	// error
+	EXPECT_ANY({ writer.put_lea(AX, 0); });
+	EXPECT_ANY({ writer.put_lea(AL, 0); });
+
+}
+
+TEST (writer_check_mixed_addressing) {
+
+	BufferWriter writer;
+
+	writer.put_mov(RAX, ref(EAX + EBX * 2 + 123));
+	writer.put_mov(EAX, ref(RAX + RBX * 2 + 123));
+
+	EXPECT_ANY({ writer.put_mov(RAX, ref(RAX + EBX * 2 + 123)); });
+	EXPECT_ANY({ writer.put_mov(RAX, ref(EAX + RBX * 2 + 123)); });
+
+}
+
+TEST (writer_check_st_as_generic) {
+
+	BufferWriter writer;
+
+	EXPECT_ANY({ writer.put_inc(ST); });
+	EXPECT_ANY({ writer.put_mov(RAX, ST); });
+	EXPECT_ANY({ writer.put_lea(EAX, ST + 6); });
+
 
 }
 
@@ -40,32 +216,159 @@ TEST (writer_exec_mov_ret_nop) {
 
 }
 
+TEST (writer_exec_mov_scaled) {
+
+	BufferWriter writer;
+	writer.label("data");
+	writer.put_dword(23); // +0
+	writer.put_dword(44); // +4
+	writer.put_dword(67); // +8
+ 	writer.put_dword(51); // +12
+	writer.put_dword(30); // +16
+	writer.put_dword(17); // +20
+
+	writer.label("code");
+	writer.put_mov(R8D, 0);
+	writer.put_mov(R12, 5);
+	writer.put_mov(R15, "data");
+
+	writer.put_mov(R8D, ref(R12 + R15 + 3)); // ref(5 + data + 3) = ref(data + 8)
+	writer.put_mov(EAX, R8D);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	uint32_t eax = buffer.call_u32("code");
+	CHECK(eax, 67);
+
+}
+
+TEST (writer_exec_mov_long) {
+
+	BufferWriter writer;
+
+	writer.put_mov(RAX, 0x1000000000000000);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	uint64_t eax = buffer.call_u64();
+
+	CHECK(eax, 0x1000000000000000);
+
+}
+
+TEST (writer_exec_mov_long_simple) {
+
+	BufferWriter writer;
+
+	writer.put_mov(RDX, 0x2000000000000000);
+	writer.put_mov(RAX, RDX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	uint64_t eax = buffer.call_u64();
+
+	CHECK(eax, 0x2000000000000000);
+
+}
+
+TEST (writer_exec_mov_add_long_regmem) {
+
+	BufferWriter writer;
+
+	writer.label("L1");
+	writer.put_qword(7);
+	writer.put_qword(3);
+	writer.put_qword(9);
+
+	writer.label("start");
+	writer.put_mov(RAX, "L1");
+	writer.put_mov(R13, 42);
+	writer.put_mov(R12, 11);
+	writer.put_mov(R14, R12);
+
+	writer.put_mov(R15, 1);
+	writer.put_add(R13, R14);
+	writer.put_add(R13, ref(RAX + R15 * 8));
+
+	writer.put_mov(RAX, R13);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	uint64_t rax = buffer.call_u64("start");
+	CHECK(rax, 56);
+
+}
+
+TEST (writer_exec_mov_add_extended) {
+
+	BufferWriter writer;
+
+	writer.label("L1"); // => 7
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(R8L, 3);
+	writer.put_mov(R9L, 4);
+	writer.put_add(R8L, R9L);
+	writer.put_mov(AL, R8L);
+	writer.put_ret();
+
+	writer.label("L2"); // => 13
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(SIL, 11);
+	writer.put_mov(DIL, 2);
+	writer.put_add(SIL, DIL);
+	writer.put_mov(AL, SIL);
+	writer.put_ret();
+
+	writer.label("L3"); // => 1700
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(R12W, 900);
+	writer.put_mov(R13W, 800);
+	writer.put_add(R12W, R13W);
+	writer.put_mov(AX, R12W);
+	writer.put_ret();
+
+	writer.label("L4"); // => 170000
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(R12D, 90000);
+	writer.put_mov(R13D, 80000);
+	writer.put_add(R12D, R13D);
+	writer.put_mov(EAX, R12D);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64("L1"), 7);
+	CHECK(buffer.call_u64("L2"), 13);
+	CHECK(buffer.call_u64("L3"), 1700);
+	CHECK(buffer.call_u64("L4"), 170000);
+
+}
+
 TEST (writer_exec_mem_moves) {
 
 	BufferWriter writer;
 
 	writer.label("a").put_dword();
 	writer.label("b").put_dword();
-	writer.label("c").put_dword(34);
+	writer.label("c").put_dword(0x300);
 
 	writer.label("main");
 
 	// test 1
-	writer.put_mov(EAX, 12);
+	writer.put_mov(EAX, 1200);
 	writer.put_mov(ref("a"), EAX);
 	writer.put_mov(EDX, ref("a"));
-	writer.put_cmp(EDX, 12);
+	writer.put_cmp(EDX, 1200);
 	writer.put_jne("fail");
 
 	// test 2
-	writer.put_mov(ref("b"), 121);
+	writer.put_mov(ref<DWORD>("b"), 121);
 	writer.put_mov(EDX, ref("b"));
 	writer.put_cmp(EDX, 121);
 	writer.put_jne("fail");
 
 	// test 3
 	writer.put_mov(EDX, ref("c"));
-	writer.put_cmp(EDX, 34);
+	writer.put_cmp(EDX, 0x300);
 	writer.put_jne("fail");
 
 	writer.put_mov(EAX, 1);
@@ -125,11 +428,11 @@ TEST(writer_exec_push_pop) {
 
 	BufferWriter writer;
 
-	writer.put_mov(EAX, 9);
-	writer.put_push(EAX);
-	writer.put_mov(EAX, 7);
-	writer.put_pop(ECX);
-	writer.put_mov(EAX, ECX);
+	writer.put_mov(RAX, 9);
+	writer.put_push(RAX);
+	writer.put_mov(RAX, 7);
+	writer.put_pop(RCX);
+	writer.put_mov(RAX, RCX);
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -175,6 +478,23 @@ TEST(writer_exec_lea) {
 	CHECK(output, (edx + eax * 2 - 5) + eax);
 }
 
+TEST(writer_exec_lea_rex) {
+
+	BufferWriter writer;
+
+	writer.label("data");
+	writer.put_qword(42);
+
+	writer.label("code");
+	writer.put_lea(RAX, "data");
+	writer.put_mov(RAX, ref(RAX));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64(), 42);
+
+}
+
 TEST(writer_exec_add) {
 
 	int eax = 12, edx = 56, ecx = 60;
@@ -211,6 +531,48 @@ TEST(writer_exec_add_adc) {
 	int output = buffer.call_i32();
 
 	CHECK(output, 0x1);
+
+}
+
+TEST(writer_exec_add_long) {
+
+	BufferWriter writer;
+
+	writer.label("data");
+	writer.put_byte(0x16);
+	writer.put_byte(0x49);
+	writer.put_word(0x2137);
+	writer.put_dword(0x1111'2222);
+	writer.put_qword(0x1'0000'0000);
+
+	writer.label("code");
+	writer.put_mov(RAX, 0);
+	writer.put_mov(RDX, 0);
+	writer.put_mov(RSI, "data");
+	writer.put_mov(R15L, ref(RDX + RSI)); // => 0x16
+	writer.put_inc(RDX);
+
+	writer.put_mov(R14L, ref(RDX + RSI)); // => 0x49
+	writer.put_inc(RDX);
+
+	writer.put_mov(R13W, ref(RDX + RSI)); // => 0x2137
+	writer.put_add(RDX, 2);
+
+	writer.put_mov(R12D, ref(RDX + RSI)); // => 0x1111'2222
+	writer.put_add(RDX, 4);
+
+	writer.put_mov(R11, ref(RDX + RSI)); // => 0x1'0000'0000
+
+	writer.put_add(R15L, R14L);
+	writer.put_add(R15W, R13W);
+	writer.put_add(R15D, R12D);
+	writer.put_add(R15, R11);
+
+	writer.put_mov(RAX, R15);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64("code"), (0x16 + 0x49 + 0x2137 + 0x1111'2222 + 0x1'0000'0000));
 
 }
 
@@ -384,36 +746,6 @@ TEST(writer_exec_and_not_xor_or) {
 
 }
 
-TEST(writer_exec_aam) {
-
-	BufferWriter writer;
-
-	writer.put_mov(EAX, 27);
-	writer.put_aam(); // AL -> 7, AH -> 2
-	writer.put_ret();
-
-	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call_i32();
-
-	CHECK(output, 0x0207);
-
-}
-
-TEST(writer_exec_aad) {
-
-	BufferWriter writer;
-
-	writer.put_mov(EAX, 0x0509);
-	writer.put_aad(); // AL -> 59, AH -> 0
-	writer.put_ret();
-
-	ExecutableBuffer buffer = writer.bake();
-	int output = buffer.call_i32();
-
-	CHECK(output, 59);
-
-}
-
 TEST(writer_exec_bts_btr_btc) {
 
 	BufferWriter writer;
@@ -434,6 +766,24 @@ TEST(writer_exec_bts_btr_btc) {
 	int output = buffer.call_i32();
 
 	CHECK(output, 0b1100'1010);
+
+}
+
+TEST(writer_exec_bts_long) {
+
+	BufferWriter writer;
+
+	writer.put_mov(R13, 0);
+
+	writer.put_bts(R13, 63);
+	writer.put_bts(R13, 40);
+	writer.put_bts(R13, 9);
+
+	writer.put_mov(RAX, R13);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64(), 0x8000'0100'0000'0200);
 
 }
 
@@ -532,7 +882,7 @@ TEST(writer_exec_functions) {
 	BufferWriter writer;
 
 	writer.label("add");
-	writer.put_add(EAX, ref(ESP + 4));
+	writer.put_add(EAX, ref(RSP + 8));
 	writer.put_ret();
 
 	writer.label("main");
@@ -541,17 +891,17 @@ TEST(writer_exec_functions) {
 	// add 20 to EAX
 	writer.put_push(20);
 	writer.put_call("add");
-	writer.put_add(ESP, 4);
+	writer.put_pop();
 
 	// add 12 to EAX
 	writer.put_push(12);
 	writer.put_call("add");
-	writer.put_add(ESP, 4);
+	writer.put_pop();
 
 	// add 10 to EAX
 	writer.put_push(10);
 	writer.put_call("add");
-	writer.put_add(ESP, 4);
+	writer.put_pop();
 
 	writer.put_ret();
 
@@ -590,8 +940,8 @@ TEST(writer_exec_absolute_jmp) {
 
 	writer.label("main");
 	writer.put_mov(EAX, 12);
-	writer.put_mov(EDX, "back");
-	writer.put_jmp(EDX);
+	writer.put_mov(RDX, "back");
+	writer.put_jmp(RDX);
 	writer.put_ret(); // invalid
 
 	ExecutableBuffer buffer = writer.bake();
@@ -631,11 +981,11 @@ TEST (writer_exec_fpu_fmul_fimul_fmulp) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fld(ref("a"));              // fpu stack: [+6.0]
-	writer.put_fld(ref("b"));              // fpu stack: [+0.5, +6.0]
+	writer.put_fld(ref<DWORD>("a"));       // fpu stack: [+6.0]
+	writer.put_fld(ref<DWORD>("b"));       // fpu stack: [+0.5, +6.0]
 	writer.put_fmul(ST + 0, ST + 1);       // fpu stack: [0.5*6.0, +6.0]
-	writer.put_fimul(ref("c"));            // fpu stack: [0.5*6.0*4.0, +6.0]
-	writer.put_fld(cast<QWORD>(ref("d"))); // fpu stack: [0.25, 0.5*6.0*4.0, +6.0]
+	writer.put_fimul(ref<DWORD>("c"));     // fpu stack: [0.5*6.0*4.0, +6.0]
+	writer.put_fld(ref<QWORD>("d"));       // fpu stack: [0.25, 0.5*6.0*4.0, +6.0]
 	writer.put_fmulp(ST + 1);              // fpu stack: [0.5*6.0*4.0*0.25, +6.0]
 	writer.put_ret();
 
@@ -655,12 +1005,12 @@ TEST(writer_exec_fpu_f2xm1_fabs_fchs) {
 	writer.put_dword_f(5.0f);
 
 	writer.label("main");
-	writer.put_fld(ref("b")); // fpu stack: [+5.0f]
-	writer.put_fld(ref("a")); // fpu stack: [+1.0, +5.0f]
-	writer.put_fchs();        // fpu stack: [-1.0, +5.0f]
-	writer.put_f2xm1();       // fpu stack: [2^(-1.0)-1, +5.0f]
-	writer.put_fmulp(ST + 1); // fpu stack: [(2^(-1.0)-1)*5.0]
-	writer.put_fabs();        // fpu stack: [|(2^(-1.0)-1)*5.0|]
+	writer.put_fld(ref<DWORD>("b")); // fpu stack: [+5.0f]
+	writer.put_fld(ref<DWORD>("a")); // fpu stack: [+1.0, +5.0f]
+	writer.put_fchs();               // fpu stack: [-1.0, +5.0f]
+	writer.put_f2xm1();              // fpu stack: [2^(-1.0)-1, +5.0f]
+	writer.put_fmulp(ST + 1);        // fpu stack: [(2^(-1.0)-1)*5.0]
+	writer.put_fabs();               // fpu stack: [|(2^(-1.0)-1)*5.0|]
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -686,12 +1036,12 @@ TEST (writer_exec_fpu_fadd_fiadd_faddp) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fld(ref("a"));              // fpu stack: [+6.0]
-	writer.put_fld(ref("b"));              // fpu stack: [+0.5, +6.0]
-	writer.put_fadd(ST + 0, ST + 1);       // fpu stack: [0.5+6.0, +6.0]
-	writer.put_fiadd(ref("c"));            // fpu stack: [0.5+6.0+4.0, +6.0]
-	writer.put_fld(cast<QWORD>(ref("d"))); // fpu stack: [0.25, 0.5+6.0+4.0, +6.0]
-	writer.put_faddp(ST + 1);              // fpu stack: [0.5+6.0+4.0+0.25, +6.0]
+	writer.put_fld(ref<DWORD>("a"));     // fpu stack: [+6.0]
+	writer.put_fld(ref<DWORD>("b"));     // fpu stack: [+0.5, +6.0]
+	writer.put_fadd(ST + 0, ST + 1);     // fpu stack: [0.5+6.0, +6.0]
+	writer.put_fiadd(ref<DWORD>("c"));   // fpu stack: [0.5+6.0+4.0, +6.0]
+	writer.put_fld(ref<QWORD>("d"));     // fpu stack: [0.25, 0.5+6.0+4.0, +6.0]
+	writer.put_faddp(ST + 1);            // fpu stack: [0.5+6.0+4.0+0.25, +6.0]
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -714,15 +1064,15 @@ TEST (writer_exec_fpu_fcom_fstsw_fcomp_fcmove_fcmovb) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fld(ref("a"));  // fpu stack: [+6.0]
-	writer.put_fld(ref("b"));  // fpu stack: [+0.5, +6.0]
-	writer.put_fld(ref("c"));  // fpu stack: [+4.0, +0.5, +6.0]
-	writer.put_fcom(ref("a")); // fpu stack: [+4.0, +0.5, +6.0]
+	writer.put_fld(ref<DWORD>("a"));  // fpu stack: [+6.0]
+	writer.put_fld(ref<DWORD>("b"));  // fpu stack: [+0.5, +6.0]
+	writer.put_fld(ref<DWORD>("c"));  // fpu stack: [+4.0, +0.5, +6.0]
+	writer.put_fcom(ref<DWORD>("a")); // fpu stack: [+4.0, +0.5, +6.0]
 	writer.put_fstsw(AX);
 	writer.put_sahf();
-	writer.put_fcmovb(ST + 2); // fpu stack: [+6.0, +0.5, +6.0]
-	writer.put_fld(ref("c"));  // fpu stack: [+6.0, +6.0, +0.5, +6.0]
-	writer.put_fcomp(ST + 2);  // fpu stack: [+6.0, +0.5, +6.0]
+	writer.put_fcmovb(ST + 2);        // fpu stack: [+6.0, +0.5, +6.0]
+	writer.put_fld(ref<DWORD>("c"));  // fpu stack: [+6.0, +6.0, +0.5, +6.0]
+	writer.put_fcomp(ST + 2);         // fpu stack: [+6.0, +0.5, +6.0]
 	writer.put_fstsw(AX);
 	writer.put_sahf();
 	writer.put_fcmove(ST + 1); // fpu stack: [+6.0, +0.5, +6.0]
@@ -750,10 +1100,10 @@ TEST (writer_exec_fpu_fcompp) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fld(ref("a"));  // fpu stack: [+6.0]
-	writer.put_fld(ref("b"));  // fpu stack: [+0.5, +6.0]
-	writer.put_fld(ref("c"));  // fpu stack: [+4.0, +0.5, +6.0]
-	writer.put_fcompp();       // fpu stack: [+6.0]
+	writer.put_fld(ref<DWORD>("a"));  // fpu stack: [+6.0]
+	writer.put_fld(ref<DWORD>("b"));  // fpu stack: [+0.5, +6.0]
+	writer.put_fld(ref<DWORD>("c"));  // fpu stack: [+4.0, +0.5, +6.0]
+	writer.put_fcompp();              // fpu stack: [+6.0]
 	writer.put_fstsw(AX);
 	writer.put_sahf();
 	writer.put_jb("invalid");
@@ -784,16 +1134,16 @@ TEST (writer_exec_fpu_fcomi_fcomip) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fld(ref("b"));  // fpu stack: [+0.5]
-	writer.put_fld(ref("c"));  // fpu stack: [+4.0, +0.5]
-	writer.put_fcomi(ST + 1);  // fpu stack: [+4.0, +0.5]
+	writer.put_fld(ref<DWORD>("b"));  // fpu stack: [+0.5]
+	writer.put_fld(ref<DWORD>("c"));  // fpu stack: [+4.0, +0.5]
+	writer.put_fcomi(ST + 1);         // fpu stack: [+4.0, +0.5]
 	writer.put_jb("invalid");
 	writer.put_je("invalid");
 	writer.put_ja("main2");
 	writer.put_jmp("invalid");
 
 	writer.label("main2");
-	writer.put_fld(ref("a"));  // fpu stack: [3.0f, +4.0, +0.5]
+	writer.put_fld(ref<DWORD>("a"));  // fpu stack: [3.0f, +4.0, +0.5]
 	writer.put_fcomip(ST + 2); // fpu stack: [+4.0, +0.5]
 	writer.put_jb("invalid");
 	writer.put_je("invalid");
@@ -843,10 +1193,10 @@ TEST (writer_exec_fpu_fdiv_fdivp) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fld(ref("a"));        // fpu stack: [+2.0]
-	writer.put_fld(ref("b"));        // fpu stack: [+8.0, +2.0]
+	writer.put_fld(ref<DWORD>("a")); // fpu stack: [+2.0]
+	writer.put_fld(ref<DWORD>("b")); // fpu stack: [+8.0, +2.0]
 	writer.put_fdiv(ST + 0, ST + 1); // fpu stack: [8.0/2.0, +2.0]
-	writer.put_fld(ref("c"));        // fpu stack: [+0.125, 8.0/2.0, +2.0]
+	writer.put_fld(ref<DWORD>("c")); // fpu stack: [+0.125, 8.0/2.0, +2.0]
 	writer.put_fdivp(ST + 2);        // fpu stack: [8.0/2.0, 2.0/0.125]
 	writer.put_faddp(ST + 1);        // fpu stack: [8.0/2.0+2.0/0.125]
 	writer.put_ret();
@@ -868,12 +1218,12 @@ TEST (writer_exec_fpu_fdivr_fdivrp) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fld(ref("a"));         // fpu stack: [+2.0]
-	writer.put_fld(ref("a"));         // fpu stack: [+2.0, +2.0]
-	writer.put_fdivr(ST + 0, ST + 1); // fpu stack: [2.0/2.0, +2.0]
-	writer.put_fld(ref("c"));         // fpu stack: [+12.0, 2.0/2.0, +2.0]
-	writer.put_fdivrp(ST + 2);        // fpu stack: [2.0/2.0, 12.0/2.0]
-	writer.put_faddp(ST + 1);         // fpu stack: [2.0/2.0+12.0/2.0]
+	writer.put_fld(ref<DWORD>("a"));     // fpu stack: [+2.0]
+	writer.put_fld(ref<DWORD>("a"));     // fpu stack: [+2.0, +2.0]
+	writer.put_fdivr(ST + 0, ST + 1);    // fpu stack: [2.0/2.0, +2.0]
+	writer.put_fld(ref<DWORD>("c"));     // fpu stack: [+12.0, 2.0/2.0, +2.0]
+	writer.put_fdivrp(ST + 2);           // fpu stack: [2.0/2.0, 12.0/2.0]
+	writer.put_faddp(ST + 1);            // fpu stack: [2.0/2.0+12.0/2.0]
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -899,21 +1249,21 @@ TEST (writer_exec_fpu_ficom_ficomp) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fld(ref("af"));    // fpu stack: [2.0]
-	writer.put_ficom(ref("ai"));  // fpu stack: [2.0]
+	writer.put_fld(ref<DWORD>("af"));    // fpu stack: [2.0]
+	writer.put_ficom(ref<DWORD>("ai"));  // fpu stack: [2.0]
 	writer.put_fstsw(AX);
 	writer.put_sahf();
 	writer.put_jne("invalid");
-	writer.put_fld(ref("bf"));    // fpu stack: [3.0, 2.0]
-	writer.put_ficomp(ref("bi")); // fpu stack: [2.0]
+	writer.put_fld(ref<DWORD>("bf"));    // fpu stack: [3.0, 2.0]
+	writer.put_ficomp(ref<DWORD>("bi")); // fpu stack: [2.0]
 	writer.put_fstsw(AX);
 	writer.put_sahf();
 	writer.put_jne("invalid");
-	writer.put_ficomp(ref("bi")); // fpu stack: []
+	writer.put_ficomp(ref<DWORD>("bi")); // fpu stack: []
 	writer.put_fstsw(AX);
 	writer.put_sahf();
 	writer.put_je("invalid");
-	writer.put_fld1();            // fpu stack: [1.0]
+	writer.put_fld1();                   // fpu stack: [1.0]
 	writer.put_ret();
 
 	writer.label("invalid");
@@ -955,11 +1305,11 @@ TEST (writer_exec_fpu_fild) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fild(cast<WORD>(ref("a")));  // fpu stack: [1.0]
-	writer.put_fild(cast<DWORD>(ref("b"))); // fpu stack: [2.0, 1.0]
-	writer.put_fild(cast<QWORD>(ref("c"))); // fpu stack: [3.0, 2.0, 1.0]
-	writer.put_faddp(ST + 1);               // fpu stack: [3.0+2.0, 1.0]
-	writer.put_faddp(ST + 1);               // fpu stack: [3.0+2.0+1.0]
+	writer.put_fild(ref<WORD>("a"));   // fpu stack: [1.0]
+	writer.put_fild(ref<DWORD>("b"));  // fpu stack: [2.0, 1.0]
+	writer.put_fild(ref<QWORD>("c"));  // fpu stack: [3.0, 2.0, 1.0]
+	writer.put_faddp(ST + 1);          // fpu stack: [3.0+2.0, 1.0]
+	writer.put_faddp(ST + 1);          // fpu stack: [3.0+2.0+1.0]
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -979,16 +1329,16 @@ TEST (writer_exec_fpu_fist_fistp) {
 
 	writer.label("init");
 	writer.put_finit();
-	writer.put_fld1();          // fpu stack: [1.0]
-	writer.put_fld1();          // fpu stack: [1.0, 1.0]
-	writer.put_fld1();          // fpu stack: [1.0, 1.0, 1.0]
-	writer.put_faddp(ST + 1);   // fpu stack: [2.0, 1.0]
-	writer.put_fist(ref("a"));  // fpu stack: [2.0, 1.0]
-	writer.put_fld1();          // fpu stack: [1.0, 2.0, 1.0]
-	writer.put_fld1();          // fpu stack: [1.0, 1.0, 2.0, 1.0]
-	writer.put_faddp(ST + 1);   // fpu stack: [2.0, 2.0, 1.0]
-	writer.put_faddp(ST + 1);   // fpu stack: [4.0, 1.0]
-	writer.put_fistp(ref("b")); // fpu stack: [1.0]
+	writer.put_fld1();                 // fpu stack: [1.0]
+	writer.put_fld1();                 // fpu stack: [1.0, 1.0]
+	writer.put_fld1();                 // fpu stack: [1.0, 1.0, 1.0]
+	writer.put_faddp(ST + 1);          // fpu stack: [2.0, 1.0]
+	writer.put_fist(ref<DWORD>("a"));  // fpu stack: [2.0, 1.0]
+	writer.put_fld1();                 // fpu stack: [1.0, 2.0, 1.0]
+	writer.put_fld1();                 // fpu stack: [1.0, 1.0, 2.0, 1.0]
+	writer.put_faddp(ST + 1);          // fpu stack: [2.0, 2.0, 1.0]
+	writer.put_faddp(ST + 1);          // fpu stack: [4.0, 1.0]
+	writer.put_fistp(ref<DWORD>("b")); // fpu stack: [1.0]
 	writer.put_ret();
 
 	writer.label("main");
@@ -1014,13 +1364,13 @@ TEST (writer_exec_fpu_fisttp) {
 
 	writer.label("init");
 	writer.put_finit();
-	writer.put_fld1();           // fpu stack: [1.0]
-	writer.put_fld(ref("a"));    // fpu stack: [3.9, 1.0]
-	writer.put_fisttp(ref("b")); // fpu stack: [1.0]
+	writer.put_fld1();                  // fpu stack: [1.0]
+	writer.put_fld(ref<DWORD>("a"));    // fpu stack: [3.9, 1.0]
+	writer.put_fisttp(ref<DWORD>("b")); // fpu stack: [1.0]
 	writer.put_ret();
 
 	writer.label("main");
-	writer.put_mov(EAX, ref("b"));
+	writer.put_mov(EAX, ref<DWORD>("b"));
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -1053,8 +1403,8 @@ TEST (writer_exec_fpu_fsqrt) {
 
 	writer.label("main");
 	writer.put_finit();
-	writer.put_fld(ref("a")); // fpu stack: [16.0]
-	writer.put_fsqrt();       // fpu stack: [4.0]
+	writer.put_fld(ref<DWORD>("a")); // fpu stack: [16.0]
+	writer.put_fsqrt();              // fpu stack: [4.0]
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -1072,41 +1422,42 @@ TEST (writer_exec_fpu_fst) {
 	writer.label("dword_b");
 	writer.put_dword_f(0); // => 3
 
-	writer.label("qword_c");
+	writer.label("tword_c");
 	writer.put_qword_f(0); // => 6
+	// TODO invalid size here?
 
 	writer.label("set_a");
 	writer.put_finit();
 	writer.put_fld1();                            // fpu stack: [1.0]
 	writer.put_fld1();                            // fpu stack: [1.0, 1.0]
 	writer.put_faddp(ST + 1);                     // fpu stack: [2.0]
-	writer.put_fst(ref("dword_a"));               // fpu stack: [2.0]
+	writer.put_fst(ref<DWORD>("dword_a"));        // fpu stack: [2.0]
 	writer.put_ret();
 
 	writer.label("set_b");
 	writer.put_finit();
 	writer.put_fld1();                            // fpu stack: [1.0]
 	writer.put_fld1();                            // fpu stack: [1.0, 1.0]
-	writer.put_fld(ref("dword_a"));               // fpu stack: [2.0, 1.0, 1.0]
+	writer.put_fld(ref<DWORD>("dword_a"));        // fpu stack: [2.0, 1.0, 1.0]
 	writer.put_faddp(ST + 1);                     // fpu stack: [3.0, 1.0]
-	writer.put_fstp(ref("dword_b"));              // fpu stack: [1.0]
+	writer.put_fstp(ref<DWORD>("dword_b"));       // fpu stack: [1.0]
 	writer.put_ret();
 
 	writer.label("set_c");
 	writer.put_finit();
 	writer.put_fld0();                            // fpu stack: [0.0]
-	writer.put_fld(ref("dword_a"));               // fpu stack: [2.0, 0.0]
-	writer.put_fld(ref("dword_b"));               // fpu stack: [3.0, 2.0, 0.0]
+	writer.put_fld(ref<DWORD>("dword_a"));        // fpu stack: [2.0, 0.0]
+	writer.put_fld(ref<DWORD>("dword_b"));        // fpu stack: [3.0, 2.0, 0.0]
 	writer.put_fst(ST + 1);                       // fpu stack: [3.0, 3.0, 0.0]
 	writer.put_faddp(ST + 1);                     // fpu stack: [6.0, 0.0]
-	writer.put_fstp(cast<TWORD>(ref("qword_c"))); // fpu stack: [0.0]
+	writer.put_fstp(ref<TWORD>("tword_c"));       // fpu stack: [0.0]
 	writer.put_ret();
 
 	writer.label("ctrl_sum");
 	writer.put_finit();
-	writer.put_fld(ref("dword_a"));               // fpu stack: [2.0]
-	writer.put_fld(ref("dword_b"));               // fpu stack: [3.0, 2.0]
-	writer.put_fld(cast<TWORD>(ref("qword_c")));  // fpu stack: [6.0, 3.0, 2.0]
+	writer.put_fld(ref<DWORD>("dword_a"));        // fpu stack: [2.0]
+	writer.put_fld(ref<DWORD>("dword_b"));        // fpu stack: [3.0, 2.0]
+	writer.put_fld(ref<TWORD>("tword_c"));        // fpu stack: [6.0, 3.0, 2.0]
 	writer.put_faddp(ST + 1);                     // fpu stack: [9.0, 2.0]
 	writer.put_faddp(ST + 1);                     // fpu stack: [11.0]
 	writer.put_ret();
@@ -1126,13 +1477,13 @@ TEST (writer_exec_bt_dec) {
 	writer.label("var").put_dword();
 
 	writer.label("main");
-	writer.put_mov(ref("var"), 17); // 10001
-	writer.put_dec(ref("var"));     // 10000
+	writer.put_mov(ref<DWORD>("var"), 17); // 10001
+	writer.put_dec(ref<DWORD>("var"));     // 10000
 
-	writer.put_bt(ref("var"), 4);
+	writer.put_bt(ref<DWORD>("var"), 4);
 	writer.put_jnc("invalid_1");
 
-	writer.put_bt(ref("var"), 0);
+	writer.put_bt(ref<DWORD>("var"), 0);
 	writer.put_jc("invalid_2");
 
 	writer.put_mov(EAX, 0);
@@ -1252,7 +1603,7 @@ TEST (writer_exec_memory_xchg) {
 	writer.put_mov(EAX, 33);
 	writer.put_mov(BL, 99);
 	writer.put_xchg(EAX, ref("foo"));
-	writer.put_xchg(cast<BYTE>(ref("bar")), BL);
+	writer.put_xchg(ref("bar"), BL);
 	writer.put_ret();
 
 	writer.label("get_foo");
@@ -1261,7 +1612,7 @@ TEST (writer_exec_memory_xchg) {
 
 	writer.label("get_bar");
 	writer.put_xor(EAX, EAX);
-	writer.put_mov(AL, cast<BYTE>(ref("bar")));
+	writer.put_mov(AL, ref("bar"));
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -1280,21 +1631,28 @@ TEST (writer_exec_memory_push_pop) {
 	writer.label("bar").put_word(100);
 	writer.label("car").put_dword(0);
 
+	// just to align the disassembly
+	writer.put_byte(0);
+
 	writer.label("main");
-	writer.put_xor(EBX, EBX);
-	writer.put_mov(EAX, 0);
+	writer.put_xor(RBX, RBX);
+	writer.put_mov(RAX, 0);
 	writer.put_push(666);
-	writer.put_push(ref(EAX + "foo"));
-	writer.put_push(cast<WORD>(ref(EAX + "bar")));
+	writer.put_mov(RSI, "foo");
+	writer.put_push(ref<QWORD>(RAX + RSI));
+	writer.put_mov(RSI, "bar");
+	writer.put_push(ref<WORD>(RAX + RSI));
 	writer.put_pop(BX);
-	writer.put_pop(EAX);
-	writer.put_pop(ref("car"));
-	writer.put_add(EAX, EBX);
+	writer.put_pop(RAX);
+	writer.put_mov(RSI, "car");
+	writer.put_pop(ref<QWORD>(RSI));
+	writer.put_add(RAX, RBX);
 	writer.put_ret();
 
 	writer.label("get_car");
-	writer.put_xor(EAX, EAX);
-	writer.put_mov(EAX, ref("car"));
+	writer.put_xor(RAX, RAX);
+	writer.put_mov(RSI, "car");
+	writer.put_mov(RAX, ref(RSI));
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -1316,23 +1674,23 @@ TEST (writer_exec_memory_dec_inc) {
 	writer.label("ci").put_byte(50);
 
 	writer.label("main");
-	writer.put_dec(ref("ad"));
-	writer.put_dec(cast<WORD>(ref("bd")));
-	writer.put_dec(cast<BYTE>(ref("cd")));
-	writer.put_inc(ref("ai"));
-	writer.put_inc(cast<WORD>(ref("bi")));
-	writer.put_inc(cast<BYTE>(ref("ci")));
-	writer.put_cmp(ref("ad"), 149);
+	writer.put_dec(ref<DWORD>("ad"));
+	writer.put_dec(ref<WORD>("bd"));
+	writer.put_dec(ref<BYTE>("cd"));
+	writer.put_inc(ref<DWORD>("ai"));
+	writer.put_inc(ref<WORD>("bi"));
+	writer.put_inc(ref<BYTE>("ci"));
+	writer.put_cmp(ref<DWORD>("ad"), 149);
 	writer.put_jne("invalid");
-	writer.put_cmp(cast<WORD>(ref("bd")), 99);
+	writer.put_cmp(ref<WORD>("bd"), 99);
 	writer.put_jne("invalid");
-	writer.put_cmp(cast<BYTE>(ref("cd")), 49);
+	writer.put_cmp(ref<BYTE>("cd"), 49);
 	writer.put_jne("invalid");
-	writer.put_cmp(ref("ai"), 151);
+	writer.put_cmp(ref<DWORD>("ai"), 151);
 	writer.put_jne("invalid");
-	writer.put_cmp(cast<WORD>(ref("bi")), 101);
+	writer.put_cmp(ref<WORD>("bi"), 101);
 	writer.put_jne("invalid");
-	writer.put_cmp(cast<BYTE>(ref("ci")), 51);
+	writer.put_cmp(ref<BYTE>("ci"), 51);
 	writer.put_jne("invalid");
 	writer.put_mov(EAX, 1);
 	writer.put_ret();
@@ -1356,14 +1714,14 @@ TEST (writer_exec_memory_neg) {
 	writer.label("c").put_byte(50);
 
 	writer.label("main");
-	writer.put_neg(ref("a"));
-	writer.put_neg(cast<WORD>(ref("b")));
-	writer.put_neg(cast<BYTE>(ref("c")));
-	writer.put_cmp(ref("a"), -150);
+	writer.put_neg(ref<DWORD>("a"));
+	writer.put_neg(ref<WORD>("b"));
+	writer.put_neg(ref<BYTE>("c"));
+	writer.put_cmp(ref<DWORD>("a"), -150);
 	writer.put_jne("invalid");
-	writer.put_cmp(cast<WORD>(ref("b")), 100);
+	writer.put_cmp(ref<WORD>("b"), 100);
 	writer.put_jne("invalid");
-	writer.put_cmp(cast<BYTE>(ref("c")), -50);
+	writer.put_cmp(ref<BYTE>("c"), -50);
 	writer.put_jne("invalid");
 	writer.put_mov(EAX, 1);
 	writer.put_ret();
@@ -1387,14 +1745,14 @@ TEST (writer_exec_memory_not) {
 	writer.label("c").put_byte(34);
 
 	writer.label("main");
-	writer.put_not(ref("a"));
-	writer.put_not(cast<WORD>(ref("b")));
-	writer.put_not(cast<BYTE>(ref("c")));
-	writer.put_cmp(ref("a"), ~12345);
+	writer.put_not(ref<DWORD>("a"));
+	writer.put_not(ref<WORD>("b"));
+	writer.put_not(ref<BYTE>("c"));
+	writer.put_cmp(ref<DWORD>("a"), ~12345);
 	writer.put_jne("invalid");
-	writer.put_cmp(cast<WORD>(ref("b")), ~178);
+	writer.put_cmp(ref<WORD>("b"), ~178);
 	writer.put_jne("invalid");
-	writer.put_cmp(cast<BYTE>(ref("c")), ~34);
+	writer.put_cmp(ref<BYTE>("c"), ~34);
 	writer.put_jne("invalid");
 	writer.put_mov(EAX, 1);
 	writer.put_ret();
@@ -1418,7 +1776,7 @@ TEST (writer_exec_memory_mul) {
 
 	writer.label("main");
 	writer.put_mov(EAX, 3);
-	writer.put_mul(ref("a")); // intentional dword ptr
+	writer.put_mul(ref<DWORD>("a")); // intentional dword ptr
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -1459,12 +1817,12 @@ TEST (writer_exec_xlat) {
 	writer.put_byte(0); // 7 -> 0
 
 	writer.label("main");
-	writer.put_mov(EBX, "table");
+	writer.put_mov(RBX, "table");
 	writer.put_mov(AL, 2);
-	writer.put_xlat(); // AL := EBX[1] -> 6
-	writer.put_xlat(); // AL := EBX[6] -> 3
-	writer.put_xlat(); // AL := EBX[3] -> 1
-	writer.put_xlat(); // AL := EBX[1] -> 7
+	writer.put_xlat(); // AL := RBX[1] -> 6
+	writer.put_xlat(); // AL := RBX[6] -> 3
+	writer.put_xlat(); // AL := RBX[3] -> 1
+	writer.put_xlat(); // AL := RBX[1] -> 7
 	writer.put_cmp(AL, 7);
 	writer.put_jne("invalid");
 
@@ -1524,9 +1882,9 @@ TEST (writer_exec_test) {
 	writer.put_dword(0x10000);
 
 	writer.label("main");
-	writer.put_test(ref("foo"), 0x10000);
+	writer.put_test(ref<DWORD>("foo"), 0x10000);
 	writer.put_je("invalid");
-	writer.put_test(ref("foo"), 0x20000);
+	writer.put_test(ref<DWORD>("foo"), 0x20000);
 	writer.put_jne("invalid");
 	writer.put_mov(EDX, 0x10000);
 	writer.put_test(EDX, ref("foo"));
@@ -1623,14 +1981,14 @@ TEST (writer_exec_lods) {
 
 	writer.label("main");
 	writer.put_mov(EAX, 0);
-	writer.put_mov(ESI, "src");
+	writer.put_mov(RSI, "src");
 	writer.put_lodsw();
 	writer.put_lodsb();
 	writer.put_ret();
 
 	writer.label("src").put_ascii("Ugus!");
 
-	ExecutableBuffer buffer = writer.bake(true);
+	ExecutableBuffer buffer = writer.bake();
 	CHECK(buffer.call_u32("main"), (('g' << 8) | 'u'));
 
 }
@@ -1640,7 +1998,7 @@ TEST (writer_exec_stos) {
 	BufferWriter writer;
 
 	writer.label("main");
-	writer.put_mov(EDI, "dst");
+	writer.put_mov(RDI, "dst");
 	writer.put_mov(AL, 'H');
 	writer.put_stosb();
 	writer.put_mov(AL, 'e');
@@ -1669,8 +2027,8 @@ TEST (writer_exec_movs) {
 	BufferWriter writer;
 
 	writer.label("main");
-	writer.put_mov(ESI, "src");
-	writer.put_mov(EDI, "dst");
+	writer.put_mov(RSI, "src");
+	writer.put_mov(RDI, "dst");
 	writer.put_mov(ECX, 10);
 	writer.put_rep().put_movsb();
 	writer.put_ret();
@@ -1690,8 +2048,8 @@ TEST (writer_exec_cmps) {
 	BufferWriter writer;
 
 	writer.label("main_1");
-	writer.put_mov(ESI, "src");
-	writer.put_mov(EDI, "dst_1");
+	writer.put_mov(RSI, "src");
+	writer.put_mov(RDI, "dst_1");
 	writer.put_mov(ECX, 10);
 	writer.put_repe().put_cmpsb();
 	writer.put_jne("invalid");
@@ -1699,8 +2057,8 @@ TEST (writer_exec_cmps) {
 	writer.put_ret();
 
 	writer.label("main_2");
-	writer.put_mov(ESI, "src");
-	writer.put_mov(EDI, "dst_2");
+	writer.put_mov(RSI, "src");
+	writer.put_mov(RDI, "dst_2");
 	writer.put_mov(ECX, 10);
 	writer.put_repe().put_cmpsb();
 	writer.put_je("invalid");
@@ -1726,18 +2084,18 @@ TEST (writer_exec_scas) {
 	BufferWriter writer;
 
 	writer.label("main");
-	writer.put_mov(EDI, "src");
+	writer.put_mov(RDI, "src");
 	writer.put_mov(ECX, 16);
 	writer.put_mov(AL, 'D');
 	writer.put_repne().put_scasb();
-	writer.put_sub(EDI, "src");
-	writer.put_mov(EAX, EDI);
+	writer.put_sub(RDI, "src");
+	writer.put_mov(RAX, RDI);
 	writer.put_ret();
 
 	writer.label("src").put_ascii("123456789ABCDEF");
 
 	ExecutableBuffer buffer = writer.bake();
-	CHECK(buffer.call_u32("main"), 13);
+	CHECK(buffer.call_u64("main"), 13);
 
 }
 
@@ -1746,9 +2104,9 @@ TEST (writer_exec_tricky_encodings) {
 	BufferWriter writer;
 
 	writer.label("sanity");
-	writer.put_push(EBP);
+	writer.put_push(RBP);
 	writer.put_lea(EAX, 1);
-	writer.put_pop(EBP);
+	writer.put_pop(RBP);
 	writer.put_ret();
 
 	// lea eax, 1234h
@@ -1760,38 +2118,38 @@ TEST (writer_exec_tricky_encodings) {
 	// mov eax, esp
 	// special case: ESP used in r/m
 	writer.label("test_2");
-	writer.put_push(EBP);
-	writer.put_mov(EBP, ESP);
+	writer.put_push(RBP);
+	writer.put_mov(RBP, RSP);
 	writer.put_mov(ESP, 16492);
 	writer.put_mov(EAX, ESP); // here
-	writer.put_mov(ESP, EBP);
-	writer.put_pop(EBP);
+	writer.put_mov(RSP, RBP);
+	writer.put_pop(RBP);
 	writer.put_ret();
 
 	// lea eax, ebp + eax
 	// special case: EBP in SIB with no offset
 	writer.label("test_3");
-	writer.put_push(EBP);
+	writer.put_push(RBP);
 	writer.put_mov(EBP, 12);
 	writer.put_mov(EDX, 56);
-	writer.put_lea(EAX, EBP + EDX);
-	writer.put_pop(EBP);
+	writer.put_lea(EAX, EBP + EDX); // here
+	writer.put_pop(RBP);
 	writer.put_ret();
 
 	// lea eax, edx * 2
 	// special case: no base in SIB
 	writer.label("test_4");
 	writer.put_mov(EDX, 56);
-	writer.put_lea(EAX, EDX * 2);
+	writer.put_lea(EAX, EDX * 2); // here
 	writer.put_ret();
 
 	// lea eax, ebp + 1234h
 	// special case: no index in SIB
 	writer.label("test_5");
-	writer.put_push(EBP);
+	writer.put_push(RBP);
 	writer.put_mov(EBP, 111);
-	writer.put_lea(EAX, EBP + 333);
-	writer.put_pop(EBP);
+	writer.put_lea(EAX, EBP + 333); // here
+	writer.put_pop(RBP);
 	writer.put_ret();
 
 	ExecutableBuffer buffer = writer.bake();
@@ -1825,25 +2183,26 @@ TEST (writer_exec_retx) {
 	BufferWriter writer;
 
 	writer.label("stdcall");
-	writer.put_mov(EAX, ref(ESP + 4));
-	writer.put_mov(EDX, ref(ESP + 8));
-	writer.put_sub(ESP, 4);
-	writer.put_mov(ref(ESP), EAX);
-	writer.put_add(ref(ESP), EDX);
-	writer.put_mov(EAX, ref(ESP));
-	writer.put_add(ESP, 4);
-	writer.put_ret(8);
+	writer.put_mov(EAX, ref(RSP + 8));
+	writer.put_mov(EDX, ref(RSP + 16));
+	writer.put_sub(RSP, 8);
+	writer.put_mov(ref(RSP), EAX);
+	writer.put_add(ref(RSP), EDX);
+	writer.put_mov(EAX, ref(RSP));
+	writer.put_add(RSP, 8);
+	writer.put_ret(16);
 
 	writer.label("main");
-	writer.put_mov(ECX, ESP);
+	writer.put_mov(RCX, RSP);
 	writer.put_push(21);
 	writer.put_push(4300);
 	writer.put_call("stdcall");
-	writer.put_sub(ECX, ESP);
+	writer.put_sub(RCX, RSP);
 	writer.put_add(EAX, ECX);
 	writer.put_ret();
 
-	CHECK(writer.bake().call_i32("main"), 4321);
+	auto baked = writer.bake();
+	CHECK(baked.call_i32("main"), 4321);
 
 }
 
@@ -1852,22 +2211,24 @@ TEST (writer_exec_enter_leave) {
 	BufferWriter writer;
 
 	writer.label("stdcall");
-	writer.put_enter(4, 0);
+	writer.put_enter(8, 0);
 	writer.put_scf(0);
-	writer.put_mov(ref(EBP - 4), 1230);
-	writer.put_adc(ref(EBP - 4), 4);
-	writer.put_mov(EAX, ref(EBP - 4));
+	writer.put_mov(ref<DWORD>(RBP - 8), 1230);
+	writer.put_adc(ref<DWORD>(RBP - 8), 4);
+	writer.put_mov(EAX, ref(RBP - 8));
 	writer.put_mov(ESP, 21);
 	writer.put_leave();
 	writer.put_ret();
 
 	writer.label("main");
+	writer.put_push(RBP);
 	writer.put_mov(EBP, 0);
-	writer.put_mov(ECX, ESP);
+	writer.put_mov(RCX, RSP);
 	writer.put_call("stdcall");
-	writer.put_sub(ECX, ESP);
+	writer.put_sub(RCX, RSP);
 	writer.put_add(EAX, ECX);
 	writer.put_add(EAX, EBP);
+	writer.put_pop(RBP);
 	writer.put_ret();
 
 	CHECK(writer.bake().call_i32("main"), 1234);
@@ -1892,13 +2253,15 @@ TEST (writer_exec_bsf_bsr) {
 
 	writer.label("bsr_a");
 	writer.put_xor(EDX, EDX);
-	writer.put_bsr(EAX, ref(EDX + "a"));
+	writer.put_mov(RSI, "a");
+	writer.put_bsr(EAX, ref(RDX + RSI));
 	writer.put_ret();
 
 	writer.label("bsf_b");
 	writer.put_xor(EDX, EDX);
 	writer.put_mov(EAX, 0x80000000);
-	writer.put_bsf(AX, ref(EDX + "b"));
+	writer.put_mov(RSI, "b");
+	writer.put_bsf(AX, ref(RDX + RSI));
 	writer.put_ret();
 
 	writer.label("bsr_b");
@@ -1911,6 +2274,146 @@ TEST (writer_exec_bsf_bsr) {
 	CHECK(buffer.call_u32("bsr_a"), 21);
 	CHECK(buffer.call_u32("bsf_b"), 0x80000009);
 	CHECK(buffer.call_u32("bsr_b"), 0x80000009);
+
+}
+
+TEST (writer_exec_cqo) {
+
+	BufferWriter writer;
+	writer.label("L1");
+	writer.put_mov(RDX, 0);
+	writer.put_mov(RAX, 0x8FFFFFFF'FFFFFFFF);
+
+	writer.put_cqo();
+	writer.put_mov(RAX, RDX);
+	writer.put_ret();
+
+	writer.label("L0");
+	writer.put_mov(RDX, 0);
+	writer.put_mov(RAX, 0x7FFFFFFF'FFFFFFFF);
+
+	writer.put_cqo();
+	writer.put_mov(RAX, RDX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64("L1"), 0xFFFFFFFF'FFFFFFFF);
+	CHECK(buffer.call_u64("L0"), 0);
+
+}
+
+TEST (writer_exec_xadd) {
+
+	BufferWriter writer;
+
+	writer.put_mov(RAX, 0);
+	writer.put_mov(RBX, 70000);
+	writer.put_mov(RCX, 30000);
+
+	// RBX = RBX + RCX
+	// RCX = RBX
+	writer.put_xadd(RBX, RCX);
+
+	writer.put_cmp(RCX, 70000);
+	writer.put_jne("end");
+	writer.put_mov(RAX, RBX);
+
+	writer.label("end");
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64(0), 100000);
+
+}
+
+TEST (writer_exec_xadd_mem) {
+
+	BufferWriter writer;
+
+	writer.label("L1");
+	writer.put_qword(0x1111);
+
+	writer.label("start");
+	writer.put_mov(RAX, 0);
+	writer.put_mov(R15, 0x2222);
+
+	// L1 = L1 + R15
+	// R15 = L1
+	writer.put_xadd(ref("L1"), R15);
+
+	writer.put_mov(R14, ref("L1"));
+	writer.put_cmp(R14, 0x3333);
+	writer.put_jne("end");
+	writer.put_mov(RAX, R15);
+
+	writer.label("end");
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64("start"), 0x1111);
+
+}
+
+TEST (writer_exec_bswap_qword) {
+
+	BufferWriter writer;
+	writer.put_mov(R15, 0x11223344'55667788);
+	writer.put_bswap(R15);
+	writer.put_mov(RAX, R15);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u64(0), 0x88776655'44332211);
+
+}
+
+TEST (writer_exec_bswap_dword) {
+
+	BufferWriter writer;
+	writer.put_mov(R15D, 0x11223344);
+	writer.put_bswap(R15D);
+	writer.put_mov(EAX, R15D);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32(0), 0x44332211);
+
+}
+
+TEST (writer_exec_cmpxchg) {
+
+	BufferWriter writer;
+
+	writer.put_mov(R15, 0x1000);
+	writer.put_mov(RAX, 0x1000);
+	writer.put_mov(R14, 0x42);
+
+	writer.put_cmpxchg(R15, R14);
+	writer.put_mov(RAX, R15);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32(0), 0x42);
+
+}
+
+TEST (writer_exec_cmpxchg_mem) {
+
+	BufferWriter writer;
+
+	writer.label("L1");
+	writer.put_qword(0x1000);
+
+	writer.label("start");
+	writer.put_mov(RAX, 0x1000);
+	writer.put_mov(R14, 0x42);
+
+	writer.put_cmpxchg(ref("L1"), R14);
+	writer.put_mov(RAX, ref("L1"));
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.call_u32("start"), 0x42);
 
 }
 
@@ -1966,15 +2469,15 @@ TEST (writer_fail_invalid_reg_size) {
 	});
 
 	EXPECT(std::runtime_error, {
-		writer.put_xchg(cast<BYTE>(ref("bar")), EBX);
+		writer.put_xchg(ref<BYTE>("bar"), EBX);
 	});
 
 	EXPECT(std::runtime_error, {
-		writer.put_xchg(cast<WORD>(ref("bar")), EBX);
+		writer.put_xchg(ref<WORD>("bar"), EBX);
 	});
 
 	EXPECT(std::runtime_error, {
-		writer.put_xchg(cast<BYTE>(ref("bar")), BX);
+		writer.put_xchg(ref<BYTE>("bar"), BX);
 	});
 
 }
@@ -1986,8 +2489,8 @@ TEST (writer_fail_invalid_mem_size) {
 	writer.label("a");
 	writer.put_dword(0);
 
-	writer.put_mov(AL, cast<BYTE>(ref("a"))); // valid
-	writer.put_mov(AL, 0xFFFFFFFF);           // stupid, but valid
+	writer.put_mov(AL, ref("a"));   // valid
+	writer.put_mov(AL, 0xFFFFFFFF); // stupid, but valid
 
 	EXPECT(std::runtime_error, {
 		writer.put_fst(cast<TWORD>(ref("a")));
@@ -2018,7 +2521,7 @@ TEST (writer_fail_undefined_label) {
 
 }
 
-TEST (writer_elf_execve) {
+TEST (writer_elf_execve_int) {
 
 	using namespace asmio::elf;
 
@@ -2027,30 +2530,64 @@ TEST (writer_elf_execve) {
 	writer.label("text").put_ascii("Hello World!\n");
 
 	writer.label("strlen");
-	writer.put_mov(ECX, EAX);
-	writer.put_dec(EAX);
+	writer.put_mov(RCX, RAX);
+	writer.put_dec(RAX);
 	writer.label("l_strlen_next");
-	writer.put_inc(EAX);
-	writer.put_cmp(cast<BYTE>(ref(EAX)), 0);
+	writer.put_inc(RAX);
+	writer.put_cmp(ref<BYTE>(RAX), 0);
 	writer.put_jne("l_strlen_next");
-	writer.put_sub(EAX, ECX);
+	writer.put_sub(RAX, RCX);
 	writer.put_ret();
 
 	writer.label("_start");
-	writer.put_lea(EAX, "text");
+	writer.put_lea(RAX, "text");
 	writer.put_call("strlen");
-	writer.put_mov(EBX, EAX); // exit code
-	writer.put_mov(EAX, 1); // sys_exit
-	writer.put_int(0x80);
+	writer.put_mov(RBX, RAX); // exit code
+	writer.put_mov(RAX, 1); // sys_exit
+	writer.put_int(0x80); // 32 bit syscall
 	writer.put_ret();
 
 	ElfBuffer file = writer.bake_elf(nullptr);
-
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
 
 	CHECK(result, RunResult::SUCCESS);
 	CHECK(status, 13);
+
+}
+
+TEST (writer_elf_execve_syscall) {
+
+	using namespace asmio::elf;
+
+	BufferWriter writer;
+
+	writer.label("text").put_ascii("My beloved syscall!\n");
+
+	writer.label("strlen");
+	writer.put_mov(RCX, RAX);
+	writer.put_dec(RAX);
+	writer.label("l_strlen_next");
+	writer.put_inc(RAX);
+	writer.put_cmp(ref<BYTE>(RAX), 0);
+	writer.put_jne("l_strlen_next");
+	writer.put_sub(RAX, RCX);
+	writer.put_ret();
+
+	writer.label("_start");
+	writer.put_lea(RAX, "text");
+	writer.put_call("strlen");
+	writer.put_mov(RDI, RAX); // exit code
+	writer.put_mov(RAX, 60); // sys_exit
+	writer.put_syscall();
+	writer.put_ret();
+
+	ElfBuffer file = writer.bake_elf(nullptr);
+	int status;
+	RunResult result = file.execute("memfd-elf-1", &status);
+
+	CHECK(result, RunResult::SUCCESS);
+	CHECK(status, 20);
 
 }
 
@@ -2061,19 +2598,19 @@ TEST (tasml_tokenize) {
 			byte "Hello!", 0
 
 		strlen:
-			mov ecx, /* inline comments! */ eax
-			dec eax
+			mov rcx, /* inline comments! */ rax
+			dec rax
 
 			l_strlen_next:
-				inc eax
-				cmp byte [eax], 0
+				inc rax
+				cmp byte [rax], 0
 			jne @l_strlen_next
 
-			sub eax, ecx
+			sub rax, rcx
 			ret
 
 		_start:
-			lea eax, @text
+			lea rax, @text
 			call @strlen
 			nop; nop; ret // multi-statements
 	)";

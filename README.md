@@ -1,5 +1,5 @@
 # Asmiov
-x86 386 assembler with support for source file parsing (NASM-like Intel syntax) and JIT 
+x86-64 assembler with support for source file parsing (NASM-like Intel syntax) and JIT 
 code generation using the build-in C++ API with syntax closely matching the source format.
 The project consists of a `tasml` CLI assembler and a `test` unit test runner. 
 
@@ -14,23 +14,23 @@ text:
 	byte "Hello!", 0
 
 strlen:
-	mov ecx, /* inline comments! */ eax
-	dec eax
+	mov rcx, /* inline comments! */ rax
+	dec rax
 
-l_strlen_next:
-		inc eax
-		cmp byte [eax], 0
+	l_strlen_next:
+		inc rax
+		cmp byte [rax], 0
 	jne @l_strlen_next
 
-	sub eax, ecx
+	sub rax, rcx
 	ret
 
 _start:
-	lea eax, @text
+	lea rax, @text
 	call @strlen
-	mov ebx, eax // exit code
-	mov eax, 1 // sys_exit
-	int 0x80; ret // multi-statement lines
+	mov edi, rax // exit code
+	mov rax, 60 // sys_exit
+	syscall
 ```
 
 To assemble this code the following command can be used,
@@ -56,23 +56,22 @@ int main() {
 	writer.put_ascii("Hello!");
 
 	writer.label("strlen");
-	writer.put_mov(ECX, EAX);
-	writer.put_dec(EAX);
+	writer.put_mov(RCX, RAX);
+	writer.put_dec(RAX);
 	
 	writer.label("l_strlen_next");
-	writer.put_inc(EAX);
-	writer.put_cmp(cast<BYTE>(ref(EAX)), 0);
+	writer.put_inc(RAX);
+	writer.put_cmp(ref<BYTE>(RAX), 0);
 	writer.put_jne("l_strlen_next");
-	writer.put_sub(EAX, ECX);
+	writer.put_sub(RAX, RCX);
 	writer.put_ret();
 
 	writer.label("_start");
-	writer.put_lea(EAX, "text");
+	writer.put_lea(RAX, "text");
 	writer.put_call("strlen");
-	writer.put_mov(EBX, EAX); // exit code
-	writer.put_mov(EAX, 1); // sys_exit
-	writer.put_int(0x80);
-	writer.put_ret();
+	writer.put_mov(RDI, RAX); // exit code
+	writer.put_mov(RAX, 60); // sys_exit
+	writer.put_syscall();
 
 	ElfBuffer file = writer.bake_elf(nullptr);
 

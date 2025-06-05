@@ -243,13 +243,8 @@ namespace asmio::x86 {
 		}
 
 		// REX
-		if (size == QWORD || packed.rex || (sib_index & 0b01000) || (sib_base & 0b1000)) {
-			put_inst_rex(
-				size == QWORD,
-				packed.is_extended(),
-				sib_index & 0b01000,
-				(mrm_mem | sib_base) & 0b01000
-			);
+		if (size == QWORD || packed.rex || (sib_index & REG_HIGH) || (sib_base & REG_HIGH)) {
+			put_inst_rex(size == QWORD, packed.is_extended(), sib_index & REG_HIGH, (mrm_mem | sib_base) & REG_HIGH);
 		}
 
 		// two byte opcode, starts with 0x0F
@@ -258,11 +253,11 @@ namespace asmio::x86 {
 		}
 
 		put_byte(opcode);
-		put_inst_mod_reg_rm(mrm_mod, packed.low(), mrm_mem & 0b111);
+		put_inst_mod_reg_rm(mrm_mod, packed.low(), mrm_mem & REG_LOW);
 
 		// if SIB was enabled write it
 		if (mrm_mem == RM_SIB) {
-			put_inst_sib(sib_scale, sib_index & 0b111, sib_base & 0b111);
+			put_inst_sib(sib_scale, sib_index & REG_LOW, sib_base & REG_LOW);
 		}
 
 		// if offset was present write it

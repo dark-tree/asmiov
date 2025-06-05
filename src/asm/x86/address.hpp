@@ -29,12 +29,12 @@ namespace asmio::x86 {
 
 		/// Return the lower 3 bit of the register number
 		uint8_t low() const {
-			return reg & 0b111;
+			return reg & REG_LOW;
 		}
 
 		/// Checks if REX.R prefix is needed
 		bool is_extended() const {
-			return reg & 0b1000;
+			return reg & REG_HIGH;
 		}
 	};
 

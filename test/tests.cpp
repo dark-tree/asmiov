@@ -201,18 +201,6 @@ TEST (writer_check_st_as_generic) {
 
 }
 
-TEST (legacy_rbp_protection) {
-
-	BufferWriter writer;
-
-	writer.put_push(0);
-	writer.put_pop(RBP);
-	writer.put_ret();
-
-	writer.bake().call_u32();
-
-}
-
 TEST (writer_exec_mov_ret_nop) {
 
 	BufferWriter writer;
@@ -2233,12 +2221,14 @@ TEST (writer_exec_enter_leave) {
 	writer.put_ret();
 
 	writer.label("main");
+	writer.put_push(RBP);
 	writer.put_mov(EBP, 0);
 	writer.put_mov(RCX, RSP);
 	writer.put_call("stdcall");
 	writer.put_sub(RCX, RSP);
 	writer.put_add(EAX, ECX);
 	writer.put_add(EAX, EBP);
+	writer.put_pop(RBP);
 	writer.put_ret();
 
 	CHECK(writer.bake().call_i32("main"), 1234);

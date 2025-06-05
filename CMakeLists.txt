@@ -1,14 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(ASMIOV C CXX ASM)
 
-set(CMAKE_CXX_FLAGS "-no-pie")
-set(CMAKE_C_FLAGS "-no-pie")
-set(CMAKE_ASM_FLAGS "-no-pie")
 set(CMAKE_CXX_STANDARD 20)
-
-set(ASM_SOURCES
-		src/asm/x86/switch.s
-)
 
 set(CPP_SOURCES
 		src/asm/x86/writer.cpp
@@ -20,12 +13,10 @@ set(CPP_SOURCES
 )
 
 include_directories(src/ .)
-add_library(asmiov ${ASM_SOURCES} ${CPP_SOURCES})
+add_library(asmiov ${CPP_SOURCES})
 
 add_executable(test test/tests.cpp)
 target_link_libraries(test PRIVATE asmiov)
 
 add_executable(tasml src/tasml/tasml.cpp)
 target_link_libraries(tasml PRIVATE asmiov)
-
-set_source_files_properties(${ASM_SOURCES} PROPERTIES LANGUAGE ASM)

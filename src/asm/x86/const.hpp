@@ -19,6 +19,12 @@ namespace asmio::x86 {
 	/// placed in the r/m field along with mod set to anything but MOD_SHORT to enable the SIB byte
 	constexpr uint8_t RM_SIB       = 0b100;
 
+	/// Low (Non-REX) bits of the register number
+	constexpr uint8_t REG_LOW      = 0b0111;
+
+	/// High (REX) bit of the register number
+	constexpr uint8_t REG_HIGH     = 0b1000;
+
 	/// placed in the SIB byte's 'index' to mark the lack of index (makes SIB just a base holder)
 	constexpr uint8_t NO_SIB_INDEX = 0b100;
 

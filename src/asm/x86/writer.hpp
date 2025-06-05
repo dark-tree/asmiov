@@ -1,8 +1,7 @@
 #pragma once
 
 #include "external.hpp"
-#include "address.hpp"
-#include "label.hpp"
+#include "argument/location.hpp"
 #include "buffer.hpp"
 #include "tasml/error.hpp"
 #include "file/elf/buffer.hpp"

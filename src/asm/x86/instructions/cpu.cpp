@@ -1285,7 +1285,7 @@ namespace asmio::x86 {
 	/// Input from Port
 	void BufferWriter::put_in(Location dst, Location src) {
 
-		if (!dst.is_simple() || !(dst.base.is(EAX) || dst.base.is(AX) || dst.base.is(AL))) {
+		if (!dst.is_simple() || !dst.base.is(Registry::ACCUMULATOR)) {
 			throw std::runtime_error {"Invalid destination operand, expected EAX, AX or AL registers"};
 		}
 
@@ -1299,7 +1299,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		if (src.is_simple() && src.base.is(DX)) {
+		if (src.is_simple() && src.base == DX) {
 			put_byte(0b11101100 | dst.is_wide());
 			return;
 		}
@@ -1311,7 +1311,7 @@ namespace asmio::x86 {
 	/// Output to Port
 	void BufferWriter::put_out(Location dst, Location src) {
 
-		if (!src.is_simple() || !(src.base.is(EAX) || src.base.is(AX) || src.base.is(AL))) {
+		if (!src.is_simple() || !src.base.is(Registry::ACCUMULATOR)) {
 			throw std::runtime_error {"Invalid source operand, expected EAX, AX or AL registers"};
 		}
 
@@ -1325,7 +1325,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		if (dst.is_simple() && dst.base.is(DX)) {
+		if (dst.is_simple() && dst.base == DX) {
 			put_byte(0b11101110 | src.is_wide());
 			return;
 		}

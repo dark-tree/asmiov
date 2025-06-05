@@ -15,7 +15,6 @@ using namespace asmio::x86;
 
 TEST (syntax_registry_attributes) {
 
-	ASSERT(EAX.is(EAX));
 	ASSERT(EAX.is(Registry::ACCUMULATOR));
 	ASSERT(ESP.is_esp_like());
 	ASSERT(EBP.is_ebp_like());

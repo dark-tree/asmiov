@@ -39,7 +39,7 @@ namespace asmio::x86 {
 	/// Store FPU State Word (without checking for pending unmasked exceptions)
 	void BufferWriter::put_fnstsw(Location dst) {
 
-		if (dst.is_simple() && dst.base.is(AX)) {
+		if (dst.is_simple() && dst.base == AX) {
 			put_inst_fpu(0xDF, 0xE0);
 			return;
 		}

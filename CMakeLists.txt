@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CPP_SOURCES
 		src/asm/x86/writer.cpp
-		src/asm/x86/address.cpp
 		src/asm/x86/emitter.cpp
+		src/asm/x86/argument/location.cpp
 		src/asm/x86/instructions/cpu.cpp
 		src/asm/x86/instructions/fpu.cpp
 		src/tasml/tokenizer.cpp

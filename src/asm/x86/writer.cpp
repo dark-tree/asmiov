@@ -121,11 +121,11 @@ namespace asmio::x86 {
 
 			uint8_t adr_size = VOID;
 
-			if (!dst.base.is(UNSET)) {
+			if (dst.base != UNSET) {
 				adr_size = dst.base.size;
 			}
 
-			if (!dst.index.is(UNSET)) {
+			if (dst.index != UNSET) {
 
 				// check if the size is correct
 				// we can use [eax + edx] and [rax + rdx] but not [eax + rdx]
@@ -182,7 +182,7 @@ namespace asmio::x86 {
 
 		// if there is no base or index (just the offset), put NO_BASE into r/m, and MOD_NONE into mod
 		// this is a special case used to encode a direct offset reference (32 bit)
-		if (dst.base.is(UNSET) && dst.index.is(UNSET)) {
+		if (dst.base == UNSET && dst.index == UNSET) {
 			mrm_mod = MOD_NONE;
 
 			if (dst.is_labeled()) {
@@ -208,7 +208,7 @@ namespace asmio::x86 {
 
 		// special case for [EBP/RBP/R13]
 		// we have to encode it as [EBP/RBP/R13 + 0]
-		else if (dst.base.is_ebp_like() && mrm_mod == MOD_NONE && dst.index.is(UNSET)) {
+		else if (dst.base.is_ebp_like() && mrm_mod == MOD_NONE && dst.index == UNSET) {
 			mrm_mod = MOD_BYTE;
 			imm_len = BYTE;
 		}
@@ -226,7 +226,7 @@ namespace asmio::x86 {
 
 			// no base in SIB
 			// this is encoded by setting base to NO_BASE (101b) and mod to MOD_NONE (00b)
-			if (dst.base.is(UNSET)) {
+			if (dst.base == UNSET) {
 				sib_base = NO_BASE;
 				mrm_mod = MOD_NONE;
 
@@ -236,7 +236,7 @@ namespace asmio::x86 {
 
 			// no index in SIB
 			// this is encoded by setting index to NO_INDEX (100b) and ss to NO_SCALE (00b)
-			if (dst.index.is(UNSET)) {
+			if (dst.index == UNSET) {
 				sib_index = NO_SIB_INDEX;
 				sib_scale = NO_SIB_SCALE;
 			}
@@ -345,7 +345,7 @@ namespace asmio::x86 {
 
 		RegInfo reg_opcode = RegInfo::raw(inst);
 
-		if (src.is_simple() && src.base.is(CL)) {
+		if (src.is_simple() && src.base == CL) {
 			put_inst_std_ds(0b110100, dst, reg_opcode, dst.size, true);
 
 			return;
@@ -380,7 +380,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		if (cnt.is_simple() && cnt.base.is(CL)) {
+		if (cnt.is_simple() && cnt.base == CL) {
 			put_inst_std(opcode | 1, dst, src.base.pack(), pair_size(src, dst), true);
 			return;
 		}

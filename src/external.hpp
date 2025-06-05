@@ -15,6 +15,7 @@
 #include <optional>
 #include <list>
 #include <functional>
+#include <iostream>
 
 #ifdef __linux__
 #	include <unistd.h>

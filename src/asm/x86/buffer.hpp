@@ -1,9 +1,7 @@
 #pragma once
 
-#include <iostream>
-
-#include "external.hpp"
 #include "util.hpp"
+#include "external.hpp"
 
 namespace asmio::x86 {
 

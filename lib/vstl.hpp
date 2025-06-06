@@ -96,7 +96,11 @@
 /// checks if the given block [...] throws an exception of the given [type], otherwise fails the test
 #define EXPECT(type, ...)             try{ __VA_ARGS__; FAIL(VSTL_EXCEPT); } VSTL_RETHROW catch (type& t) {} catch (...) { FAIL("Expected exception of type " #type ", " VSTL_LINE "!"); } VSTL_END
 
+/// assert signal being raised
 #define EXPECT_SIGNAL(signum, ...)    vstl::expected_signal = signum; if (sigsetjmp(vstl::expect_jmp, 1) == 0) { __VA_ARGS__; FAIL("Expected signal " #signum " " VSTL_LINE "!"); }
+
+/// set test timeout
+#define SET_TIMEOUT(seconds)          alarm(seconds); vstl::fail_on_alarm = true;
 
 enum TestMode : short {
 
@@ -149,6 +153,7 @@ namespace vstl {
 	std::vector<Handler> handlers;
 	size_t test_id = 0, failed = 0, successful = 0;
 	jmp_buf jmp;
+	bool fail_on_alarm = false;
 
 	int expected_signal = 0;
 	jmp_buf expect_jmp;
@@ -298,6 +303,16 @@ namespace vstl {
 		printf("Test '%s' " VSTL_FAILED "! Error: Received SIGILL while trying to access: 0x%lx!\n", tests[test_id].name, (long) si->si_addr);
 		siglongjmp(vstl::jmp, 1);
 	}
+
+	void signal_handler_SIGALRM(int sig, siginfo_t* si, void* unused) {
+		if (!fail_on_alarm) {
+			fail_on_alarm = false;
+			return;
+		}
+
+		printf("Test '%s' " VSTL_FAILED "! Timeout reached!\n", tests[test_id].name);
+		siglongjmp(vstl::jmp, 1);
+	}
 	#endif
 
 	int run(std::ostream& out, TestMode mode) {
@@ -332,6 +347,16 @@ namespace vstl {
 				out << "WARN: Failed to setup SIGILL handler!";
 				out << std::endl;
 			}
+
+			struct sigaction action3;
+			action3.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
+			sigemptyset(&action3.sa_mask);
+			action3.sa_sigaction = signal_handler_SIGALRM;
+
+			if (sigaction(SIGALRM, &action3, NULL) == -1) {
+				out << "WARN: Failed to setup SIGALRM handler!";
+				out << std::endl;
+			}
 		#endif
 
 		const auto start = std::chrono::steady_clock::now();
@@ -341,6 +366,9 @@ namespace vstl {
 				failed ++;
 				goto skip;
 			}
+
+			fail_on_alarm = false;
+			alarm(0);
 
 			if (!test.run(out) && mode == VSTL_MODE_STRICT) {
 				break;

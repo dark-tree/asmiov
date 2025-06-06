@@ -48,6 +48,10 @@ namespace asmio {
 		use_section(BufferSegment::DEFAULT);
 	}
 
+	BufferMarker SegmentedBuffer::current() const {
+		return sections[selected].current();
+	}
+
 	int64_t SegmentedBuffer::get_offset(BufferMarker marker) const {
 		return sections.at(marker.section).start + marker.offset;
 	}

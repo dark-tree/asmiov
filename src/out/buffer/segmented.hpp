@@ -71,6 +71,9 @@ namespace asmio {
 
 			SegmentedBuffer();
 
+			/// Get marker of the current buffer segment position
+			BufferMarker current() const;
+
 			/// offset in the final contiguous buffer of the given marker
 			int64_t get_offset(BufferMarker marker) const;
 

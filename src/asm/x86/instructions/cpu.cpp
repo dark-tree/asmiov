@@ -668,16 +668,24 @@ namespace asmio::x86 {
 			Label label = dst.label;
 			long addend = dst.offset;
 
-			// FIXME
-			// if (has_label(label)) {
-			// 	int offset = get_label(label) - buffer.size() + shift;
-			//
-			// 	if (offset > -127) {
-			// 		put_byte(0b11101011);
-			// 		put_label(label, BYTE, shift);
-			// 		return;
-			// 	}
-			// }
+			if (has_label(label)) {
+
+				BufferMarker dst = buffer.get_label(label);
+				BufferMarker src = buffer.current();
+
+				// we can only, at this point, know the distance between labels in the same section
+				if (src.section == dst.section) {
+
+					long offset = (long) dst.offset - (long) src.offset + addend;
+
+					// only check negative as we can never know the label while it is in front of us
+					if (offset > -127) {
+						put_byte(0b11101011);
+						put_label(label, BYTE, addend);
+						return;
+					}
+				}
+			}
 
 			put_byte(0b11101001);
 			put_label(label, DWORD, addend);

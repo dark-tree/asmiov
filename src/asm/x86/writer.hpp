@@ -27,10 +27,6 @@ namespace asmio::x86 {
 
 			SegmentedBuffer buffer;
 
-			// std::unordered_map<Label, size_t, Label::HashFunction> labels;
-			// std::vector<uint8_t> buffer;
-			// std::vector<LabelCommand> commands;
-
 			void put_linker_command(const Label& label, int32_t addend, int32_t shift, uint8_t width, LinkType type);
 			void put_inst_rex(bool w, bool r, bool x, bool b);
 			uint8_t pack_opcode_dw(uint8_t opcode, bool d, bool w);

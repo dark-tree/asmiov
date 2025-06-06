@@ -813,6 +813,7 @@ TEST(writer_exec_jmp_forward) {
 
 TEST(writer_exec_jmp_back) {
 
+	SET_TIMEOUT(1);
 	BufferWriter writer;
 
 	writer.put_mov(EAX, 1);
@@ -827,6 +828,37 @@ TEST(writer_exec_jmp_back) {
 	writer.label("1");
 	writer.put_mov(EAX, 2);
 	writer.put_jmp("2");
+	writer.put_ret();
+
+	writer.label("3");
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	int output = buffer.call_i32();
+
+	CHECK(output, 3);
+
+}
+
+TEST(writer_exec_jz_back) {
+
+	SET_TIMEOUT(1);
+	BufferWriter writer;
+
+	writer.put_mov(EAX, 1);
+	writer.put_mov(EDX, 0);
+	writer.put_test(EDX, EDX);
+	writer.put_jz("1");
+	writer.put_ret();
+
+	writer.label("2");
+	writer.put_mov(EAX, 3);
+	writer.put_jz("3");
+	writer.put_ret();
+
+	writer.label("1");
+	writer.put_mov(EAX, 2);
+	writer.put_jz("2");
 	writer.put_ret();
 
 	writer.label("3");
@@ -1568,6 +1600,7 @@ TEST (writer_exec_int_0x80) {
 
 TEST (writer_exec_long_back_jmp) {
 
+	SET_TIMEOUT(1);
 	BufferWriter writer;
 
 	writer.label("start");
@@ -1581,6 +1614,28 @@ TEST (writer_exec_long_back_jmp) {
 	}
 
 	writer.put_jmp("start");
+
+	CHECK(writer.bake().call_u32("main"), 1);
+
+}
+
+TEST (writer_exec_long_back_jz) {
+
+	SET_TIMEOUT(1);
+	BufferWriter writer;
+
+	writer.label("start");
+	writer.put_mov(EAX, 1);
+	writer.put_ret();
+
+	writer.label("main");
+	writer.put_mov(EAX, 0);
+	writer.put_test(EAX, EAX);
+	for (int i = 0; i < 255; i ++) {
+		writer.put_nop();
+	}
+
+	writer.put_jz("start");
 
 	CHECK(writer.bake().call_u32("main"), 1);
 

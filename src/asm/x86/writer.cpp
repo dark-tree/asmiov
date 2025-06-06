@@ -484,16 +484,24 @@ namespace asmio::x86 {
 			throw std::runtime_error {"Invalid operand"};
 		}
 
-		// FIXME
-		// if (has_label(label)) {
-		// 	long offset = get_label(label) - buffer.size() + addend;
-		//
-		// 	if (offset > -127) {
-		// 		put_byte(sopcode);
-		// 		put_label(label, BYTE, addend);
-		// 		return;
-		// 	}
-		// }
+		if (has_label(label)) {
+
+			BufferMarker dst = buffer.get_label(label);
+			BufferMarker src = buffer.current();
+
+			// we can only, at this point, know the distance between labels in the same section
+			if (src.section == dst.section) {
+
+				long offset = dst.offset - (long) src.offset + addend;
+
+				// only check negative as we can never know the label while it is in front of us
+				if (offset > -127) {
+					put_byte(sopcode);
+					put_label(label, BYTE, addend);
+					return;
+				}
+			}
+		}
 
 		put_byte(0b00001111);
 		put_byte(lopcode);

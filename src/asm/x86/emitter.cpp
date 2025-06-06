@@ -50,7 +50,7 @@ namespace asmio::x86 {
 
 	int getTypeByToken(const Token* token) {
 		if (token == nullptr || token->type != Token::NAME) return -1;
-		std::string raw = util::tolower(token->raw);
+		std::string raw = util::to_lower(token->raw);
 
 		static std::unordered_map<std::string, int> types = {
 			{"byte", BYTE},
@@ -92,7 +92,7 @@ namespace asmio::x86 {
 
 	Registry getRegistryByToken(const Token* token) {
 		if (token == nullptr || token->type != Token::NAME) return UNSET;
-		std::string raw = util::tolower(token->raw);
+		std::string raw = util::to_lower(token->raw);
 
 		if (raw == "eax") return EAX;
 		if (raw == "ax") return AX;

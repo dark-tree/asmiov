@@ -3,7 +3,7 @@
 #include "external.hpp"
 #include "util.hpp"
 
-namespace asmio::x86 {
+namespace asmio {
 
 	struct Label {
 
@@ -53,21 +53,6 @@ namespace asmio::x86 {
 			struct HashFunction {
 				constexpr size_t operator () (const Label& label) const { return label.hash; }
 			};
-
-	};
-
-	enum LinkType {
-		RELATIVE,
-		ABSOLUTE,
-	};
-
-	struct LabelCommand {
-
-		Label label;
-		uint8_t size;
-		long offset;
-		long shift;
-		LinkType type;
 
 	};
 

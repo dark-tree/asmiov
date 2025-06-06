@@ -4,6 +4,7 @@ project(ASMIOV C CXX ASM)
 set(CMAKE_CXX_STANDARD 20)
 
 set(CPP_SOURCES
+		src/out/buffer/segmented.cpp
 		src/asm/x86/writer.cpp
 		src/asm/x86/emitter.cpp
 		src/asm/x86/argument/location.cpp

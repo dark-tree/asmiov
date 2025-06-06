@@ -666,20 +666,21 @@ namespace asmio::x86 {
 
 		if (dst.is_jump_label()) {
 			Label label = dst.label;
-			long shift = dst.offset;
+			long addend = dst.offset;
 
-			if (has_label(label)) {
-				int offset = get_label(label) - buffer.size() + shift;
-
-				if (offset > -127) {
-					put_byte(0b11101011);
-					put_label(label, BYTE, shift);
-					return;
-				}
-			}
+			// FIXME
+			// if (has_label(label)) {
+			// 	int offset = get_label(label) - buffer.size() + shift;
+			//
+			// 	if (offset > -127) {
+			// 		put_byte(0b11101011);
+			// 		put_label(label, BYTE, shift);
+			// 		return;
+			// 	}
+			// }
 
 			put_byte(0b11101001);
-			put_label(label, DWORD, shift);
+			put_label(label, DWORD, addend);
 			return;
 		}
 

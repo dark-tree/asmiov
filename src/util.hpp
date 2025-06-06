@@ -54,12 +54,12 @@ namespace asmio::util {
 		return false;
 	}
 
-	inline std::string tolower(std::string s) {
+	inline std::string to_lower(std::string s) {
 		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
 		return s;
 	}
 
-	inline int min_bytes(uint64_t value) {
+	constexpr int min_bytes(uint64_t value) {
 		if (value > 0xFFFFFFFF) return 8;
 		if (value > 0xFFFF) return 4;
 		if (value > 0xFF) return 2;
@@ -67,7 +67,7 @@ namespace asmio::util {
 		return 1;
 	}
 
-	inline uint64_t hash_djb2(const char *str) {
+	constexpr uint64_t hash_djb2(const char *str) {
 		uint64_t hash = 5381;
 
 		for (int c; (c = *str) != 0; str++) {
@@ -77,7 +77,7 @@ namespace asmio::util {
 		return hash;
 	}
 
-	inline int64_t parseInt(const char* str) {
+	inline int64_t parse_int(const char* str) {
 
 		int base = 10;
 		size_t length = strlen(str);
@@ -106,7 +106,7 @@ namespace asmio::util {
 
 	}
 
-	inline long double parseFloat(const char* str) {
+	inline long double parse_float(const char* str) {
 
 		size_t offset;
 		long double value;

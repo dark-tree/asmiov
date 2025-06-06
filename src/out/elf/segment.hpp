@@ -5,9 +5,9 @@
 namespace asmio::elf {
 
 	struct SegmentFlags {
-		static constexpr const uint32_t X = 0b001; // Executable segment
-		static constexpr const uint32_t W = 0b010; // Writable segment
-		static constexpr const uint32_t R = 0b100; // Readable segment
+		static constexpr uint32_t X = 0b001; // Executable segment
+		static constexpr uint32_t W = 0b010; // Writable segment
+		static constexpr uint32_t R = 0b100; // Readable segment
 	};
 
 	enum struct SegmentType : uint32_t {

@@ -2,8 +2,13 @@
 
 #include "util.hpp"
 #include "external.hpp"
+#include "segmented.hpp"
+#include "label.hpp"
 
-namespace asmio::x86 {
+/// FIXME REMOVE
+#define RETURN_TRANSIENT(T, format) {volatile T tmp; asm("" : format (tmp)); return tmp;}
+
+namespace asmio {
 
 	class ExecutableBuffer {
 
@@ -19,26 +24,44 @@ namespace asmio::x86 {
 
 		public:
 
-			explicit ExecutableBuffer(size_t length, const std::unordered_map<Label, size_t, Label::HashFunction>& labels)
-			: labels(labels), length(length) {
-				const size_t page = getpagesize();
-				const size_t size = ALIGN_UP(length, page);
+			explicit ExecutableBuffer(size_t total) {
 
-				constexpr uint32_t flags = MAP_ANONYMOUS | MAP_PRIVATE;
-				constexpr uint32_t protection = PROT_READ | PROT_WRITE | PROT_EXEC;
-				buffer = (uint8_t*) mmap(nullptr, size, protection, flags, -1, 0);
+				// this value should already be page aligned
+				length = total;
+
+				// create a basic memory map, after this we will set the correct flags for each segment
+				buffer = (uint8_t*) mmap(nullptr, length, PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
 				if (buffer == nullptr) {
-					throw std::runtime_error{"Failed to allocate an executable buffer!"};
+					throw std::runtime_error {"Failed to allocate memory map!"};
 				}
+
 			}
 
-			void bake(const std::vector<uint8_t>& data) {
-				if (data.size() != length) {
-					throw std::runtime_error{"Invalid size!"};
+			void bake(SegmentedBuffer& segmented) {
+
+				if (segmented.total() != length) {
+					throw std::runtime_error {"Invalid buffer size!"};
 				}
 
-				memcpy(buffer, data.data(), data.size());
+				// initialize pages
+				for (const BufferSection& section : segmented.segments()) {
+
+					uint8_t* data = buffer + section.start;
+					size_t bytes = section.buffer.size();
+
+					if (bytes == 0) {
+						continue;
+					}
+
+					memcpy(data, section.buffer.data(), bytes);
+					memset(data + bytes, section.padder, section.tail);
+					mprotect(data, section.size(), section.get_mprot_flags());
+				}
+
+				// copy the label map
+				labels = segmented.resolved_labels();
+
 			}
 
 			~ExecutableBuffer() {
@@ -128,5 +151,23 @@ namespace asmio::x86 {
 			}
 
 	};
+
+
+	inline ExecutableBuffer to_executable(SegmentedBuffer& segmented) {
+
+		const size_t page = getpagesize();
+		segmented.align(page);
+
+		// after alignment we know how big the buffer needs to be
+		ExecutableBuffer buffer {segmented.total()};
+
+		// now that we have a buffer allocated we can link
+		segmented.link((uint64_t) buffer.address());
+
+		// finally copy data and setting to the final image
+		buffer.bake(segmented);
+
+		return buffer;
+	}
 
 }

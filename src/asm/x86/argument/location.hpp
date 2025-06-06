@@ -4,7 +4,7 @@
 #include "sizes.hpp"
 #include "registry.hpp"
 #include "scaled.hpp"
-#include "label.hpp"
+#include "out/buffer/label.hpp"
 #include "util.hpp"
 
 namespace asmio::x86 {

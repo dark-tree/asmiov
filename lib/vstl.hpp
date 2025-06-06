@@ -96,6 +96,8 @@
 /// checks if the given block [...] throws an exception of the given [type], otherwise fails the test
 #define EXPECT(type, ...)             try{ __VA_ARGS__; FAIL(VSTL_EXCEPT); } VSTL_RETHROW catch (type& t) {} catch (...) { FAIL("Expected exception of type " #type ", " VSTL_LINE "!"); } VSTL_END
 
+#define EXPECT_SIGNAL(signum, ...)    vstl::expected_signal = signum; if (sigsetjmp(vstl::expect_jmp, 1) == 0) { __VA_ARGS__; FAIL("Expected signal " #signum " " VSTL_LINE "!"); }
+
 enum TestMode : short {
 
 	/// will skip failed tests
@@ -147,6 +149,9 @@ namespace vstl {
 	std::vector<Handler> handlers;
 	size_t test_id = 0, failed = 0, successful = 0;
 	jmp_buf jmp;
+
+	int expected_signal = 0;
+	jmp_buf expect_jmp;
 
 	/// add new test
 	void add_test(const Test& test) {
@@ -264,16 +269,32 @@ namespace vstl {
 
 	#ifdef _WIN32
 	void signal_handler(int sig) {
+		if (expected_signal == sig) {
+			expected_signal = 0;
+			siglongjmp(vstl::expect_jmp, 1);
+			return;
+		}
+
 		printf("Test '%s' " VSTL_FAILED "! Error: Received SIGSEGV!", tests[test_id].name);
 		siglongjmp(vstl::jmp, 1);
 	}
 	#else
 	void signal_handler(int sig, siginfo_t* si, void* unused) {
+		if (expected_signal == sig) {
+			expected_signal = 0;
+			siglongjmp(vstl::expect_jmp, 1);
+		}
+
 		printf("Test '%s' " VSTL_FAILED "! Error: Received SIGSEGV while trying to access: 0x%lx!\n", tests[test_id].name, (long) si->si_addr);
 		siglongjmp(vstl::jmp, 1);
 	}
 
 	void signal_handler_SIGILL(int sig, siginfo_t* si, void* unused) {
+		if (expected_signal == sig) {
+			expected_signal = 0;
+			siglongjmp(vstl::expect_jmp, 1);
+		}
+
 		printf("Test '%s' " VSTL_FAILED "! Error: Received SIGILL while trying to access: 0x%lx!\n", tests[test_id].name, (long) si->si_addr);
 		siglongjmp(vstl::jmp, 1);
 	}
@@ -316,7 +337,7 @@ namespace vstl {
 		const auto start = std::chrono::steady_clock::now();
 
 		for (const Test& test : tests) {
-			if (sigsetjmp(jmp, 0xffffffff)) {
+			if (sigsetjmp(jmp, 1)) {
 				failed ++;
 				goto skip;
 			}

@@ -47,7 +47,7 @@ namespace tasml {
 			}
 
 			try {
-				return asmio::util::parseInt(raw.c_str());
+				return asmio::util::parse_int(raw.c_str());
 			} catch(std::runtime_error& error) {
 				throw std::runtime_error {"Internal lexer error, " + std::string {error.what()} + " while parsing int! In: '" + raw + "'"};
 			}
@@ -64,7 +64,7 @@ namespace tasml {
 			}
 
 			try {
-				return asmio::util::parseFloat(raw.c_str());
+				return asmio::util::parse_float(raw.c_str());
 			} catch(std::runtime_error& error) {
 				throw std::runtime_error {"Internal lexer error, " + std::string {error.what()} + " while parsing float! In: '" + raw + "'"};
 			}

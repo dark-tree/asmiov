@@ -4,13 +4,14 @@
 #include "lib/vstl.hpp"
 #include "asm/x86/writer.hpp"
 #include "asm/x86/emitter.hpp"
-#include "file/elf/buffer.hpp"
+#include "out/elf/buffer.hpp"
 #include "tasml/tokenizer.hpp"
 #include "tasml/stream.hpp"
 
 // private libs
 #include <fstream>
 
+using namespace asmio;
 using namespace asmio::x86;
 
 TEST (syntax_registry_attributes) {
@@ -2587,6 +2588,32 @@ TEST (writer_elf_execve_syscall) {
 
 	CHECK(result, RunResult::SUCCESS);
 	CHECK(status, 20);
+
+}
+
+TEST (writer_segmented_data) {
+
+	BufferWriter writer;
+	writer.section(BufferSection::R);
+	writer.label("data");
+	writer.put_dword(42);
+
+	writer.section(BufferSection::X | BufferSection::R);
+	writer.label("read");
+	writer.put_mov(EAX, ref("data"));
+	writer.put_ret();
+
+	writer.label("write");
+	writer.put_mov(ref<DWORD>("data"), 43);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = writer.bake();
+	CHECK(buffer.size(), getpagesize() * 2); // expect there to be two pages
+	CHECK(buffer.call_u32("read"), 42);
+
+	EXPECT_SIGNAL(SIGSEGV, {
+		buffer.call_u32("write");
+	});
 
 }
 

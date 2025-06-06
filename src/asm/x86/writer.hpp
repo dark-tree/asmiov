@@ -2,9 +2,11 @@
 
 #include "external.hpp"
 #include "argument/location.hpp"
-#include "buffer.hpp"
+#include "out/buffer/executable.hpp"
 #include "tasml/error.hpp"
-#include "file/elf/buffer.hpp"
+#include "out/elf/buffer.hpp"
+#include "out/buffer/segmented.hpp"
+#include "util.hpp"
 
 namespace asmio::x86 {
 
@@ -18,10 +20,13 @@ namespace asmio::x86 {
 			// this is needed for the x86-64 RIP-relative addressing to work
 			uint32_t suffix = 0;
 
-			std::unordered_map<Label, size_t, Label::HashFunction> labels;
-			std::vector<uint8_t> buffer;
-			std::vector<LabelCommand> commands;
+			SegmentedBuffer buffer;
 
+			// std::unordered_map<Label, size_t, Label::HashFunction> labels;
+			// std::vector<uint8_t> buffer;
+			// std::vector<LabelCommand> commands;
+
+			void put_linker_command(const Label& label, int32_t addend, int32_t shift, uint8_t width, LinkType type);
 			void put_inst_rex(bool w, bool r, bool x, bool b);
 			uint8_t pack_opcode_dw(uint8_t opcode, bool d, bool w);
 			void put_inst_mod_reg_rm(uint8_t mod, uint8_t reg, uint8_t r_m);
@@ -76,14 +81,18 @@ namespace asmio::x86 {
 			/// Override the default address size of 64 bit to 32 bit, don't use in combination with REX.W
 			void put_32bit_address_prefix();
 
-			void put_label(const Label& label, uint8_t size, long shift);
+			void put_label(const Label& label, uint8_t size, int64_t addend);
 			bool has_label(const Label& label);
-			int get_label(const Label& label);
+			int64_t get_label(const Label& label);
 
 			void set_suffix(int suffix);
 			int get_suffix();
 
 		public:
+
+			inline void section(uint8_t flags) {
+				buffer.use_section(flags);
+			}
 
 			BufferWriter& label(const Label& label);
 
@@ -375,7 +384,6 @@ namespace asmio::x86 {
 			INST put_fdivrp(Location dst);              /// Reverse Divide And Pop
 
 			void dump(bool verbose = false) const;
-			void assemble(size_t absolute, tasml::ErrorHandler* reporter = nullptr, bool debug = false);
 			ExecutableBuffer bake(bool debug = false);
 			ElfBuffer bake_elf(tasml::ErrorHandler* reporter, uint32_t address = 0x08048000, const char* entry = "_start", bool debug = false);
 

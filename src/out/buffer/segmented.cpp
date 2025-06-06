@@ -8,7 +8,7 @@ namespace asmio {
 	 */
 
 	BufferSegment::BufferSegment(uint32_t index, uint8_t flags)
-				: index(index), flags(flags) {
+		: index(index), flags(flags) {
 	}
 
 	size_t BufferSegment::size() const {
@@ -70,6 +70,8 @@ namespace asmio {
 	}
 
 	void SegmentedBuffer::link(size_t base) {
+		base_address = base;
+
 		for (const Linkage& linkage : linkages) {
 			// FIXME
 			// try {
@@ -153,6 +155,28 @@ namespace asmio {
 	size_t SegmentedBuffer::total() {
 		auto last = sections.back();
 		return last.start + last.buffer.size() + last.tail;
+	}
+
+	void SegmentedBuffer::dump() const {
+		std::cout << "./unasm.sh " << base_address << " \"";
+
+		for (const BufferSegment& segment : sections) {
+			std::cout << "SECTION " << (segment.flags & BufferSegment::X ? ".text" : ".data") << " \\ndb ";
+			bool first = true;
+
+			for (uint8_t byte : segment.buffer) {
+				if (!first) {
+					std::cout << ", ";
+				}
+
+				first = false;
+				std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << "h";
+			}
+
+			std::cout << "\\n";
+		}
+
+		std::cout << "\\n\"" << std::endl;
 	}
 
 	const std::vector<BufferSegment>& SegmentedBuffer::segments() const {

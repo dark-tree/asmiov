@@ -384,8 +384,8 @@ namespace asmio::x86 {
 			INST put_fdivr(Location dst, Location src); /// Reverse Divide
 			INST put_fdivrp(Location dst);              /// Reverse Divide And Pop
 
-			void dump(bool verbose = false) const;
-			ExecutableBuffer bake(bool debug = false);
+			void dump() const;
+			ExecutableBuffer bake();
 			ElfBuffer bake_elf(tasml::ErrorHandler* reporter, uint32_t address = 0x08048000, const char* entry = "_start", bool debug = false);
 
 	};

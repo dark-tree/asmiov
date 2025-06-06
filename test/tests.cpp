@@ -1462,8 +1462,7 @@ TEST (writer_exec_fpu_fst) {
 	writer.put_dword_f(0); // => 3
 
 	writer.label("tword_c");
-	writer.put_qword_f(0); // => 6
-	// TODO invalid size here?
+	writer.put_space(TWORD); // => 6
 
 	writer.label("set_a");
 	writer.put_finit();
@@ -2150,10 +2149,12 @@ TEST (writer_exec_scas) {
 	writer.put_mov(ECX, 16);
 	writer.put_mov(AL, 'D');
 	writer.put_repne().put_scasb();
-	writer.put_sub(RDI, "src");
+	writer.put_mov(RAX, "src");
+	writer.put_sub(RDI, RAX);
 	writer.put_mov(RAX, RDI);
 	writer.put_ret();
 
+	writer.section(BufferSegment::R | BufferSegment::W);
 	writer.label("src").put_ascii("123456789ABCDEF");
 
 	ExecutableBuffer buffer = writer.bake();

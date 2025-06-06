@@ -62,6 +62,7 @@ namespace asmio {
 
 		private:
 
+			size_t base_address = 0; // this is set during linking and used ONLY for debugging
 			int selected = 0;
 			std::vector<BufferSegment> sections;
 			LabelMap<BufferMarker> labels;
@@ -115,6 +116,9 @@ namespace asmio {
 
 			/// Get the total size in bytes of the whole segmented buffer, can be used only after linking
 			size_t total();
+
+			/// Print the contests of this buffer for debugging
+			void dump() const;
 
 			/// Get segment list
 			const std::vector<BufferSegment>& segments() const;

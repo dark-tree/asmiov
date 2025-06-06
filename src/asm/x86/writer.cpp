@@ -623,35 +623,7 @@ namespace asmio::x86 {
 		buffer.fill(bytes, value);
 	}
 
-	void BufferWriter::dump(bool verbose) const {
-		// int i = 0;
-		//
-		// if (verbose) {
-		// 	for (uint8_t byte : buffer) {
-		// 		std::bitset<8> bin(byte);
-		// 		std::cout << std::setfill('0') << std::setw(4) << i << " | ";
-		// 		std::cout << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << ' ' << bin;
-		// 		std::cout << " | " << std::dec << (char) (byte < ' ' || byte > '~' ? '.' : byte) << std::endl;
-		// 		i++;
-		// 	}
-		// }
-		//
-		// std::cout << "./unasm.sh \"\" \"db ";
-		// bool first = true;
-		//
-		// for (uint8_t byte : buffer) {
-		// 	if (!first) {
-		// 		std::cout << ", ";
-		// 	}
-		//
-		// 	first = false;
-		// 	std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << "h";
-		// }
-		//
-		// std::cout << '"' << std::endl;
-	}
-
-	ExecutableBuffer BufferWriter::bake(bool debug) {
+	ExecutableBuffer BufferWriter::bake() {
 		return to_executable(buffer);
 	}
 
@@ -666,6 +638,10 @@ namespace asmio::x86 {
 		//
 		// return elf;
 		throw std::runtime_error {"Not implemented yet"};
+	}
+
+	void BufferWriter::dump() const {
+		buffer.dump();
 	}
 
 }

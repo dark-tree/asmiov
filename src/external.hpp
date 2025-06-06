@@ -24,5 +24,5 @@
 #	include <sys/mman.h>
 #	include <sys/wait.h>
 #else
-#	error "Other platforms not yet suported!"
+#	error "Non-linux platforms not yet suported!"
 #endif

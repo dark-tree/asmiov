@@ -102,8 +102,8 @@ namespace asmio::x86 {
 		}
 
 		buffer.add_linkage(label, shift, [width, type, addend] (SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
-			LabelMarker src = buffer->get_label(linkage.label);
-			LabelMarker dst = linkage.target;
+			BufferMarker src = buffer->get_label(linkage.label);
+			BufferMarker dst = linkage.target;
 
 			const int64_t offset = (type == RELATIVE)
 				? buffer->get_offset(dst)

@@ -12,6 +12,11 @@ namespace asmio::x86 {
 
 	using namespace elf;
 
+	enum LinkType {
+		RELATIVE,
+		ABSOLUTE,
+	};
+
 	class BufferWriter {
 
 		private:

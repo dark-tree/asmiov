@@ -108,7 +108,14 @@ TEST (writer_check_mov_address_size) {
 	EXPECT_ANY({ writer.put_mov(AL, ref(SIL)); });
 
 	ExecutableBuffer buffer = writer.bake();
-	CHECK(buffer.size(), 5);
+	uint8_t* data = buffer.address();
+
+	CHECK(data[0], 0x8a);
+	CHECK(data[1], 0x02);
+	CHECK(data[2], 0x67);
+	CHECK(data[3], 0x8a);
+	CHECK(data[4], 0x02);
+	CHECK(data[5], 0x00); // padding, first byte
 
 }
 
@@ -2594,11 +2601,11 @@ TEST (writer_elf_execve_syscall) {
 TEST (writer_segmented_data) {
 
 	BufferWriter writer;
-	writer.section(BufferSection::R);
+	writer.section(BufferSegment::R);
 	writer.label("data");
 	writer.put_dword(42);
 
-	writer.section(BufferSection::X | BufferSection::R);
+	writer.section(BufferSegment::X | BufferSegment::R);
 	writer.label("read");
 	writer.put_mov(EAX, ref("data"));
 	writer.put_ret();

@@ -5,8 +5,14 @@
 #include "segmented.hpp"
 #include "label.hpp"
 
-/// FIXME REMOVE
 #define RETURN_TRANSIENT(T, format) {volatile T tmp; asm("" : format (tmp)); return tmp;}
+
+// https://stackoverflow.com/a/66249936
+#if defined(__x86_64__) || defined(_M_X64)
+#	define CALL_INTO_BUFFER(offset, type, format) reinterpret_cast<type (*)()>(buffer + offset)(); RETURN_TRANSIENT(type, format)
+#else
+#	error "Unsupported architecture!"
+#endif
 
 namespace asmio {
 
@@ -14,128 +20,63 @@ namespace asmio {
 
 		private:
 
-			std::unordered_map<Label, size_t, Label::HashFunction> labels;
+			LabelMap<size_t> labels;
 			uint8_t* buffer;
 			size_t length;
 
-			__attribute__((__always_inline__)) void raw_call(uint32_t offset) {
-				reinterpret_cast<uint32_t (*)()>(buffer + offset)();
-			}
+		public:
+
+			explicit ExecutableBuffer(size_t total);
+			~ExecutableBuffer();
+
+			/// Copy data from segmented buffer and configure memory protection
+			void bake(SegmentedBuffer& segmented);
+
+			/// Get the base address of this buffer
+			uint8_t* address() const;
+
+			/// Get the address of a specific label
+			uint8_t* address(Label label) const;
+
+			/// get the total size, in bytes
+			size_t size() const;
 
 		public:
 
-			explicit ExecutableBuffer(size_t total) {
-
-				// this value should already be page aligned
-				length = total;
-
-				// create a basic memory map, after this we will set the correct flags for each segment
-				buffer = (uint8_t*) mmap(nullptr, length, PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-
-				if (buffer == nullptr) {
-					throw std::runtime_error {"Failed to allocate memory map!"};
-				}
-
-			}
-
-			void bake(SegmentedBuffer& segmented) {
-
-				if (segmented.total() != length) {
-					throw std::runtime_error {"Invalid buffer size!"};
-				}
-
-				// initialize pages
-				for (const BufferSection& section : segmented.segments()) {
-
-					uint8_t* data = buffer + section.start;
-					size_t bytes = section.buffer.size();
-
-					if (bytes == 0) {
-						continue;
-					}
-
-					memcpy(data, section.buffer.data(), bytes);
-					memset(data + bytes, section.padder, section.tail);
-					mprotect(data, section.size(), section.get_mprot_flags());
-				}
-
-				// copy the label map
-				labels = segmented.resolved_labels();
-
-			}
-
-			~ExecutableBuffer() {
-				munmap(buffer, length);
-			}
-
-			uint8_t* address() const {
-				return buffer;
-			}
-
-			uint8_t* address(Label label) const {
-				return buffer + labels.at(label);
-			}
-
-			size_t size() const {
-				return length;
-			}
-
-		public:
-
-			void dump(uint32_t offset = 0) {
-				std::cout << "./unasm.sh \"db ";
-				bool first = true;
-
-				for (int i = 0; i < offset; i++) {
-					if (!first) {
-						std::cout << ", ";
-					}
-
-					first = false;
-					std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) buffer[i]) << "h";
-				}
-
-				std::cout << "\" \"db ";
-				first = true;
-
-				for (int i = offset; i < length; i++) {
-					if (!first) {
-						std::cout << ", ";
-					}
-
-					first = false;
-					std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) buffer[i]) << "h";
-				}
-
-				std::cout << '"' << std::endl;
-			}
+			/*
+			 * Offset
+			 */
 
 			uint64_t call_u64(uint32_t offset = 0) {
-				raw_call(offset);
-				RETURN_TRANSIENT(uint64_t, "=r");
+				CALL_INTO_BUFFER(offset, uint64_t, "=r");
+			}
+
+			int64_t call_i64(uint32_t offset = 0) {
+				CALL_INTO_BUFFER(offset, int64_t, "=r");
 			}
 
 			uint32_t call_u32(uint32_t offset = 0) {
-				raw_call(offset);
-				RETURN_TRANSIENT(uint32_t, "=r");
+				CALL_INTO_BUFFER(offset, uint32_t, "=r");
 			}
 
 			int32_t call_i32(uint32_t offset = 0) {
-				raw_call(offset);
-				RETURN_TRANSIENT(int32_t, "=r");
+				CALL_INTO_BUFFER(offset, int32_t, "=r");
 			}
 
 			float call_f32(uint32_t offset = 0) {
-				raw_call(offset);
-				RETURN_TRANSIENT(float, "=t");
+				CALL_INTO_BUFFER(offset, float, "=t");
 			}
 
-			void dump(Label label) {
-				dump(labels.at(label));
-			}
+			/*
+			 * Labels
+			 */
 
-			uint32_t call_u64(Label label) {
+			uint64_t call_u64(Label label) {
 				return call_u64(labels.at(label));
+			}
+
+			int64_t call_i64(Label label) {
+				return call_i64(labels.at(label));
 			}
 
 			uint32_t call_u32(Label label) {
@@ -152,22 +93,7 @@ namespace asmio {
 
 	};
 
-
-	inline ExecutableBuffer to_executable(SegmentedBuffer& segmented) {
-
-		const size_t page = getpagesize();
-		segmented.align(page);
-
-		// after alignment we know how big the buffer needs to be
-		ExecutableBuffer buffer {segmented.total()};
-
-		// now that we have a buffer allocated we can link
-		segmented.link((uint64_t) buffer.address());
-
-		// finally copy data and setting to the final image
-		buffer.bake(segmented);
-
-		return buffer;
-	}
+	/// Create an ExecutableBuffer given a SegmentedBuffer
+	ExecutableBuffer to_executable(SegmentedBuffer& segmented);
 
 }

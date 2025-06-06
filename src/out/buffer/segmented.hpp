@@ -5,21 +5,25 @@
 
 namespace asmio {
 
-	enum LinkType {
-		RELATIVE,
-		ABSOLUTE,
-	};
-
-	template<typename T>
-	using LabelLookup = std::unordered_map<Label, T, Label::HashFunction>;
-
-
-	struct LabelMarker {
+	/// Universal SegmentedBuffer data pointer
+	struct BufferMarker {
 		uint32_t section;
 		uint32_t offset;
 	};
 
-	struct BufferSection {
+	/// Single link job entry
+	struct Linkage {
+
+		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, size_t mount)>;
+
+		Label label;
+		BufferMarker target;
+		Linker linker;
+
+	};
+
+	/// One track in the SegmentedBuffer
+	struct BufferSegment {
 
 		constexpr static uint8_t R = 0b001;
 		constexpr static uint8_t W = 0b010;
@@ -28,7 +32,7 @@ namespace asmio {
 		// by default create a mixed-use section
 		constexpr static uint8_t DEFAULT = R | W | X;
 
-		uint32_t index = 0;
+		uint16_t index = 0;
 		uint8_t flags = 0;
 		uint8_t padder = 0; // byte used to pad the buffer tail
 		std::vector<uint8_t> buffer;
@@ -37,196 +41,83 @@ namespace asmio {
 		int64_t start = 0;
 		int64_t tail = 0;
 
-		BufferSection(uint32_t index, uint8_t flags)
-			: index(index), flags(flags) {
-		}
+		BufferSegment(uint32_t index, uint8_t flags);
 
-		size_t size() const {
-			return buffer.size() + tail;
-		}
+		/// Get size of this buffer, including padding
+		size_t size() const;
 
-		LabelMarker current() const {
-			return {index, static_cast<uint32_t>(buffer.size())};
-		}
+		/// Return a LabelMarker that points to the current buffer position
+		BufferMarker current() const;
 
-		size_t align(size_t start, size_t page) {
-			this->start = start;
-			const int64_t bytes = buffer.size();
-			const int64_t aligned = ALIGN_UP(bytes, page);
+		/// Update internal paddings to ensure page alignment
+		size_t align(size_t start, size_t page);
 
-			// extra bytes to pad to page boundary
-			this->tail = aligned - bytes;
-			return aligned;
-		}
-
-		/// Convert internal flags to the mprotect flags
-		/// FIXME maybe let's not do this
-		int get_mprot_flags() const {
-			int protect = 0;
-			if (flags & R) protect |= PROT_READ;
-			if (flags & W) protect |= PROT_WRITE;
-			if (flags & X) protect |= PROT_EXEC;
-			return protect;
-		}
+		/// Convert internal flags to the mprotect() flags set
+		int get_mprot_flags() const;
 
 	};
 
-	struct Linkage {
-
-		enum LinkType {
-			RELATIVE,
-			ABSOLUTE,
-		};
-
-		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, size_t mount)>;
-
-		Label label;
-		LabelMarker target;
-		Linker linker;
-
-	};
-
+	/// Multi-track buffer, section and segment are used quite interchangeably here
 	class SegmentedBuffer {
 
 		private:
 
 			int selected = 0;
-			std::vector<BufferSection> sections;
-			LabelLookup<LabelMarker> labels;
+			std::vector<BufferSegment> sections;
+			LabelMap<BufferMarker> labels;
 			std::vector<Linkage> linkages;
 
 		public:
 
-			int64_t get_offset(LabelMarker marker) const {
-				return sections.at(marker.section).start + marker.offset;
-			}
+			SegmentedBuffer();
 
-			uint8_t* get_pointer(LabelMarker marker) {
-				return sections.at(marker.section).buffer.data() + marker.offset;
-			}
+			/// offset in the final contiguous buffer of the given marker
+			int64_t get_offset(BufferMarker marker) const;
 
-			void align(size_t page) {
-				size_t offset = 0;
+			/// Get a pointer into one of the sections where the marker points
+			uint8_t* get_pointer(BufferMarker marker);
 
-				// align sections to page boundaries
-				for (BufferSection& section : sections) {
-					offset = section.align(offset, page);
-				}
-			}
+			/// Needs to be called before linking, calculates sections start/end offsets
+			void align(size_t page);
 
 			/// Execute all linkages
-			void link(size_t base) {
-				for (const Linkage& linkage : linkages) {
-					// try {
-						linkage.linker(this, linkage, base);
-					// } catch (std::runtime_error& error) {
-					// 	if (reporter != nullptr) reporter->link(command.offset, error.what()); else throw;
-					// }
-				}
-			}
+			void link(size_t base);
 
-			/// Insert linker command
-			void add_linkage(const Label& label, int shift, const Linkage::Linker& linker) {
-				uint32_t offset = sections[selected].buffer.size();
-				linkages.emplace_back(label, LabelMarker {(uint32_t) selected, offset + shift}, linker);
-			}
+			/// Insert linker command to be executed once link() is called
+			void add_linkage(const Label& label, int shift, const Linkage::Linker& linker);
 
 			/// Get the label value
-			LabelMarker get_label(const Label& label) {
-				auto it = labels.find(label);
-
-				if (it != labels.end()) {
-					return it->second;
-				}
-
-				throw std::runtime_error {"Undefined label '" + std::string(label.c_str()) + "' used"};
-			}
+			BufferMarker get_label(const Label& label);
 
 			/// Add the given label into the buffer
-			void add_label(const Label& label) {
-				auto it = labels.find(label);
-
-				if (it == labels.end()) {
-					labels[label] = sections[selected].current();
-					return;
-				}
-
-				throw std::runtime_error {"Can't redefine label '" + std::string(label.c_str()) + "', in section #" + std::to_string(selected)};
-			}
+			void add_label(const Label& label);
 
 			/// Check if given labels have already been defined
-			bool has_label(const Label& label) {
-				return labels.contains(label);
-			}
+			bool has_label(const Label& label);
 
 			/// Append a single byte to the current section
-			void push(uint8_t byte) {
-				auto& buffer = sections[selected].buffer;
-				buffer.push_back(byte);
-			}
+			void push(uint8_t byte);
 
 			/// Append N bytes of a uniform value to the current section
-			void fill(int64_t bytes, uint8_t value) {
-				auto& buffer = sections[selected].buffer;
-				buffer.resize(buffer.size() + bytes, value);
-			}
+			void fill(int64_t bytes, uint8_t value);
 
 			/// Append arbitrary data into the current section
-			void insert(uint8_t* data, size_t bytes) {
-				auto& buffer = sections[selected].buffer;
-				buffer.insert(buffer.end(), data, data + bytes);
-			}
+			void insert(uint8_t* data, size_t bytes);
 
 			/// Select the section to use
-			void use_section(uint8_t flags) {
-				int index = -1;
-				const uint32_t count = sections.size();
-
-				for (int i = 0; i < count; ++i) {
-					if (sections[i].flags == flags) {
-						index = i;
-					}
-				}
-
-				// section already exists
-				if (index != -1) {
-					selected = index;
-					return;
-				}
-
-				// create new section
-				selected = count;
-				sections.emplace_back(count, flags);
-			}
+			void use_section(uint8_t flags);
 
 			/// Get section count
-			size_t count() {
-				return sections.size();
-			}
+			size_t count();
 
 			/// Get the total size in bytes of the whole segmented buffer, can be used only after linking
-			size_t total() {
-				auto last = sections.back();
-				return last.start + last.buffer.size() + last.tail;
-			}
+			size_t total();
 
-			const std::vector<BufferSection>& segments() {
-				return sections;
-			}
+			/// Get segment list
+			const std::vector<BufferSegment>& segments() const;
 
-			LabelLookup<size_t> resolved_labels() const {
-				LabelLookup<size_t> result;
-
-				for (auto& [label, marker] : labels) {
-					result[label] = get_offset(marker);
-				}
-
-				return result;
-			}
-
-			SegmentedBuffer() {
-				use_section(BufferSection::DEFAULT);
-			}
+			/// Get a copy of the label map
+			LabelMap<size_t> resolved_labels() const;
 
 	};
 

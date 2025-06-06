@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CPP_SOURCES
 		src/out/buffer/segmented.cpp
+		src/out/buffer/executable.cpp
+		src/out/buffer/label.cpp
 		src/asm/x86/writer.cpp
 		src/asm/x86/emitter.cpp
 		src/asm/x86/argument/location.cpp

@@ -5,6 +5,7 @@
 
 namespace asmio {
 
+	/// Universal buffer label
 	struct Label {
 
 		private:
@@ -15,29 +16,16 @@ namespace asmio {
 
 		public:
 
-			Label(const char* str)
+			constexpr Label(const char* str)
 			: str(str), hash(util::hash_djb2(str)), allocated(false) {}
 
-			Label(const std::string& str)
-			: str(static_cast<const char*>(malloc(str.length()))), hash(util::hash_djb2(str.c_str())), allocated(false) {
-				memcpy((void*) this->str, str.c_str(), str.size() + 1);
-			}
-
-			Label(const Label& label)
-			: str(label.str), hash(label.hash), allocated(label.allocated) {
-				if (allocated) {
-					size_t len = strlen(str) + 1;
-					str = static_cast<const char*>(malloc(len));
-					memcpy((void*) str, label.str, len);
-				}
-			}
-
-			constexpr Label(const Label&& label)
+			constexpr Label(const Label&& label)// move
 			: str(label.str), hash(label.hash), allocated(label.allocated) {}
 
-			~Label() {
-				if (allocated) free((void*) str);
-			}
+			Label(const std::string& str);
+			Label(const Label& label); // copy
+
+			~Label();
 
 			/// Compare two labels
 			constexpr bool operator == (const Label& label) const {
@@ -55,5 +43,8 @@ namespace asmio {
 			};
 
 	};
+
+	template<typename T>
+	using LabelMap = std::unordered_map<Label, T, Label::HashFunction>;
 
 }

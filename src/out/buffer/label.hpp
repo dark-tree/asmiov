@@ -32,9 +32,19 @@ namespace asmio {
 				return label.hash == this->hash && strcmp(label.str, this->str) == 0;
 			}
 
-			/// Get label string
+			/// Get label string as const char*
 			constexpr const char* c_str() const {
 				return str;
+			}
+
+			/// Get string label as std::string_view
+			constexpr std::string_view view() const {
+				return {str};
+			}
+
+			/// Get string label as std::string
+			std::string string() const {
+				return {str};
 			}
 
 			/// Function used in hashmaps to get the elements hash value

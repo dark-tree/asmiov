@@ -67,6 +67,29 @@ namespace asmio::util {
 		return 1;
 	}
 
+	constexpr int min_sign_extended_bytes(int64_t value) {
+		if ((value & 0xFFFF'FFFF'FFFF'FF80) == 0xFFFF'FFFF'FFFF'FF80) return 1; // 1 byte long negative
+		if ((value & 0xFFFF'FFFF'FFFF'FF80) == 0x0000'0000'0000'0080) return 2; // 2 byte long positive
+		if ((value & 0xFFFF'FFFF'FFFF'8000) == 0xFFFF'FFFF'FFFF'8000) return 2; // 2 byte long negative
+		if ((value & 0xFFFF'FFFF'FFFF'8000) == 0x0000'0000'0000'8000) return 4; // 4 byte long positive
+		if ((value & 0xFFFF'FFFF'8000'0000) == 0xFFFF'FFFF'8000'0000) return 4; // 4 byte long negative
+		if ((value & 0xFFFF'FFFF'8000'0000) == 0x0000'0000'8000'0000) return 8; // 8 byte long positive
+
+		// if we reached this point we know the value can't be sign extended
+		// bu we still don't know how long the number is, for example 0 also can't be sign extended
+		// so to fix this we invoke the unsigned version of this function
+		return min_bytes(value);
+	}
+
+	/// Convert integer into hex string
+	/// @see https://stackoverflow.com/a/5100745
+	template<typename T>
+	std::string to_hex(T value) {
+		std::stringstream stream;
+		stream << "0x" << std::setfill('0') << std::setw(sizeof(T)*2) << std::hex << value;
+		return stream.str();
+	}
+
 	constexpr uint64_t hash_djb2(const char *str) {
 		uint64_t hash = 5381;
 

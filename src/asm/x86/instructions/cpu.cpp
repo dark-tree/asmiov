@@ -1147,7 +1147,6 @@ namespace asmio::x86 {
 	/// Jump on ECX Zero
 	void BufferWriter::put_jecxz(Location dst) {
 
-		// FIXME: no range check
 		if (dst.is_jump_label()) {
 			put_byte(0b11100011);
 			put_label(dst.label, BYTE, dst.offset);
@@ -1160,7 +1159,6 @@ namespace asmio::x86 {
 	/// Loop Times
 	void BufferWriter::put_loop(Location dst) {
 
-		// FIXME: no range check
 		if (dst.is_jump_label()) {
 			put_byte(0b11100010);
 			put_label(dst.label, BYTE, dst.offset);
@@ -1178,7 +1176,6 @@ namespace asmio::x86 {
 	/// Loop if zero
 	INST BufferWriter::put_loopz(Location dst) {
 
-		// FIXME: no range check
 		if (dst.is_jump_label()) {
 			put_byte(0b11100001);
 			put_label(dst.label, BYTE, dst.offset);
@@ -1196,7 +1193,6 @@ namespace asmio::x86 {
 	/// Loop if not zero
 	INST BufferWriter::put_loopnz(Location dst) {
 
-		// FIXME: no range check
 		if (dst.is_jump_label()) {
 			put_byte(0b11100000);
 			put_label(dst.label, BYTE, dst.offset);

@@ -110,6 +110,11 @@ namespace asmio::x86 {
 				: -mount;
 
 			const int64_t value = buffer->get_offset(src) - offset + addend;
+
+			if (util::min_sign_extended_bytes(value) > width) {
+				throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (" + util::to_hex(value) + ") into target of size " + std::to_string(width) + ", some data would have been truncated!"};
+			}
+
 			const uint8_t* value_ptr = reinterpret_cast<const uint8_t*>(&value);
 			memcpy(buffer->get_pointer(dst), value_ptr, width);
 		});

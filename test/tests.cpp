@@ -51,6 +51,29 @@ TEST (syntax_indetermiante) {
 
 }
 
+TEST (min_unsigned_integer_bytes) {
+
+	CHECK(util::min_bytes(0xFF), 1);
+	CHECK(util::min_bytes(0x123456), 4);
+	CHECK(util::min_bytes(0xF000), 2);
+	CHECK(util::min_bytes(0x1888888888), 8);
+	CHECK(util::min_bytes(0), 1);
+
+}
+
+TEST (min_extended_integer_bytes) {
+
+	CHECK(util::min_sign_extended_bytes(0), 1);
+	CHECK(util::min_sign_extended_bytes(-0x11), 1);
+	CHECK(util::min_sign_extended_bytes(0x123456), 4);
+	CHECK(util::min_sign_extended_bytes(0x1888888888), 8);
+	CHECK(util::min_sign_extended_bytes(0xFFFF'FF01), 8);
+	CHECK(util::min_sign_extended_bytes(0x7FFF'FF01), 4);
+	CHECK(util::min_sign_extended_bytes(0x80), 2);
+	CHECK(util::min_sign_extended_bytes(0xFFFF), 4);
+
+}
+
 TEST (writer_check_push) {
 
 	SegmentedBuffer buffer;
@@ -212,6 +235,44 @@ TEST (writer_check_st_as_generic) {
 	EXPECT_ANY({ writer.put_inc(ST); });
 	EXPECT_ANY({ writer.put_mov(RAX, ST); });
 	EXPECT_ANY({ writer.put_lea(EAX, ST + 6); });
+
+}
+
+TEST (writer_check_truncation) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.put_jcxz("target");
+
+	for (int i = 0; i < 128; i ++) {
+		writer.put_nop();
+	}
+
+	writer.label("target");
+	writer.put_ret();
+
+	EXPECT_ANY({ to_executable(segmented); });
+
+}
+
+TEST (writer_exec_no_truncation) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.put_jcxz("target");
+
+	for (int i = 0; i < 127; i ++) {
+		writer.put_nop();
+	}
+
+	writer.label("target");
+	writer.put_mov(RAX, 127);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = to_executable(segmented);
+	CHECK(buffer.call_u64(), 127);
 
 }
 
@@ -931,6 +992,43 @@ TEST(writer_exec_je) {
 
 }
 
+TEST(writer_exec_loop_jecxz) {
+
+	SET_TIMEOUT(1);
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.label("begin");
+	writer.put_xor(EAX, EAX);
+	writer.put_jcxz("skip");
+	writer.label("next");
+
+	writer.put_add(EAX, 3);
+
+	writer.put_loop("next");
+	writer.label("skip");
+	writer.put_ret();
+
+	writer.label("L4");
+	writer.put_mov(ECX, 4);
+	writer.put_jmp("begin");
+
+	writer.label("L11");
+	writer.put_mov(ECX, 11);
+	writer.put_jmp("begin");
+
+	writer.label("L0");
+	writer.put_mov(ECX, 0);
+	writer.put_jmp("begin");
+
+	ExecutableBuffer buffer = to_executable(segmented);
+	CHECK(buffer.call_u32("L0"), 0);
+	CHECK(buffer.call_u32("L4"), 12);
+	CHECK(buffer.call_u32("L11"), 33);
+
+}
+
 TEST(writer_exec_labeled_entry) {
 
 	SegmentedBuffer segmented;
@@ -998,12 +1096,13 @@ TEST(writer_exec_label_mov) {
 	writer.put_word(0x1234);
 
 	writer.label("main");
-	writer.put_mov(EDX, 12);
-	writer.put_lea(EAX, EDX + "main");
+	writer.put_mov(RDI, 12);
+	writer.put_mov(RSI, "main");
+	writer.put_lea(RAX, RDI + RSI);
 	writer.put_ret();
 
 	ExecutableBuffer buffer = to_executable(segmented);
-	CHECK(buffer.call_u32("main"), 14 + (size_t) buffer.address());
+	CHECK(buffer.call_u64("main"), 14 + (size_t) buffer.address());
 
 }
 

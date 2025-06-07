@@ -360,8 +360,6 @@ namespace asmio::x86 {
 			INST put_fdivr(Location dst, Location src); /// Reverse Divide
 			INST put_fdivrp(Location dst);              /// Reverse Divide And Pop
 
-			ElfBuffer bake_elf(tasml::ErrorHandler* reporter, uint32_t address = 0x08048000, const char* entry = "_start", bool debug = false);
-
 	};
 
 }

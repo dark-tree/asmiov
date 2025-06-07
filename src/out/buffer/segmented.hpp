@@ -47,6 +47,9 @@ namespace asmio {
 		/// Get size of this buffer, including padding
 		size_t size() const;
 
+		/// Check if this segment contains no data
+		bool empty() const;
+
 		/// Return a LabelMarker that points to the current buffer position
 		BufferMarker current() const;
 
@@ -76,7 +79,7 @@ namespace asmio {
 			/// Get marker of the current buffer segment position
 			BufferMarker current() const;
 
-			/// offset in the final contiguous buffer of the given marker
+			/// Offset in the final contiguous buffer of the given marker
 			int64_t get_offset(BufferMarker marker) const;
 
 			/// Get a pointer into one of the sections where the marker points
@@ -113,7 +116,7 @@ namespace asmio {
 			void use_section(uint8_t flags);
 
 			/// Get section count
-			size_t count();
+			size_t count() const;
 
 			/// Get the total size in bytes of the whole segmented buffer, can be used only after linking
 			size_t total();

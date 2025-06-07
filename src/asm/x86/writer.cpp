@@ -559,17 +559,4 @@ namespace asmio::x86 {
 		: BasicBufferWriter(buffer) {
 	}
 
-	ElfBuffer BufferWriter::bake_elf(tasml::ErrorHandler* reporter, uint32_t address, const char* entry, bool debug) {
-		// if (!has_label(entry)) {
-		// 	throw std::runtime_error {"No entrypoint '" + std::string {entry} + "' defined!"};
-		// }
-		//
-		// ElfBuffer elf {buffer.size(), address, (uint32_t) labels.at(entry)};
-		// assemble(address + elf.offset(), reporter, debug);
-		// elf.bake(buffer);
-		//
-		// return elf;
-		throw std::runtime_error {"Not implemented yet"};
-	}
-
 }

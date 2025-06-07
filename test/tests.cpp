@@ -2783,6 +2783,28 @@ TEST (writer_fail_undefined_label) {
 
 }
 
+TEST (writer_elf_simple) {
+
+	using namespace asmio::elf;
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.label("_start");
+	writer.section(BufferSegment::X | BufferSegment::R);
+	writer.put_mov(RBX, 42); // exit code
+	writer.put_mov(RAX, 1); // sys_exit
+	writer.put_int(0x80); // 32 bit syscall
+
+	ElfBuffer file = to_elf(segmented, "_start");
+	int status;
+	RunResult result = file.execute("memfd-elf-1", &status);
+
+	CHECK(result, RunResult::SUCCESS);
+	CHECK(status, 42);
+
+}
+
 TEST (writer_elf_execve_int) {
 
 	using namespace asmio::elf;
@@ -2810,7 +2832,7 @@ TEST (writer_elf_execve_int) {
 	writer.put_int(0x80); // 32 bit syscall
 	writer.put_ret();
 
-	ElfBuffer file = writer.bake_elf(nullptr);
+	ElfBuffer file = to_elf(segmented, "_start");
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
 
@@ -2846,7 +2868,7 @@ TEST (writer_elf_execve_syscall) {
 	writer.put_syscall();
 	writer.put_ret();
 
-	ElfBuffer file = writer.bake_elf(nullptr);
+	ElfBuffer file = to_elf(segmented, "_start");
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
 

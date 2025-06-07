@@ -5,6 +5,7 @@
 #include "header.hpp"
 #include "section.hpp"
 #include "segment.hpp"
+#include "out/buffer/segmented.hpp"
 
 namespace asmio::elf {
 
@@ -33,19 +34,28 @@ namespace asmio::elf {
 
 			/**
 			 * creates a new ELF buffer
-			 * @param length content size
+			 * @param segmented content
 			 * @param mount page aligned virtual mounting address
 			 * @param entrypoint offset in bytes into the content where the execution will begin
 			 */
-			explicit ElfBuffer(size_t length, uint32_t mount, uint32_t entrypoint)
-			: data_length(length) {
+			explicit ElfBuffer(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint)
+			: data_length(segmented.total()) {
 				file_header_offset = util::insert_struct<FileHeader>(buffer);
-				segment_header_offset = util::insert_struct<SegmentHeader>(buffer);
-				segment_data_offset = util::insert_struct<uint8_t>(buffer, length);
+				segment_header_offset = util::insert_struct<SegmentHeader>(buffer, segmented.count());
+
+				// calculate number of bytes to the next page boundry
+				const size_t page = getpagesize();
+				const size_t size = buffer.size();
+				const size_t tail = ALIGN_UP(size, page) - size;
+
+				// align to page boundary
+				util::insert_struct<uint8_t>(buffer, tail);
+
+				// page aligned data buffer
+				segment_data_offset = util::insert_struct<uint8_t>(buffer, data_length);
 
 				FileHeader& header = *util::buffer_view<FileHeader>(buffer, file_header_offset);
 				Identification& identifier = header.identifier;
-				SegmentHeader& segment = *util::buffer_view<SegmentHeader>(buffer, segment_header_offset);
 
 				// ELF magic number
 				identifier.magic[0] = 0x7f;
@@ -63,7 +73,7 @@ namespace asmio::elf {
 				header.type = FileType::EXEC;
 				header.machine = Machine::X86_64;
 				header.version = VERSION;
-				header.entrypoint = mount + segment_data_offset + entrypoint;
+				header.entrypoint = mount + entrypoint;
 				header.flags = 0;
 				header.header_size = sizeof(FileHeader);
 				header.section_string_offset = UNDEFINED_SECTION;
@@ -71,33 +81,47 @@ namespace asmio::elf {
 				// ... segments
 				header.program_table_offset = segment_header_offset;
 				header.program_entry_size = sizeof(SegmentHeader);
-				header.program_entry_count = 1;
+				header.program_entry_count = 0;
 
 				// ... sections
 				header.section_table_offset = 0;
 				header.section_entry_size = 0;
 				header.section_entry_count = 0;
 
-				// fill the segment header
-				segment.type = SegmentType::LOAD;
-				segment.virtual_address = mount;
-				segment.physical_address = mount;
-				segment.alignment = 0x1000;
-				segment.file_size = buffer.size(); // load the entire ELF file to memory
-				segment.memory_size = buffer.size();
-				segment.offset = 0;
-				segment.flags = SegmentFlags::R | SegmentFlags::W | SegmentFlags::X;
+				uint64_t header_offset = segment_header_offset;
+				uint64_t data_offset = segment_data_offset;
+				uint64_t address = mount;
+
+				for (const BufferSegment& bs : segmented.segments()) {
+					SegmentHeader& segment = *util::buffer_view<SegmentHeader>(buffer, header_offset);
+
+					if (bs.empty()) {
+						continue;
+					}
+
+					// fill the segment header
+					segment.type = SegmentType::LOAD;
+					segment.virtual_address = address;
+					segment.physical_address = address;
+					segment.alignment = 0x1000;
+					segment.file_size = bs.size();
+					segment.memory_size = bs.size();
+					segment.offset = data_offset;
+					segment.flags = SegmentFlags::R | SegmentFlags::W | SegmentFlags::X;
+
+					// store the data
+					memcpy(util::buffer_view<uint8_t>(buffer, data_offset), bs.buffer.data(), bs.buffer.size());
+					// TODO the trailing tail padding is ignored here and left unset
+
+					// move the window forward
+					data_offset += segment.file_size;
+					header_offset += sizeof(SegmentHeader);
+					address += segment.file_size;
+					header.program_entry_count ++;
+				}
 
 				// we can invalidate the struct pointers here safely
 				buffer.shrink_to_fit();
-			}
-
-			void bake(const std::vector<uint8_t>& content) {
-				if (content.size() != data_length) {
-					throw std::runtime_error {"Invalid size!"};
-				}
-
-				memcpy(util::buffer_view<uint8_t>(buffer, segment_data_offset), content.data(), data_length);
 			}
 
 		public:
@@ -179,5 +203,22 @@ namespace asmio::elf {
 			}
 
 	};
+
+	inline ElfBuffer to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = 0x08048000) {
+
+		// after alignment we will know how big the buffer needs to be
+		const size_t page = getpagesize();
+		segmented.align(page);
+		segmented.link(address);
+
+		if (!segmented.has_label(entry)) {
+			throw std::runtime_error {"Entrypoint '" + entry.string() + "' not defined!"};
+		}
+
+		BufferMarker entrymark = segmented.get_label(entry);
+		uint64_t entrypoint = segmented.get_offset(entrymark);
+
+		return ElfBuffer {segmented, address, entrypoint};
+	}
 
 }

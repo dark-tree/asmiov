@@ -15,11 +15,14 @@ namespace asmio {
 		return buffer.size() + tail;
 	}
 
+	bool BufferSegment::empty() const {
+		return buffer.empty();
+	}
+
 	BufferMarker BufferSegment::current() const {
 		return {index, static_cast<uint32_t>(buffer.size())};
 	}
 
-	/// Update internal paddings
 	size_t BufferSegment::align(size_t start, size_t page) {
 		this->start = start;
 		const int64_t bytes = buffer.size();
@@ -30,9 +33,9 @@ namespace asmio {
 		return aligned;
 	}
 
-	/// Convert internal flags to the mprotect flags
-	/// FIXME maybe let's not do this
 	int BufferSegment::get_mprot_flags() const {
+		// FIXME this is dumb
+
 		int protect = 0;
 		if (flags & R) protect |= PROT_READ;
 		if (flags & W) protect |= PROT_WRITE;
@@ -147,7 +150,7 @@ namespace asmio {
 		sections.emplace_back(count, flags);
 	}
 
-	size_t SegmentedBuffer::count() {
+	size_t SegmentedBuffer::count() const {
 		return sections.size();
 	}
 

@@ -10,6 +10,7 @@ namespace asmio::x86 {
 	Location parseExpression(TokenStream stream);
 	Location parseLocation(ErrorHandler& reporter, TokenStream stream, bool& write);
 	bool parseDataDefinition(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token);
+	bool parseSectionStatement(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token);
 
 	template <uint32_t argc> struct Instruction {};
 	template <> struct Instruction<0> { using type = void (BufferWriter::*) (); };
@@ -592,9 +593,34 @@ namespace asmio::x86 {
 			return;
 		}
 
+		if (parseSectionStatement(reporter, writer, stream, token)) {
+			return;
+		}
+
 		// TODO: add rep/repe/repz/repne/repnz prefix support
 
 		throw std::runtime_error {"Unknown " + std::to_string(argc) + " argument mnemonic '" + std::string {name} + "'"};
+	}
+
+	bool parseSectionStatement(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token) {
+
+		if (util::to_lower(token.raw) != "section") {
+			return false;
+		}
+
+		auto mode = util::to_lower(stream.expect(Token::NAME).raw);
+		uint32_t flags = 0;
+
+		for (char c : mode) {
+			if (c == 'r') flags |= BufferSegment::R;
+			else if (c == 'w') flags |= BufferSegment::W;
+			else if (c == 'x') flags |= BufferSegment::X;
+			else throw std::runtime_error {"Unknown section flag '" + std::to_string(c) + "'"};
+		}
+
+		writer.section(flags);
+		return true;
+
 	}
 
 	bool parseDataDefinition(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token) {

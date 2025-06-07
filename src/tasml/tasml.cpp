@@ -103,12 +103,15 @@ int main(int argc, char** argv) {
 		handler.assert(EXIT_TOKEN_ERROR);
 
 		// parse and assemble
-		asmio::x86::BufferWriter writer;
+		asmio::SegmentedBuffer buffer;
+		asmio::x86::BufferWriter writer {buffer};
 		asmio::x86::parseBlock(handler, writer, stream);
 		handler.assert(EXIT_PARSE_ERROR);
 
 		// assemble buffer and create ELF file
-		asmio::elf::ElfBuffer elf = writer.bake_elf(&handler);
+		asmio::elf::ElfBuffer elf = asmio::elf::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
+			handler.link(link.target, what);
+		});
 		handler.assert(EXIT_LINKE_ERROR);
 
 		// write to output file

@@ -7,6 +7,8 @@
 #include "segment.hpp"
 #include "out/buffer/segmented.hpp"
 
+#define DEFAULT_ELF_MOUNT 0x08048000
+
 namespace asmio::elf {
 
 	enum struct RunResult : uint8_t {
@@ -29,6 +31,15 @@ namespace asmio::elf {
 			size_t file_header_offset;
 			size_t segment_header_offset;
 			size_t segment_data_offset;
+
+			uint32_t translate_flags(const BufferSegment& segment) {
+				uint32_t flags = 0;
+				if (segment.flags & BufferSegment::R) flags |= SegmentFlags::R;
+				if (segment.flags & BufferSegment::W) flags |= SegmentFlags::W;
+				if (segment.flags & BufferSegment::X) flags |= SegmentFlags::X;
+
+				return flags;
+			}
 
 		public:
 
@@ -107,7 +118,7 @@ namespace asmio::elf {
 					segment.file_size = bs.size();
 					segment.memory_size = bs.size();
 					segment.offset = data_offset;
-					segment.flags = SegmentFlags::R | SegmentFlags::W | SegmentFlags::X;
+					segment.flags = translate_flags(bs);
 
 					// store the data
 					memcpy(util::buffer_view<uint8_t>(buffer, data_offset), bs.buffer.data(), bs.buffer.size());
@@ -204,12 +215,12 @@ namespace asmio::elf {
 
 	};
 
-	inline ElfBuffer to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = 0x08048000) {
+	inline ElfBuffer to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const Linkage::Handler& handler = nullptr) {
 
 		// after alignment we will know how big the buffer needs to be
 		const size_t page = getpagesize();
 		segmented.align(page);
-		segmented.link(address);
+		segmented.link(address, handler);
 
 		if (!segmented.has_label(entry)) {
 			throw std::runtime_error {"Entrypoint '" + entry.string() + "' not defined!"};

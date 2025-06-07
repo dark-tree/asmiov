@@ -2,6 +2,7 @@
 
 #include "external.hpp"
 #include "util.hpp"
+#include "out/buffer/segmented.hpp"
 
 namespace tasml {
 
@@ -34,7 +35,7 @@ namespace tasml {
 
 					void dump(bool ansi) const {
 						if (type == LINK) {
-							printf("%s at 0x%08x %s %s!\n", unit.c_str(), column, typestr(ansi), message.c_str());
+							printf("%s at %d+0x%08x %s %s!\n", unit.c_str(), line, column, typestr(ansi), message.c_str());
 							return;
 						}
 
@@ -89,8 +90,8 @@ namespace tasml {
 				errors ++;
 			}
 
-			void link(uint32_t offset, const std::string& message) {
-				reports.emplace_back(Report::LINK, -1, offset, message, unit);
+			void link(asmio::BufferMarker marker, const std::string& message) {
+				reports.emplace_back(Report::LINK, marker.section, marker.offset, message, unit);
 				errors ++;
 			}
 

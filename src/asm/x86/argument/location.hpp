@@ -1,7 +1,7 @@
 #pragma once
 
 #include "external.hpp"
-#include "sizes.hpp"
+#include "out/buffer/sizes.hpp"
 #include "registry.hpp"
 #include "scaled.hpp"
 #include "out/buffer/label.hpp"

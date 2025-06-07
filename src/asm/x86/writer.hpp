@@ -7,6 +7,7 @@
 #include "out/elf/buffer.hpp"
 #include "out/buffer/segmented.hpp"
 #include "util.hpp"
+#include "out/buffer/writer.hpp"
 
 namespace asmio::x86 {
 
@@ -17,15 +18,13 @@ namespace asmio::x86 {
 		ABSOLUTE,
 	};
 
-	class BufferWriter {
+	class BufferWriter : public BasicBufferWriter {
 
 		private:
 
 			// number of bytes after the 'standard' instruction body
 			// this is needed for the x86-64 RIP-relative addressing to work
 			uint32_t suffix = 0;
-
-			SegmentedBuffer buffer;
 
 			void put_linker_command(const Label& label, int32_t addend, int32_t shift, uint8_t width, LinkType type);
 			void put_inst_rex(bool w, bool r, bool x, bool b);
@@ -83,35 +82,12 @@ namespace asmio::x86 {
 			void put_32bit_address_prefix();
 
 			void put_label(const Label& label, uint8_t size, int64_t addend);
-			bool has_label(const Label& label);
-			int64_t get_label(const Label& label);
-
 			void set_suffix(int suffix);
 			int get_suffix();
 
 		public:
 
-			inline void section(uint8_t flags) {
-				buffer.use_section(flags);
-			}
-
-			BufferWriter& label(const Label& label);
-
-			void put_ascii(const std::string& str);
-			void put_byte(uint8_t byte = 0);
-			void put_byte(std::initializer_list<uint8_t> byte);
-			void put_word(uint16_t word = 0);
-			void put_word(std::initializer_list<uint16_t> word);
-			void put_dword(uint32_t dword = 0);
-			void put_dword(std::initializer_list<uint32_t> dword);
-			void put_dword_f(float dword);
-			void put_dword_f(std::initializer_list<float> dword);
-			void put_qword(uint64_t dword = 0);
-			void put_qword(std::initializer_list<uint64_t> dword);
-			void put_qword_f(double dword);
-			void put_qword_f(std::initializer_list<double> dword);
-			void put_data(size_t bytes, void* date);
-			void put_space(size_t bytes, uint8_t value = 0);
+			BufferWriter(SegmentedBuffer& buffer);
 
 			// string (i386)
 			BufferWriter& put_rep();                    /// Repeat
@@ -384,8 +360,6 @@ namespace asmio::x86 {
 			INST put_fdivr(Location dst, Location src); /// Reverse Divide
 			INST put_fdivrp(Location dst);              /// Reverse Divide And Pop
 
-			void dump() const;
-			ExecutableBuffer bake();
 			ElfBuffer bake_elf(tasml::ErrorHandler* reporter, uint32_t address = 0x08048000, const char* entry = "_start", bool debug = false);
 
 	};

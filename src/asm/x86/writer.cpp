@@ -484,7 +484,7 @@ namespace asmio::x86 {
 			throw std::runtime_error {"Invalid operand"};
 		}
 
-		if (has_label(label)) {
+		if (buffer.has_label(label)) {
 
 			BufferMarker dst = buffer.get_label(label);
 			BufferMarker src = buffer.current();
@@ -540,14 +540,6 @@ namespace asmio::x86 {
 		}
 	}
 
-	bool BufferWriter::has_label(const Label& label) {
-		return buffer.has_label(label);
-	}
-
-	int64_t BufferWriter::get_label(const Label& label) {
-		return buffer.get_offset(buffer.get_label(label));
-	}
-
 	void BufferWriter::set_suffix(int suffix) {
 		this->suffix = suffix;
 	}
@@ -558,73 +550,8 @@ namespace asmio::x86 {
 		return suffix;
 	}
 
-	BufferWriter& BufferWriter::label(const Label& label) {
-		buffer.add_label(label);
-		return *this;
-	}
-
-	void BufferWriter::put_byte(uint8_t byte) {
-		buffer.push(byte);
-	}
-
-	void BufferWriter::put_byte(std::initializer_list<uint8_t> bytes) {
-		buffer.insert((uint8_t*) std::data(bytes), BYTE * bytes.size());
-	}
-
-	void BufferWriter::put_ascii(const std::string& str) {
-		buffer.insert((uint8_t*) str.c_str(), BYTE * (str.size() + 1));
-	}
-
-	void BufferWriter::put_word(uint16_t word) {
-		buffer.insert((uint8_t*) &word, WORD);
-	}
-
-	void BufferWriter::put_word(std::initializer_list<uint16_t> words) {
-		buffer.insert((uint8_t*) std::data(words), WORD * words.size());
-	}
-
-	void BufferWriter::put_dword(uint32_t dword) {
-		buffer.insert((uint8_t*) &dword, DWORD);
-	}
-
-	void BufferWriter::put_dword(std::initializer_list<uint32_t> dwords) {
-		buffer.insert((uint8_t*) std::data(dwords), DWORD * dwords.size());
-	}
-
-	void BufferWriter::put_dword_f(float dword) {
-		buffer.insert((uint8_t*) &dword, DWORD);
-	}
-
-	void BufferWriter::put_dword_f(std::initializer_list<float> dwords) {
-		buffer.insert((uint8_t*) std::data(dwords), DWORD * dwords.size());
-	}
-
-	void BufferWriter::put_qword(uint64_t qword) {
-		buffer.insert((uint8_t*) &qword, QWORD);
-	}
-
-	void BufferWriter::put_qword(std::initializer_list<uint64_t> dwords) {
-		buffer.insert((uint8_t*) std::data(dwords), QWORD * dwords.size());
-	}
-
-	void BufferWriter::put_qword_f(double qword) {
-		buffer.insert((uint8_t*) &qword, QWORD);
-	}
-
-	void BufferWriter::put_qword_f(std::initializer_list<double> dwords) {
-		buffer.insert((uint8_t*) std::data(dwords), QWORD * dwords.size());
-	}
-
-	void BufferWriter::put_data(size_t bytes, void* date) {
-		buffer.insert((uint8_t*) date, bytes);
-	}
-
-	void BufferWriter::put_space(size_t bytes, uint8_t value) {
-		buffer.fill(bytes, value);
-	}
-
-	ExecutableBuffer BufferWriter::bake() {
-		return to_executable(buffer);
+	BufferWriter::BufferWriter(SegmentedBuffer& buffer)
+		: BasicBufferWriter(buffer) {
 	}
 
 	ElfBuffer BufferWriter::bake_elf(tasml::ErrorHandler* reporter, uint32_t address, const char* entry, bool debug) {
@@ -638,10 +565,6 @@ namespace asmio::x86 {
 		//
 		// return elf;
 		throw std::runtime_error {"Not implemented yet"};
-	}
-
-	void BufferWriter::dump() const {
-		buffer.dump();
 	}
 
 }

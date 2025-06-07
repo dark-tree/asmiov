@@ -2,7 +2,7 @@
 
 #include "external.hpp"
 #include "asm/x86/const.hpp"
-#include "sizes.hpp"
+#include "out/buffer/sizes.hpp"
 
 namespace asmio::x86 {
 

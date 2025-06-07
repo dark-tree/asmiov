@@ -2,7 +2,7 @@
 
 #include "external.hpp"
 
-namespace asmio::x86 {
+namespace asmio {
 
 	constexpr uint8_t VOID = 0;
 	constexpr uint8_t BYTE = 1;

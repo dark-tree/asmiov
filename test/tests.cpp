@@ -53,7 +53,8 @@ TEST (syntax_indetermiante) {
 
 TEST (writer_check_push) {
 
-	BufferWriter writer;
+	SegmentedBuffer buffer;
+	BufferWriter writer {buffer};
 
 	// 16 bit
 	writer.put_push(AX);
@@ -90,7 +91,8 @@ TEST (writer_check_push) {
 
 TEST (writer_check_mov_sizing) {
 
-	BufferWriter writer;
+	SegmentedBuffer buffer;
+	BufferWriter writer {buffer};
 
 	EXPECT_ANY({ writer.put_mov(EAX, AX); });
 	EXPECT_ANY({ writer.put_mov(ref(RAX), ref(RAX)); });
@@ -99,7 +101,8 @@ TEST (writer_check_mov_sizing) {
 
 TEST (writer_check_mov_address_size) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(AL, ref(RDX)); // 8a 02
 	writer.put_mov(AL, ref(EDX)); // 67 8a 02
@@ -107,7 +110,7 @@ TEST (writer_check_mov_address_size) {
 	EXPECT_ANY({ writer.put_mov(AL, ref(DX)); });
 	EXPECT_ANY({ writer.put_mov(AL, ref(SIL)); });
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint8_t* data = buffer.address();
 
 	CHECK(data[0], 0x8a);
@@ -121,7 +124,8 @@ TEST (writer_check_mov_address_size) {
 
 TEST (writer_check_high_byte_register) {
 
-	BufferWriter writer;
+	SegmentedBuffer buffer;
+	BufferWriter writer {buffer};
 
 	// ok, legacy low/high registers
 	writer.put_mov(AH, DH);
@@ -143,7 +147,8 @@ TEST (writer_check_high_byte_register) {
 
 TEST (writer_check_stack_index_register) {
 
-	BufferWriter writer;
+	SegmentedBuffer buffer;
+	BufferWriter writer {buffer};
 
 	// ok, sanity checks
 	writer.put_mov(EAX, ESP);
@@ -171,7 +176,8 @@ TEST (writer_check_stack_index_register) {
 
 TEST (writer_check_lea_sizing) {
 
-	BufferWriter writer;
+	SegmentedBuffer buffer;
+	BufferWriter writer {buffer};
 
 	// ok
 	writer.put_lea(RAX, 0);
@@ -187,7 +193,8 @@ TEST (writer_check_lea_sizing) {
 
 TEST (writer_check_mixed_addressing) {
 
-	BufferWriter writer;
+	SegmentedBuffer buffer;
+	BufferWriter writer {buffer};
 
 	writer.put_mov(RAX, ref(EAX + EBX * 2 + 123));
 	writer.put_mov(EAX, ref(RAX + RBX * 2 + 123));
@@ -199,24 +206,25 @@ TEST (writer_check_mixed_addressing) {
 
 TEST (writer_check_st_as_generic) {
 
-	BufferWriter writer;
+	SegmentedBuffer buffer;
+	BufferWriter writer {buffer};
 
 	EXPECT_ANY({ writer.put_inc(ST); });
 	EXPECT_ANY({ writer.put_mov(RAX, ST); });
 	EXPECT_ANY({ writer.put_lea(EAX, ST + 6); });
 
-
 }
 
 TEST (writer_exec_mov_ret_nop) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 5);
 	writer.put_nop();
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint32_t eax = buffer.call_u32();
 
 	CHECK(eax, 5);
@@ -225,7 +233,9 @@ TEST (writer_exec_mov_ret_nop) {
 
 TEST (writer_exec_mov_scaled) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
 	writer.label("data");
 	writer.put_dword(23); // +0
 	writer.put_dword(44); // +4
@@ -243,7 +253,7 @@ TEST (writer_exec_mov_scaled) {
 	writer.put_mov(EAX, R8D);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint32_t eax = buffer.call_u32("code");
 	CHECK(eax, 67);
 
@@ -251,12 +261,13 @@ TEST (writer_exec_mov_scaled) {
 
 TEST (writer_exec_mov_long) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(RAX, 0x1000000000000000);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint64_t eax = buffer.call_u64();
 
 	CHECK(eax, 0x1000000000000000);
@@ -265,13 +276,14 @@ TEST (writer_exec_mov_long) {
 
 TEST (writer_exec_mov_long_simple) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(RDX, 0x2000000000000000);
 	writer.put_mov(RAX, RDX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint64_t eax = buffer.call_u64();
 
 	CHECK(eax, 0x2000000000000000);
@@ -280,7 +292,8 @@ TEST (writer_exec_mov_long_simple) {
 
 TEST (writer_exec_mov_add_long_regmem) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("L1");
 	writer.put_qword(7);
@@ -300,7 +313,7 @@ TEST (writer_exec_mov_add_long_regmem) {
 	writer.put_mov(RAX, R13);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint64_t rax = buffer.call_u64("start");
 	CHECK(rax, 56);
 
@@ -308,7 +321,8 @@ TEST (writer_exec_mov_add_long_regmem) {
 
 TEST (writer_exec_mov_add_extended) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("L1"); // => 7
 	writer.put_xor(RAX, RAX);
@@ -342,7 +356,7 @@ TEST (writer_exec_mov_add_extended) {
 	writer.put_mov(EAX, R12D);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u64("L1"), 7);
 	CHECK(buffer.call_u64("L2"), 13);
 	CHECK(buffer.call_u64("L3"), 1700);
@@ -352,7 +366,8 @@ TEST (writer_exec_mov_add_extended) {
 
 TEST (writer_exec_mem_moves) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a").put_dword();
 	writer.label("b").put_dword();
@@ -385,14 +400,15 @@ TEST (writer_exec_mem_moves) {
 	writer.put_mov(EAX, 0);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32("main"), 1);
 
 }
 
 TEST (writer_exec_rol_inc_neg_sar) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_nop();
 	writer.put_mov(EDX, 5);
@@ -407,7 +423,7 @@ TEST (writer_exec_rol_inc_neg_sar) {
 	writer.put_neg(EAX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint32_t eax = buffer.call_u32();
 
 	CHECK(eax, 11);
@@ -416,7 +432,8 @@ TEST (writer_exec_rol_inc_neg_sar) {
 
 TEST(writer_exec_xchg) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_nop();
 	writer.put_mov(EAX, 0xA);
@@ -424,7 +441,7 @@ TEST(writer_exec_xchg) {
 	writer.put_xchg(EDX, EAX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint32_t eax = buffer.call_u32();
 
 	CHECK(eax, 0xD);
@@ -433,7 +450,8 @@ TEST(writer_exec_xchg) {
 
 TEST(writer_exec_push_pop) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(RAX, 9);
 	writer.put_push(RAX);
@@ -442,7 +460,7 @@ TEST(writer_exec_push_pop) {
 	writer.put_mov(RAX, RCX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint32_t eax = buffer.call_u32();
 
 	CHECK(eax, 9);
@@ -451,7 +469,8 @@ TEST(writer_exec_push_pop) {
 
 TEST(writer_exec_movsx_movzx) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(CL, 9);
 	writer.put_movzx(EDX, CL);
@@ -459,7 +478,7 @@ TEST(writer_exec_movsx_movzx) {
 	writer.put_movsx(EAX, DL);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int eax = buffer.call_i32();
 
 	CHECK(eax, -9);
@@ -470,7 +489,8 @@ TEST(writer_exec_lea) {
 
 	int eax = 12, edx = 56, ecx = 60;
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, eax);
 	writer.put_mov(EDX, edx);
@@ -479,7 +499,7 @@ TEST(writer_exec_lea) {
 	writer.put_lea(EAX, ECX + EAX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, (edx + eax * 2 - 5) + eax);
@@ -487,7 +507,8 @@ TEST(writer_exec_lea) {
 
 TEST(writer_exec_lea_rex) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("data");
 	writer.put_qword(42);
@@ -497,7 +518,7 @@ TEST(writer_exec_lea_rex) {
 	writer.put_mov(RAX, ref(RAX));
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u64(), 42);
 
 }
@@ -506,7 +527,8 @@ TEST(writer_exec_add) {
 
 	int eax = 12, edx = 56, ecx = 60;
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, eax);
 	writer.put_mov(EDX, edx);
@@ -516,7 +538,7 @@ TEST(writer_exec_add) {
 	writer.put_add(EAX, 5);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, eax + edx + ecx + 5);
@@ -525,7 +547,8 @@ TEST(writer_exec_add) {
 
 TEST(writer_exec_add_adc) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 0xFFFFFFF0);
 	writer.put_mov(EDX, 0x00000000);
@@ -534,7 +557,7 @@ TEST(writer_exec_add_adc) {
 	writer.put_xchg(EAX, EDX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 0x1);
@@ -543,7 +566,8 @@ TEST(writer_exec_add_adc) {
 
 TEST(writer_exec_add_long) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("data");
 	writer.put_byte(0x16);
@@ -578,21 +602,22 @@ TEST(writer_exec_add_long) {
 	writer.put_mov(RAX, R15);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u64("code"), (0x16 + 0x49 + 0x2137 + 0x1111'2222 + 0x1'0000'0000));
 
 }
 
 TEST(writer_exec_sub) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 0xF);
 	writer.put_mov(EDX, 0xA);
 	writer.put_sub(EAX, EDX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 0xF - 0xA);
@@ -601,7 +626,8 @@ TEST(writer_exec_sub) {
 
 TEST(writer_exec_sub_sbb) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 0xA);
 	writer.put_mov(EDX, 0x0);
@@ -610,7 +636,7 @@ TEST(writer_exec_sub_sbb) {
 	writer.put_xchg(EAX, EDX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, -1);
@@ -619,7 +645,8 @@ TEST(writer_exec_sub_sbb) {
 
 TEST(writer_exec_stc_lahf_sahf) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(AH, 0);
 	writer.put_sahf();
@@ -627,7 +654,7 @@ TEST(writer_exec_stc_lahf_sahf) {
 	writer.put_lahf();
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint32_t output = (buffer.call_u32() & 0xFF00) >> 8;
 
 	ASSERT(!(output & 0b1000'0000)); // ZF
@@ -638,7 +665,8 @@ TEST(writer_exec_stc_lahf_sahf) {
 
 TEST (writer_exec_cmp_lahf) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 0xA);
 	writer.put_mov(EDX, 0xE);
@@ -646,7 +674,7 @@ TEST (writer_exec_cmp_lahf) {
 	writer.put_lahf();
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint32_t output = (buffer.call_u32() & 0xFF00) >> 8;
 
 	ASSERT(output & 0b1000'0000); // ZF
@@ -657,14 +685,15 @@ TEST (writer_exec_cmp_lahf) {
 
 TEST(writer_exec_mul) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 0xA);
 	writer.put_mov(EDX, 0xB);
 	writer.put_mul(EDX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 0xA * 0xB);
@@ -673,7 +702,8 @@ TEST(writer_exec_mul) {
 
 TEST(writer_exec_mul_imul) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 7);
 	writer.put_mov(EDX, 5);
@@ -684,7 +714,7 @@ TEST(writer_exec_mul_imul) {
 	writer.put_imul(EAX, EAX, 11);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 7 * 5 * 3 * 2 * 11);
@@ -693,7 +723,8 @@ TEST(writer_exec_mul_imul) {
 
 TEST(writer_exec_div_idiv) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 50);
 
@@ -707,7 +738,7 @@ TEST(writer_exec_div_idiv) {
 
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 50 / 5 / -2);
@@ -716,7 +747,8 @@ TEST(writer_exec_div_idiv) {
 
 TEST(writer_exec_or) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 0b0000'0110);
 	writer.put_mov(EDX, 0b0101'0000);
@@ -724,7 +756,7 @@ TEST(writer_exec_or) {
 	writer.put_or(EAX, EDX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 0b0101'1110);
@@ -733,7 +765,8 @@ TEST(writer_exec_or) {
 
 TEST(writer_exec_and_not_xor_or) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 0b0000'0110'0111);
 	writer.put_mov(EDX, 0b0101'0010'1010);
@@ -746,7 +779,7 @@ TEST(writer_exec_and_not_xor_or) {
 
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 0b1100'0100'1111);
@@ -755,7 +788,8 @@ TEST(writer_exec_and_not_xor_or) {
 
 TEST(writer_exec_bts_btr_btc) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	//                    7654 3210
 	writer.put_mov(EAX, 0b1101'0001);
@@ -769,7 +803,7 @@ TEST(writer_exec_bts_btr_btc) {
 
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 0b1100'1010);
@@ -778,7 +812,8 @@ TEST(writer_exec_bts_btr_btc) {
 
 TEST(writer_exec_bts_long) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(R13, 0);
 
@@ -789,14 +824,15 @@ TEST(writer_exec_bts_long) {
 	writer.put_mov(RAX, R13);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u64(), 0x8000'0100'0000'0200);
 
 }
 
 TEST(writer_exec_jmp_forward) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 1);
 	writer.put_jmp("l_skip");
@@ -804,7 +840,7 @@ TEST(writer_exec_jmp_forward) {
 	writer.label("l_skip");
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 1);
@@ -814,7 +850,8 @@ TEST(writer_exec_jmp_forward) {
 TEST(writer_exec_jmp_back) {
 
 	SET_TIMEOUT(1);
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 1);
 	writer.put_jmp("1");
@@ -833,7 +870,7 @@ TEST(writer_exec_jmp_back) {
 	writer.label("3");
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 3);
@@ -843,7 +880,8 @@ TEST(writer_exec_jmp_back) {
 TEST(writer_exec_jz_back) {
 
 	SET_TIMEOUT(1);
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 1);
 	writer.put_mov(EDX, 0);
@@ -864,7 +902,7 @@ TEST(writer_exec_jz_back) {
 	writer.label("3");
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 3);
@@ -873,7 +911,8 @@ TEST(writer_exec_jz_back) {
 
 TEST(writer_exec_je) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 5);
 	writer.put_mov(ECX, 6);
@@ -885,7 +924,7 @@ TEST(writer_exec_je) {
 
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	int output = buffer.call_i32();
 
 	CHECK(output, 5);
@@ -894,7 +933,8 @@ TEST(writer_exec_je) {
 
 TEST(writer_exec_labeled_entry) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("foo");
 	writer.put_mov(EAX, 1);
@@ -908,7 +948,7 @@ TEST(writer_exec_labeled_entry) {
 	writer.put_mov(EAX, 3);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 
 	CHECK(buffer.call_u32("foo"), 1);
 	CHECK(buffer.call_u32("bar"), 2);
@@ -918,7 +958,8 @@ TEST(writer_exec_labeled_entry) {
 
 TEST(writer_exec_functions) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("add");
 	writer.put_add(EAX, ref(RSP + 8));
@@ -944,14 +985,15 @@ TEST(writer_exec_functions) {
 
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32("main"), 42);
 
 }
 
 TEST(writer_exec_label_mov) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_word(0x1234);
 
@@ -960,14 +1002,15 @@ TEST(writer_exec_label_mov) {
 	writer.put_lea(EAX, EDX + "main");
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32("main"), 14 + (size_t) buffer.address());
 
 }
 
 TEST(writer_exec_absolute_jmp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_word(0x1234);
 	writer.put_mov(EAX, 0);
@@ -983,28 +1026,30 @@ TEST(writer_exec_absolute_jmp) {
 	writer.put_jmp(RDX);
 	writer.put_ret(); // invalid
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32("main"), 42);
 
 }
 
 TEST (writer_exec_fpu_fnop_finit_fld1) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_fnop();
 	writer.put_finit();
 	writer.put_fld1();
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32(), 1.0f);
 
 }
 
 TEST (writer_exec_fpu_fmul_fimul_fmulp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(6.0f);
@@ -1028,14 +1073,15 @@ TEST (writer_exec_fpu_fmul_fimul_fmulp) {
 	writer.put_fmulp(ST + 1);              // fpu stack: [0.5*6.0*4.0*0.25, +6.0]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 3.0f);
 
 }
 
 TEST(writer_exec_fpu_f2xm1_fabs_fchs) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(1.0f);
@@ -1052,14 +1098,15 @@ TEST(writer_exec_fpu_f2xm1_fabs_fchs) {
 	writer.put_fabs();               // fpu stack: [|(2^(-1.0)-1)*5.0|]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 2.5f);
 
 }
 
 TEST (writer_exec_fpu_fadd_fiadd_faddp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(6.0f);
@@ -1083,14 +1130,15 @@ TEST (writer_exec_fpu_fadd_fiadd_faddp) {
 	writer.put_faddp(ST + 1);            // fpu stack: [0.5+6.0+4.0+0.25, +6.0]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 10.75f);
 
 }
 
 TEST (writer_exec_fpu_fcom_fstsw_fcomp_fcmove_fcmovb) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(6.0f);
@@ -1119,14 +1167,15 @@ TEST (writer_exec_fpu_fcom_fstsw_fcomp_fcmove_fcmovb) {
 	writer.put_faddp(ST + 1);  // fpu stack: [6.0+0.5+6.0]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 12.5f);
 
 }
 
 TEST (writer_exec_fpu_fcompp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(6.0f);
@@ -1153,14 +1202,15 @@ TEST (writer_exec_fpu_fcompp) {
 	writer.put_fld0();
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 6.0f);
 
 }
 
 TEST (writer_exec_fpu_fcomi_fcomip) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(3.0f);
@@ -1197,14 +1247,15 @@ TEST (writer_exec_fpu_fcomi_fcomip) {
 	writer.put_fld0();
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 4.5f);
 
 }
 
 TEST (writer_exec_fpu_fldpi_fcos) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("main");
 	writer.put_finit();
@@ -1212,14 +1263,15 @@ TEST (writer_exec_fpu_fldpi_fcos) {
 	writer.put_fcos();         // fpu stack: [cos(PI)]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), -1);
 
 }
 
 TEST (writer_exec_fpu_fdiv_fdivp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(2.0f);
@@ -1240,14 +1292,15 @@ TEST (writer_exec_fpu_fdiv_fdivp) {
 	writer.put_faddp(ST + 1);        // fpu stack: [8.0/2.0+2.0/0.125]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 20);
 
 }
 
 TEST (writer_exec_fpu_fdivr_fdivrp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(2.0f);
@@ -1265,14 +1318,15 @@ TEST (writer_exec_fpu_fdivr_fdivrp) {
 	writer.put_faddp(ST + 1);            // fpu stack: [2.0/2.0+12.0/2.0]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 7);
 
 }
 
 TEST (writer_exec_fpu_ficom_ficomp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("af");
 	writer.put_dword_f(2.0f);
@@ -1309,14 +1363,15 @@ TEST (writer_exec_fpu_ficom_ficomp) {
 	writer.put_fld0();
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 1);
 
 }
 
 TEST (writer_exec_fpu_fdecstp_fincstp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_finit();
 	writer.put_fld1();
@@ -1324,14 +1379,15 @@ TEST (writer_exec_fpu_fdecstp_fincstp) {
 	writer.put_fincstp();
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32(), 1);
 
 }
 
 TEST (writer_exec_fpu_fild) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_word(1);
@@ -1351,14 +1407,15 @@ TEST (writer_exec_fpu_fild) {
 	writer.put_faddp(ST + 1);          // fpu stack: [3.0+2.0+1.0]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 6);
 
 }
 
 TEST (writer_exec_fpu_fist_fistp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword(0);
@@ -1385,7 +1442,7 @@ TEST (writer_exec_fpu_fist_fistp) {
 	writer.put_add(EAX, ref("b"));
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("init"), 1.0f);
 	CHECK(buffer.call_i32("main"), 6);
 
@@ -1393,7 +1450,8 @@ TEST (writer_exec_fpu_fist_fistp) {
 
 TEST (writer_exec_fpu_fisttp) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(3.9);
@@ -1412,7 +1470,7 @@ TEST (writer_exec_fpu_fisttp) {
 	writer.put_mov(EAX, ref<DWORD>("b"));
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("init"), 1.0f);
 	CHECK(buffer.call_i32("main"), 3);
 
@@ -1420,7 +1478,8 @@ TEST (writer_exec_fpu_fisttp) {
 
 TEST (writer_exec_fpu_fldpi_frndint) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("main");
 	writer.put_finit();
@@ -1428,14 +1487,15 @@ TEST (writer_exec_fpu_fldpi_frndint) {
 	writer.put_frndint(); // fpu stack: [3.0]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 3.0f);
 
 }
 
 TEST (writer_exec_fpu_fsqrt) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword_f(16.0f);
@@ -1446,14 +1506,15 @@ TEST (writer_exec_fpu_fsqrt) {
 	writer.put_fsqrt();              // fpu stack: [4.0]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("main"), 4.0f);
 
 }
 
 TEST (writer_exec_fpu_fst) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("dword_a");
 	writer.put_dword_f(0); // => 2
@@ -1500,7 +1561,7 @@ TEST (writer_exec_fpu_fst) {
 	writer.put_faddp(ST + 1);                     // fpu stack: [11.0]
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_f32("set_a"), 2.0f);
 	CHECK(buffer.call_f32("set_b"), 1.0f);
 	CHECK(buffer.call_f32("set_c"), 0.0f);
@@ -1510,7 +1571,8 @@ TEST (writer_exec_fpu_fst) {
 
 TEST (writer_exec_bt_dec) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("var").put_dword();
 
@@ -1535,14 +1597,15 @@ TEST (writer_exec_bt_dec) {
 	writer.put_mov(EAX, 2);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_i32("main"), 0);
 
 }
 
 TEST (writer_exec_setx) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("db").put_byte(0);
 	writer.label("dw").put_word(0);
@@ -1575,7 +1638,7 @@ TEST (writer_exec_setx) {
 	writer.put_mov(EAX, ref("dd"));
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_i32("main"), 1);
 	CHECK(buffer.call_i32("sanity"), 0);
 	CHECK(buffer.call_i32("read_db"), 1);
@@ -1586,13 +1649,14 @@ TEST (writer_exec_setx) {
 
 TEST (writer_exec_int_0x80) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, 20); // sys_getpid
 	writer.put_int(0x80);
 	writer.put_ret();
 
-	const uint32_t pid = writer.bake().call_u32();
+	const uint32_t pid = to_executable(segmented).call_u32();
 	CHECK(pid, getpid());
 
 }
@@ -1600,7 +1664,8 @@ TEST (writer_exec_int_0x80) {
 TEST (writer_exec_long_back_jmp) {
 
 	SET_TIMEOUT(1);
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("start");
 	writer.put_mov(EAX, 1);
@@ -1614,14 +1679,15 @@ TEST (writer_exec_long_back_jmp) {
 
 	writer.put_jmp("start");
 
-	CHECK(writer.bake().call_u32("main"), 1);
+	CHECK(to_executable(segmented).call_u32("main"), 1);
 
 }
 
 TEST (writer_exec_long_back_jz) {
 
 	SET_TIMEOUT(1);
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("start");
 	writer.put_mov(EAX, 1);
@@ -1636,26 +1702,28 @@ TEST (writer_exec_long_back_jz) {
 
 	writer.put_jz("start");
 
-	CHECK(writer.bake().call_u32("main"), 1);
+	CHECK(to_executable(segmented).call_u32("main"), 1);
 
 }
 
 TEST (writer_exec_imul_short) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(EAX, -3);
 	writer.put_mov(EDX, 4);
 	writer.put_imul(EAX, EDX);
 	writer.put_ret();
 
-	CHECK(writer.bake().call_u32(), -12);
+	CHECK(to_executable(segmented).call_u32(), -12);
 
 }
 
 TEST (writer_exec_memory_xchg) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("foo").put_dword(123);
 	writer.label("bar").put_byte(100);
@@ -1676,7 +1744,7 @@ TEST (writer_exec_memory_xchg) {
 	writer.put_mov(AL, ref("bar"));
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 
 	CHECK(buffer.call_i32("main"), 123);
 	CHECK(buffer.call_i32("get_foo"), 33);
@@ -1686,7 +1754,8 @@ TEST (writer_exec_memory_xchg) {
 
 TEST (writer_exec_memory_push_pop) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("foo").put_dword(123);
 	writer.label("bar").put_word(100);
@@ -1716,7 +1785,7 @@ TEST (writer_exec_memory_push_pop) {
 	writer.put_mov(RAX, ref(RSI));
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 
 	CHECK(buffer.call_i32("main"), 223);
 	CHECK(buffer.call_i32("get_car"), 666);
@@ -1725,7 +1794,8 @@ TEST (writer_exec_memory_push_pop) {
 
 TEST (writer_exec_memory_dec_inc) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("ad").put_dword(150);
 	writer.label("bd").put_word(100);
@@ -1760,7 +1830,7 @@ TEST (writer_exec_memory_dec_inc) {
 	writer.put_mov(EAX, 0);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 
 	CHECK(buffer.call_i32("main"), 1);
 
@@ -1768,7 +1838,8 @@ TEST (writer_exec_memory_dec_inc) {
 
 TEST (writer_exec_memory_neg) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a").put_dword(150);
 	writer.label("b").put_word(-100);
@@ -1791,7 +1862,7 @@ TEST (writer_exec_memory_neg) {
 	writer.put_mov(EAX, 0);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 
 	CHECK(buffer.call_i32("main"), 1);
 
@@ -1799,7 +1870,8 @@ TEST (writer_exec_memory_neg) {
 
 TEST (writer_exec_memory_not) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a").put_dword(12345);
 	writer.label("b").put_word(178);
@@ -1822,7 +1894,7 @@ TEST (writer_exec_memory_not) {
 	writer.put_mov(EAX, 0);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 
 	CHECK(buffer.call_i32("main"), 1);
 
@@ -1830,7 +1902,8 @@ TEST (writer_exec_memory_not) {
 
 TEST (writer_exec_memory_mul) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a").put_byte(17);
 	writer.label("r").put_byte({2, 0, 0});
@@ -1840,7 +1913,7 @@ TEST (writer_exec_memory_mul) {
 	writer.put_mul(ref<DWORD>("a")); // intentional dword ptr
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	uint32_t eax = buffer.call_i32("main");
 
 	ASSERT(eax > 3*17);
@@ -1849,7 +1922,8 @@ TEST (writer_exec_memory_mul) {
 
 TEST (writer_exec_memory_shift) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a").put_dword(0x0571BACD);
 
@@ -1859,14 +1933,15 @@ TEST (writer_exec_memory_shift) {
 	writer.put_mov(EAX, cast<DWORD>(ref("a")));
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_i32("main"), 0x0571BACD<<1);
 
 }
 
 TEST (writer_exec_xlat) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 	writer.label("table");
 	writer.put_byte(0); // 0 -> 0
 	writer.put_byte(7); // 1 -> 7
@@ -1909,14 +1984,15 @@ TEST (writer_exec_xlat) {
 	writer.put_mov(EAX, 0);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_i32("main"), 1);
 
 }
 
 TEST (writer_exec_scf) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("main");
 	writer.put_scf(1);
@@ -1930,14 +2006,15 @@ TEST (writer_exec_scf) {
 	writer.put_mov(EAX, 0);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_i32("main"), 1);
 
 }
 
 TEST (writer_exec_test) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("foo");
 	writer.put_dword(0x10000);
@@ -1959,14 +2036,15 @@ TEST (writer_exec_test) {
 	writer.put_mov(EAX, 0);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_i32("main"), 1);
 
 }
 
 TEST (writer_exec_test_eax_eax) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("main_1");
 	writer.put_mov(EDX, 0);
@@ -1993,7 +2071,7 @@ TEST (writer_exec_test_eax_eax) {
 	writer.put_mov(EAX, 0);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_i32("main_1"), 1);
 	CHECK(buffer.call_i32("main_2"), 1);
 	CHECK(buffer.call_i32("main_3"), 1);
@@ -2002,7 +2080,8 @@ TEST (writer_exec_test_eax_eax) {
 
 TEST (writer_exec_shld_shrd) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("shld");
 	writer.put_xor(EAX, EAX);
@@ -2029,7 +2108,7 @@ TEST (writer_exec_shld_shrd) {
 
 	writer.label("var").put_dword(0b11110111'00110001);
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32("shld"), 0b10000100'11101010);
 	CHECK(buffer.call_u32("shrd"), 0b00010100'10000100);
 	CHECK(buffer.call_u32("check"), 0b11110111'00110001'10100001'00010001);
@@ -2038,7 +2117,8 @@ TEST (writer_exec_shld_shrd) {
 
 TEST (writer_exec_lods) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("main");
 	writer.put_mov(EAX, 0);
@@ -2047,16 +2127,17 @@ TEST (writer_exec_lods) {
 	writer.put_lodsb();
 	writer.put_ret();
 
-	writer.label("src").put_ascii("Ugus!");
+	writer.label("src").put_cstr("Ugus!");
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32("main"), (('g' << 8) | 'u'));
 
 }
 
 TEST (writer_exec_stos) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("main");
 	writer.put_mov(RDI, "dst");
@@ -2076,7 +2157,7 @@ TEST (writer_exec_stos) {
 
 	writer.label("dst").put_space(16);
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	buffer.call_u32("main");
 
 	ASSERT(strcmp((char*) buffer.address("dst"), "Hello!") == 0);
@@ -2085,7 +2166,8 @@ TEST (writer_exec_stos) {
 
 TEST (writer_exec_movs) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("main");
 	writer.put_mov(RSI, "src");
@@ -2094,10 +2176,10 @@ TEST (writer_exec_movs) {
 	writer.put_rep().put_movsb();
 	writer.put_ret();
 
-	writer.label("src").put_ascii("123456789ABCDEF"); // null byte included
+	writer.label("src").put_cstr("123456789ABCDEF"); // null byte included
 	writer.label("dst").put_space(16);
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	buffer.call_u32("main");
 
 	ASSERT(strcmp((char*) buffer.address("dst"), "123456789A") == 0);
@@ -2106,7 +2188,8 @@ TEST (writer_exec_movs) {
 
 TEST (writer_exec_cmps) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("main_1");
 	writer.put_mov(RSI, "src");
@@ -2130,11 +2213,11 @@ TEST (writer_exec_cmps) {
 	writer.put_mov(EAX, 0);
 	writer.put_ret();
 
-	writer.label("src"  ).put_ascii("123456789ABCDEF");
-	writer.label("dst_1").put_ascii("123456789AB---F");
-	writer.label("dst_2").put_ascii("123456-89ABCDEF");
+	writer.label("src"  ).put_cstr("123456789ABCDEF");
+	writer.label("dst_1").put_cstr("123456789AB---F");
+	writer.label("dst_2").put_cstr("123456-89ABCDEF");
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32("main_1"), 1);
 	CHECK(buffer.call_u32("main_2"), 1);
 
@@ -2142,7 +2225,8 @@ TEST (writer_exec_cmps) {
 
 TEST (writer_exec_scas) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("main");
 	writer.put_mov(RDI, "src");
@@ -2155,16 +2239,17 @@ TEST (writer_exec_scas) {
 	writer.put_ret();
 
 	writer.section(BufferSegment::R | BufferSegment::W);
-	writer.label("src").put_ascii("123456789ABCDEF");
+	writer.label("src").put_cstr("123456789ABCDEF");
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u64("main"), 13);
 
 }
 
 TEST (writer_exec_tricky_encodings) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("sanity");
 	writer.put_push(RBP);
@@ -2215,7 +2300,7 @@ TEST (writer_exec_tricky_encodings) {
 	writer.put_pop(RBP);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_i32("sanity"), 1);
 	CHECK(buffer.call_i32("test_1"), 0x1234);
 	CHECK(buffer.call_i32("test_2"), 16492);
@@ -2227,7 +2312,8 @@ TEST (writer_exec_tricky_encodings) {
 
 TEST (writer_exec_pushf_popf) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_xor(EAX, EAX);
 	writer.put_stc();
@@ -2237,13 +2323,14 @@ TEST (writer_exec_pushf_popf) {
 	writer.put_setc(EAX);
 	writer.put_ret();
 
-	CHECK(writer.bake().call_i32(), 1);
+	CHECK(to_executable(segmented).call_i32(), 1);
 
 }
 
 TEST (writer_exec_retx) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("stdcall");
 	writer.put_mov(EAX, ref(RSP + 8));
@@ -2264,14 +2351,15 @@ TEST (writer_exec_retx) {
 	writer.put_add(EAX, ECX);
 	writer.put_ret();
 
-	auto baked = writer.bake();
+	auto baked = to_executable(segmented);
 	CHECK(baked.call_i32("main"), 4321);
 
 }
 
 TEST (writer_exec_enter_leave) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("stdcall");
 	writer.put_enter(8, 0);
@@ -2294,13 +2382,14 @@ TEST (writer_exec_enter_leave) {
 	writer.put_pop(RBP);
 	writer.put_ret();
 
-	CHECK(writer.bake().call_i32("main"), 1234);
+	CHECK(to_executable(segmented).call_i32("main"), 1234);
 
 }
 
 TEST (writer_exec_bsf_bsr) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	//                                        ,-> 21    ,-> 13
 	//                                        |         |
@@ -2332,7 +2421,7 @@ TEST (writer_exec_bsf_bsr) {
 	writer.put_bsr(AX, ref("b"));
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32("bsf_a"), 13);
 	CHECK(buffer.call_u32("bsr_a"), 21);
 	CHECK(buffer.call_u32("bsf_b"), 0x80000009);
@@ -2342,7 +2431,8 @@ TEST (writer_exec_bsf_bsr) {
 
 TEST (writer_exec_cqo) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 	writer.label("L1");
 	writer.put_mov(RDX, 0);
 	writer.put_mov(RAX, 0x8FFFFFFF'FFFFFFFF);
@@ -2359,7 +2449,7 @@ TEST (writer_exec_cqo) {
 	writer.put_mov(RAX, RDX);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u64("L1"), 0xFFFFFFFF'FFFFFFFF);
 	CHECK(buffer.call_u64("L0"), 0);
 
@@ -2367,7 +2457,8 @@ TEST (writer_exec_cqo) {
 
 TEST (writer_exec_xadd) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(RAX, 0);
 	writer.put_mov(RBX, 70000);
@@ -2384,14 +2475,15 @@ TEST (writer_exec_xadd) {
 	writer.label("end");
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u64(0), 100000);
 
 }
 
 TEST (writer_exec_xadd_mem) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("L1");
 	writer.put_qword(0x1111);
@@ -2412,40 +2504,43 @@ TEST (writer_exec_xadd_mem) {
 	writer.label("end");
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u64("start"), 0x1111);
 
 }
 
 TEST (writer_exec_bswap_qword) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 	writer.put_mov(R15, 0x11223344'55667788);
 	writer.put_bswap(R15);
 	writer.put_mov(RAX, R15);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u64(0), 0x88776655'44332211);
 
 }
 
 TEST (writer_exec_bswap_dword) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 	writer.put_mov(R15D, 0x11223344);
 	writer.put_bswap(R15D);
 	writer.put_mov(EAX, R15D);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32(0), 0x44332211);
 
 }
 
 TEST (writer_exec_cmpxchg) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_mov(R15, 0x1000);
 	writer.put_mov(RAX, 0x1000);
@@ -2455,14 +2550,15 @@ TEST (writer_exec_cmpxchg) {
 	writer.put_mov(RAX, R15);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32(0), 0x42);
 
 }
 
 TEST (writer_exec_cmpxchg_mem) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("L1");
 	writer.put_qword(0x1000);
@@ -2475,14 +2571,15 @@ TEST (writer_exec_cmpxchg_mem) {
 	writer.put_mov(RAX, ref("L1"));
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.call_u32("start"), 0x42);
 
 }
 
 TEST (writer_fail_redefinition) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a").put_byte(1);
 	writer.label("b").put_byte(2);
@@ -2505,7 +2602,8 @@ TEST (writer_fail_redefinition) {
 
 TEST (writer_fail_invalid_reg_size) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.put_movsx(AX, DL);  // valid
 	writer.put_movsx(EAX, BH); // valid
@@ -2547,7 +2645,8 @@ TEST (writer_fail_invalid_reg_size) {
 
 TEST (writer_fail_invalid_mem_size) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("a");
 	writer.put_dword(0);
@@ -2575,11 +2674,12 @@ TEST (writer_fail_invalid_mem_size) {
 
 TEST (writer_fail_undefined_label) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 	writer.put_mov(EAX, ref("hamburger"));
 
 	EXPECT(std::runtime_error, {
-		writer.bake();
+		to_executable(segmented);
 	});
 
 }
@@ -2588,9 +2688,10 @@ TEST (writer_elf_execve_int) {
 
 	using namespace asmio::elf;
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
-	writer.label("text").put_ascii("Hello World!\n");
+	writer.label("text").put_cstr("Hello World!\n");
 
 	writer.label("strlen");
 	writer.put_mov(RCX, RAX);
@@ -2623,9 +2724,10 @@ TEST (writer_elf_execve_syscall) {
 
 	using namespace asmio::elf;
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
-	writer.label("text").put_ascii("My beloved syscall!\n");
+	writer.label("text").put_cstr("My beloved syscall!\n");
 
 	writer.label("strlen");
 	writer.put_mov(RCX, RAX);
@@ -2656,7 +2758,8 @@ TEST (writer_elf_execve_syscall) {
 
 TEST (writer_segmented_data) {
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 	writer.section(BufferSegment::R);
 	writer.label("data");
 	writer.put_dword(42);
@@ -2670,7 +2773,7 @@ TEST (writer_segmented_data) {
 	writer.put_mov(ref<DWORD>("data"), 43);
 	writer.put_ret();
 
-	ExecutableBuffer buffer = writer.bake();
+	ExecutableBuffer buffer = to_executable(segmented);
 	CHECK(buffer.size(), getpagesize() * 2); // expect there to be two pages
 	CHECK(buffer.call_u32("read"), 42);
 
@@ -2704,7 +2807,8 @@ TEST (tasml_tokenize) {
 			nop; nop; ret // multi-statements
 	)";
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 	tasml::ErrorHandler reporter {"<string>", true};
 
 	std::vector<tasml::Token> tokens = tasml::tokenize(reporter, code);
@@ -2722,7 +2826,7 @@ TEST (tasml_tokenize) {
 		FAIL("Parser error!");
 	}
 
-	CHECK(writer.bake().call_i32("_start"), 6);
+	CHECK(to_executable(segmented).call_i32("_start"), 6);
 
 }
 

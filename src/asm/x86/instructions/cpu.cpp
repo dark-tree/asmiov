@@ -668,7 +668,7 @@ namespace asmio::x86 {
 			Label label = dst.label;
 			long addend = dst.offset;
 
-			if (has_label(label)) {
+			if (buffer.has_label(label)) {
 
 				BufferMarker dst = buffer.get_label(label);
 				BufferMarker src = buffer.current();

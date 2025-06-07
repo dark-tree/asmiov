@@ -11,23 +11,23 @@ namespace tasml {
 	static constexpr std::array symbols   {';', '{', '}', '(', ')', '[', ']', ','};
 	static constexpr std::array operators {'+', '-', '*', '/', '%', '&', '|', '^'};
 
-	inline bool isSpace(char chr) {
+	static constexpr bool is_space(char chr) {
 		return chr <= ' ';
 	}
 
-	inline bool isSymbol(char chr) {
-		return asmio::util::contains(symbols, chr);
+	static constexpr bool is_symbol(char chr) {
+		return std::find(symbols.begin(), symbols.end(), chr) != symbols.end();
 	}
 
-	inline bool isOperator(char chr) {
-		return asmio::util::contains(operators, chr);
+	static constexpr bool is_operator(char chr) {
+		return std::find(operators.begin(), operators.end(), chr) != operators.end();
 	}
 
-	inline bool isBreak(char chr) {
-		return isSymbol(chr) || isOperator(chr);
+	static constexpr bool is_break(char chr) {
+		return is_symbol(chr) || is_operator(chr);
 	}
 
-	Token::Type categorize(const std::string& raw) {
+	static Token::Type categorize(const std::string& raw) {
 		static const std::regex floating_re {R"(^\d+\.\d+$)"};
 		static const std::regex integer_re {R"(^([0-9]+)|(0x[0-9a-fA-F]+)|(0b[01]+)|(0o[0-7]+)$)"};
 		static const std::regex string_re {R"(^".*"$)"};
@@ -45,13 +45,12 @@ namespace tasml {
 		if (raw.length() == 1) {
 			char chr = raw[0];
 
-			if (isSymbol(chr)) return Token::SYMBOL;
-			if (isOperator(chr)) return Token::OPERATOR;
+			if (is_symbol(chr)) return Token::SYMBOL;
+			if (is_operator(chr)) return Token::OPERATOR;
 		}
 
 		return Token::INVALID;
 	}
-
 
 	std::vector<Token> tokenize(ErrorHandler& reporter, const std::string& input) {
 
@@ -134,7 +133,7 @@ namespace tasml {
 				token += c;
 
 				if (c == '\\') {
-					if (Token::getEscapedValue(n) == -1) {
+					if (Token::get_escaped(n) == -1) {
 						reporter.warn(line, column, "Unknown escape code '\\" + std::string {n} + "' used in string");
 					}
 
@@ -145,7 +144,7 @@ namespace tasml {
 			}
 
 			// handle operators and end tokens
-			if (isSpace(c) || isBreak(c) || (c == '/' && n == '/') || (c == '/' && n == '*')) {
+			if (is_space(c) || is_break(c) || (c == '/' && n == '/') || (c == '/' && n == '*')) {
 
 				if (!token.empty()) {
 					submit(token);
@@ -165,7 +164,7 @@ namespace tasml {
 					continue;
 				}
 
-				if (!isSpace(c)) {
+				if (!is_space(c)) {
 					start = column;
 					offset = i;
 					submit({c});

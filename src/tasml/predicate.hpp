@@ -12,7 +12,7 @@ namespace tasml {
 			const Token::Type type;
 			const bool literal;
 
-			const char* typestr() const {
+			constexpr const char* typestr() const {
 				if (type == Token::FLOAT) return "floating point";
 				if (type == Token::INT) return "integer";
 				if (type == Token::STRING) return "string";
@@ -27,13 +27,13 @@ namespace tasml {
 
 		public:
 
-			TokenPredicate(const char* text)
+			constexpr TokenPredicate(const char* text)
 			: text(text), type(Token::INVALID), literal(true) {}
 
-			TokenPredicate(Token::Type type)
+			constexpr TokenPredicate(Token::Type type)
 			: text(nullptr), type(type), literal(false) {}
 
-			bool test(const Token& token) const {
+			constexpr bool test(const Token& token) const {
 				return literal ? (token.raw == text) : (token.type == type);
 			}
 

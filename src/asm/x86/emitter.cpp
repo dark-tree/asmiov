@@ -191,7 +191,7 @@ namespace asmio::x86 {
 
 		// expression can't be empty
 		if (stream.empty()) {
-			stream.raiseInputEnd();
+			stream.throw_input_end();
 		}
 
 		while (!stream.empty()) {
@@ -271,7 +271,7 @@ namespace asmio::x86 {
 					break;
 				}
 
-				int64_t value = token->parseInt();
+				int64_t value = token->as_int();
 
 				switch (op) {
 					case '+': offset += value; break;
@@ -293,10 +293,10 @@ namespace asmio::x86 {
 		}
 
 		// nothing should be left in the stream
-		stream.assertEmpty();
+		stream.assert_empty();
 
 		const char* name = (label == nullptr) ? nullptr : label->raw.c_str() + 1 /* skip the '@' */;
-		const uint32_t scale_value = (scale == nullptr) ? 0 : scale->parseInt();
+		const uint32_t scale_value = (scale == nullptr) ? 0 : scale->as_int();
 
 		return getRegistryByToken(base) + getRegistryByToken(index) * scale_value + offset + name;
 	}
@@ -633,10 +633,10 @@ namespace asmio::x86 {
 		while (!stream.empty()) {
 			TokenStream arg = stream.expression("argument");
 			const Token& token = arg.next();
-			arg.assertEmpty();
+			arg.assert_empty();
 
 			if (token.type == Token::INT) {
-				int64_t value = token.parseInt();
+				int64_t value = token.as_int();
 
 				if (size <= sizeof(value)) {
 					writer.put_data(size, &value);
@@ -651,7 +651,7 @@ namespace asmio::x86 {
 			}
 
 			if (token.type == Token::FLOAT) {
-				long double value80 = token.parseFloat();
+				long double value80 = token.as_float();
 
 				if (size == DWORD) {
 					float value32 = (float) value80;
@@ -674,7 +674,7 @@ namespace asmio::x86 {
             }
 
 			if (token.type == Token::STRING) {
-				std::string parsed = token.parseString();
+				std::string parsed = token.as_string();
 				for (char chr : parsed) {
 
 					if (size == BYTE) {
@@ -701,7 +701,7 @@ namespace asmio::x86 {
 			const Token &token = stream.next();
 
 			if (token.type == Token::LABEL) {
-				writer.label(token.parseLabel());
+				writer.label(token.as_label());
 				return;
 			}
 

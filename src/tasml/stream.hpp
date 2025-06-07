@@ -39,7 +39,7 @@ namespace tasml {
 				}
 
 				if (depth != 0) {
-					raiseInputEnd(close);
+					throw_input_end(close);
 				}
 
 				return TokenStream {tokens, begin - 1, index - 1, name};
@@ -67,7 +67,7 @@ namespace tasml {
 
 			/// Throws a "unexpected end of scope" report, specifying the expectation with a TokenPredicate.
 			/// Warning: this method does NOT check if the stream is actually empty! To do that use assertEmpty()
-			void raiseInputEnd(const TokenPredicate& predicate) const {
+			void throw_input_end(const TokenPredicate& predicate) const {
 				if (end < tokens.size() && end - 1 > start) {
 					throw std::runtime_error {"Unexpected end of " + std::string(name) + ", expected " + predicate.quoted() + " after " + tokens.at(end - 1).quoted() + " but got " + tokens.at(end).quoted()};
 				}
@@ -81,7 +81,7 @@ namespace tasml {
 
 			/// Throws a generic "unexpected end of scope" report without specifying the expectation.
 			/// Warning: this method does NOT check if the stream is actually empty! To do that use assertEmpty()
-			void raiseInputEnd() const {
+			void throw_input_end() const {
 				if (end < tokens.size()) {
 					throw std::runtime_error {"Unexpected end of " + std::string(name)};
 				}
@@ -101,20 +101,20 @@ namespace tasml {
 			/// Returns a reference to the next token without consuming it,
 			/// if there was nothing left to consume (stream was empty) it creates and throws a report.
 			const Token& peek() const {
-				if (index >= end) raiseInputEnd();
+				if (index >= end) throw_input_end();
 				return tokens[index];
 			}
 
 			/// Consumes the next token, and returns a reference to it
 			/// if there was nothing left to consume (stream was empty) it creates and throws a report.
 			const Token& next() {
-				if (index >= end) raiseInputEnd();
+				if (index >= end) throw_input_end();
 				return tokens[index ++];
 			}
 
 			/// Asserts that no tokens remain in this stream,
 			/// otherwise it creates and throws a report.
-			void assertEmpty() const {
+			void assert_empty() const {
 				if (!empty()) {
 					throw std::runtime_error {"Unexpected token " + peek().quoted() + ", expected end of " + name};
 				}
@@ -134,7 +134,7 @@ namespace tasml {
 			/// otherwise it creates and throws a report.
 			const Token& expect(const TokenPredicate& predicate) {
 				if (index >= end) {
-					raiseInputEnd(predicate);
+					throw_input_end(predicate);
 				}
 
 				const Token& token = peek();

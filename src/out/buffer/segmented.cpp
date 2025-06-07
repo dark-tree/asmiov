@@ -69,16 +69,15 @@ namespace asmio {
 		}
 	}
 
-	void SegmentedBuffer::link(size_t base) {
+	void SegmentedBuffer::link(size_t base, const Linkage::Handler& handler) {
 		base_address = base;
 
 		for (const Linkage& linkage : linkages) {
-			// FIXME
-			// try {
+			try {
 				linkage.linker(this, linkage, base);
-			// } catch (std::runtime_error& error) {
-			// 	if (reporter != nullptr) reporter->link(command.offset, error.what()); else throw;
-			// }
+			} catch (std::runtime_error& error) {
+				if (handler) handler(linkage, error.what()); else throw;
+			}
 		}
 	}
 

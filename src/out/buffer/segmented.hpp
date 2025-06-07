@@ -15,6 +15,7 @@ namespace asmio {
 	struct Linkage {
 
 		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, size_t mount)>;
+		using Handler = std::function<void(const Linkage& link, const char* what)>;
 
 		Label label;
 		BufferMarker target;
@@ -85,7 +86,7 @@ namespace asmio {
 			void align(size_t page);
 
 			/// Execute all linkages
-			void link(size_t base);
+			void link(size_t base, const Linkage::Handler& handler = nullptr);
 
 			/// Insert linker command to be executed once link() is called
 			void add_linkage(const Label& label, int shift, const Linkage::Linker& linker);

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(ASMIOV C CXX ASM)
+project(ASMIOV C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 

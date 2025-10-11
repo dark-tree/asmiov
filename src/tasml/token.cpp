@@ -43,7 +43,7 @@ namespace tasml {
 		output.reserve(raw.size() - 2);
 		bool escape = false;
 
-		for (int i = 1; i < raw.size() - 1; i ++) {
+		for (int i = 1; i < (int) raw.size() - 1; i ++) {
 			char chr = raw[i];
 
 			if (escape) {

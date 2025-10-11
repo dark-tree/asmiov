@@ -37,3 +37,31 @@ target_link_libraries(tasml PRIVATE asmiov)
 
 add_executable(test test/tests.cpp)
 target_link_libraries(test PRIVATE asmiov)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+
+	target_compile_options(asmiov PUBLIC
+			-Wall
+			-Wextra
+			-pedantic
+
+			# Errors
+			-Werror=return-type         # Fail if when return in non-void function is missing
+			-Werror=return-local-addr   # Fail if a pointer to a local variable is returned
+			-Werror=init-self           # Fail if a class member is initialized with itself
+			-Werror=uninitialized       # Fail if a uninitialized variables is used
+			-Werror=switch
+
+			# Warnings
+			-Wnoexcept                  # Warn if the lack of noexcept disables some optimizations
+			-Wunreachable-code          # Warn if a section of code is unreachable
+			-Wparentheses               # Warn if there is a high chance we forgot about some parentheses
+			-Wlogical-op                # Warn if there is a high chance we messed up the logical operator
+			-Wdisabled-optimization     # Warn if you managed to confuse the compiler :skull:
+
+			# Ignore some warnings that I deemed stupid
+			-Wno-unused-parameter       # Not really an error to ignore something, we may enable it later
+			-Wno-variadic-macros        # Allow so called 'variadic macros'
+			-Wno-misleading-indentation # Don't complain about non-issues such as "if (thing) do();"
+	)
+endif()

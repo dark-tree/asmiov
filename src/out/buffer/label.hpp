@@ -49,7 +49,7 @@ namespace asmio {
 
 			/// Function used in hashmaps to get the elements hash value
 			struct HashFunction {
-				constexpr size_t operator () (const Label& label) const { return label.hash; }
+				constexpr size_t operator () (const Label& label) const noexcept { return label.hash; }
 			};
 
 	};

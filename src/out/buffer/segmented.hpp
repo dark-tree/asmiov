@@ -42,7 +42,7 @@ namespace asmio {
 		int64_t start = 0;
 		int64_t tail = 0;
 
-		BufferSegment(uint32_t index, uint8_t flags);
+		BufferSegment(uint32_t index, uint8_t flags) noexcept;
 
 		/// Get size of this buffer, including padding
 		size_t size() const;

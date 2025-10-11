@@ -7,7 +7,7 @@ namespace asmio {
 	 * BufferSegment
 	 */
 
-	BufferSegment::BufferSegment(uint32_t index, uint8_t flags)
+	BufferSegment::BufferSegment(uint32_t index, uint8_t flags) noexcept
 		: index(index), flags(flags) {
 	}
 
@@ -131,7 +131,7 @@ namespace asmio {
 
 	void SegmentedBuffer::use_section(uint8_t flags) {
 		int index = -1;
-		const uint32_t count = sections.size();
+		const int count = sections.size();
 
 		for (int i = 0; i < count; ++i) {
 			if (sections[i].flags == flags) {

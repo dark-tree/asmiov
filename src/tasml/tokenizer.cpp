@@ -54,7 +54,7 @@ namespace tasml {
 
 	std::vector<Token> tokenize(ErrorHandler& reporter, const std::string& input) {
 
-		size_t size = input.size();
+		long size = (long) input.size();
 		int32_t line = 1, column = 0, start = 0, offset = 0;
 
 		std::vector<Token> tokens;
@@ -73,7 +73,7 @@ namespace tasml {
 			}
 		};
 
-		for (int i = 0; i < size; i ++) {
+		for (long i = 0; i < size; i ++) {
 			column ++;
 
 			char c = input[i];

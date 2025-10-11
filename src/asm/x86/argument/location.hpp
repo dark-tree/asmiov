@@ -39,7 +39,7 @@ namespace asmio::x86 {
 			: Location(UNSET, index.registry, index.scale, 0, nullptr, index.registry.size, false) {}
 
 			constexpr explicit Location(Registry base, Registry index, uint32_t scale, int64_t offset, const char* label, int size, bool reference)
-			: base(base), index(index), scale(scale), offset(offset), label(label), size(size), reference(reference) {
+			: base(base), index(index), scale(scale), reference(reference), size(size), offset(offset), label(label) {
 				check_valid_scale(index, scale);
 			}
 

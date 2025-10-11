@@ -624,7 +624,7 @@ namespace asmio::x86 {
 	}
 
 	bool parseDataDefinition(ErrorHandler& reporter, BufferWriter& writer, TokenStream& stream, const Token& token) {
-		size_t size = getTypeByToken(&token);
+		int size = getTypeByToken(&token);
 
 		if (size == -1) {
 			return false;
@@ -638,7 +638,7 @@ namespace asmio::x86 {
 			if (token.type == Token::INT) {
 				int64_t value = token.as_int();
 
-				if (size <= sizeof(value)) {
+				if (size <= (int) sizeof(value)) {
 					writer.put_data(size, &value);
 				} else {
 					void* data = malloc(size);

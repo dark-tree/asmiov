@@ -68,7 +68,7 @@ namespace tasml {
 			/// Throws a "unexpected end of scope" report, specifying the expectation with a TokenPredicate.
 			/// Warning: this method does NOT check if the stream is actually empty! To do that use assertEmpty()
 			void throw_input_end(const TokenPredicate& predicate) const {
-				if (end < tokens.size() && end - 1 > start) {
+				if (end < (int) tokens.size() && end - 1 > start) {
 					throw std::runtime_error {"Unexpected end of " + std::string(name) + ", expected " + predicate.quoted() + " after " + tokens.at(end - 1).quoted() + " but got " + tokens.at(end).quoted()};
 				}
 
@@ -82,7 +82,7 @@ namespace tasml {
 			/// Throws a generic "unexpected end of scope" report without specifying the expectation.
 			/// Warning: this method does NOT check if the stream is actually empty! To do that use assertEmpty()
 			void throw_input_end() const {
-				if (end < tokens.size()) {
+				if (end < (int) tokens.size()) {
 					throw std::runtime_error {"Unexpected end of " + std::string(name)};
 				}
 
@@ -180,14 +180,16 @@ namespace tasml {
 			/// Returns a sub-stream of the consumed tokens
 			TokenStream statement(const char* name) {
 				long begin = index;
-				long line = peek().line;
+				size_t line = peek().line;
 
 				while (!empty()) {
 					const Token& token = peek();
 
 					if (token.line != line || token.raw == ";") {
 						break;
-					} else next();
+					}
+
+					next();
 				}
 
 				long finish = index;

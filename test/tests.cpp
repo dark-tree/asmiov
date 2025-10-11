@@ -1,7 +1,9 @@
 
 #define DEBUG_MODE false
+#define VSTL_TEST_COUNT 3
+#define VSTL_PRINT_SKIP_REASON true
 
-#include "lib/vstl.hpp"
+#include "vstl.hpp"
 #include "asm/x86/writer.hpp"
 #include "asm/x86/emitter.hpp"
 #include "out/elf/buffer.hpp"
@@ -45,9 +47,9 @@ TEST (syntax_indetermiante) {
 	ASSERT(!Location {EAX}.is_indeterminate());
 	ASSERT(!Location {EAX * 2}.is_indeterminate());
 
-	EXPECT_ANY({
+	EXPECT_ANY() {
 		Location {EAX}.cast(DWORD);
-	});
+	};
 
 }
 
@@ -96,19 +98,19 @@ TEST (writer_check_push) {
 	writer.put_push(ref<QWORD>(RAX));
 
 	// 8 bit
-	EXPECT_ANY({ writer.put_push(AL); });
-	EXPECT_ANY({ writer.put_push(AH); });
-	EXPECT_ANY({ writer.put_push(SPL); });
-	EXPECT_ANY({ writer.put_push(ref<BYTE>(RAX)); });
+	EXPECT_ANY() { writer.put_push(AL); };
+	EXPECT_ANY() { writer.put_push(AH); };
+	EXPECT_ANY() { writer.put_push(SPL); };
+	EXPECT_ANY() { writer.put_push(ref<BYTE>(RAX)); };
 
 	// 32 bit
-	EXPECT_ANY({ writer.put_push(EAX); });
-	EXPECT_ANY({ writer.put_push(R10D); });
-	EXPECT_ANY({ writer.put_push(R15D); });
-	EXPECT_ANY({ writer.put_push(ref<DWORD>(RAX)); });
+	EXPECT_ANY() { writer.put_push(EAX); };
+	EXPECT_ANY() { writer.put_push(R10D); };
+	EXPECT_ANY() { writer.put_push(R15D); };
+	EXPECT_ANY() { writer.put_push(ref<DWORD>(RAX)); };
 
 	// too large imm
-	EXPECT_ANY({ writer.put_push(0xffffffffff); });
+	EXPECT_ANY() { writer.put_push(0xffffffffff); };
 
 }
 
@@ -117,8 +119,8 @@ TEST (writer_check_mov_sizing) {
 	SegmentedBuffer buffer;
 	BufferWriter writer {buffer};
 
-	EXPECT_ANY({ writer.put_mov(EAX, AX); });
-	EXPECT_ANY({ writer.put_mov(ref(RAX), ref(RAX)); });
+	EXPECT_ANY() { writer.put_mov(EAX, AX); };
+	EXPECT_ANY() { writer.put_mov(ref(RAX), ref(RAX)); };
 
 }
 
@@ -130,8 +132,8 @@ TEST (writer_check_mov_address_size) {
 	writer.put_mov(AL, ref(RDX)); // 8a 02
 	writer.put_mov(AL, ref(EDX)); // 67 8a 02
 
-	EXPECT_ANY({ writer.put_mov(AL, ref(DX)); });
-	EXPECT_ANY({ writer.put_mov(AL, ref(SIL)); });
+	EXPECT_ANY() { writer.put_mov(AL, ref(DX)); };
+	EXPECT_ANY() { writer.put_mov(AL, ref(SIL)); };
 
 	ExecutableBuffer buffer = to_executable(segmented);
 	uint8_t* data = buffer.address();
@@ -163,8 +165,8 @@ TEST (writer_check_high_byte_register) {
 	writer.put_mov(DL, BPL);
 
 	// error, extended low and legacy high
-	EXPECT_ANY({ writer.put_mov(SIL, AH); });
-	EXPECT_ANY({ writer.put_mov(BH, BPL); });
+	EXPECT_ANY() { writer.put_mov(SIL, AH); };
+	EXPECT_ANY() { writer.put_mov(BH, BPL); };
 
 }
 
@@ -186,14 +188,14 @@ TEST (writer_check_stack_index_register) {
 	writer.put_mov(EAX, ref(ESP + EAX));
 
 	// error, ESP/RSP can't be used as index
-	EXPECT_ANY({ writer.put_mov(EAX, ref(RAX + RSP * 2 + 4)); });
-	EXPECT_ANY({ writer.put_mov(EAX, ref(RAX + RSP * 2)); });
-	EXPECT_ANY({ writer.put_mov(EAX, ref(EAX + ESP * 2 + 4)); });
-	EXPECT_ANY({ writer.put_mov(EAX, ref(EAX + ESP * 2)); });
+	EXPECT_ANY() { writer.put_mov(EAX, ref(RAX + RSP * 2 + 4)); };
+	EXPECT_ANY() { writer.put_mov(EAX, ref(RAX + RSP * 2)); };
+	EXPECT_ANY() { writer.put_mov(EAX, ref(EAX + ESP * 2 + 4)); };
+	EXPECT_ANY() { writer.put_mov(EAX, ref(EAX + ESP * 2)); };
 
 	// this can be made correct by swapping registers
-	EXPECT_ANY({ writer.put_mov(EAX, ref(RAX + RSP)); });
-	EXPECT_ANY({ writer.put_mov(EAX, ref(EAX + ESP)); });
+	EXPECT_ANY() { writer.put_mov(EAX, ref(RAX + RSP)); };
+	EXPECT_ANY() { writer.put_mov(EAX, ref(EAX + ESP)); };
 
 }
 
@@ -209,8 +211,8 @@ TEST (writer_check_lea_sizing) {
 	writer.put_lea(EAX, 0);
 
 	// error
-	EXPECT_ANY({ writer.put_lea(AX, 0); });
-	EXPECT_ANY({ writer.put_lea(AL, 0); });
+	EXPECT_ANY() { writer.put_lea(AX, 0); };
+	EXPECT_ANY() { writer.put_lea(AL, 0); };
 
 }
 
@@ -222,8 +224,8 @@ TEST (writer_check_mixed_addressing) {
 	writer.put_mov(RAX, ref(EAX + EBX * 2 + 123));
 	writer.put_mov(EAX, ref(RAX + RBX * 2 + 123));
 
-	EXPECT_ANY({ writer.put_mov(RAX, ref(RAX + EBX * 2 + 123)); });
-	EXPECT_ANY({ writer.put_mov(RAX, ref(EAX + RBX * 2 + 123)); });
+	EXPECT_ANY() { writer.put_mov(RAX, ref(RAX + EBX * 2 + 123)); };
+	EXPECT_ANY() { writer.put_mov(RAX, ref(EAX + RBX * 2 + 123)); };
 
 }
 
@@ -232,9 +234,9 @@ TEST (writer_check_st_as_generic) {
 	SegmentedBuffer buffer;
 	BufferWriter writer {buffer};
 
-	EXPECT_ANY({ writer.put_inc(ST); });
-	EXPECT_ANY({ writer.put_mov(RAX, ST); });
-	EXPECT_ANY({ writer.put_lea(EAX, ST + 6); });
+	EXPECT_ANY() { writer.put_inc(ST); };
+	EXPECT_ANY() { writer.put_mov(RAX, ST); };
+	EXPECT_ANY() { writer.put_lea(EAX, ST + 6); };
 
 }
 
@@ -252,7 +254,7 @@ TEST (writer_check_truncation) {
 	writer.label("target");
 	writer.put_ret();
 
-	EXPECT_ANY({ to_executable(segmented); });
+	EXPECT_ANY() { to_executable(segmented); };
 
 }
 
@@ -640,6 +642,7 @@ TEST(writer_exec_add_long) {
 	writer.label("code");
 	writer.put_mov(RAX, 0);
 	writer.put_mov(RDX, 0);
+	writer.put_mov(R15, 0);
 	writer.put_mov(RSI, "data");
 	writer.put_mov(R15L, ref(RDX + RSI)); // => 0x16
 	writer.put_inc(RDX);
@@ -910,7 +913,7 @@ TEST(writer_exec_jmp_forward) {
 
 TEST(writer_exec_jmp_back) {
 
-	SET_TIMEOUT(1);
+	TIMEOUT(1);
 	SegmentedBuffer segmented;
 	BufferWriter writer {segmented};
 
@@ -940,7 +943,7 @@ TEST(writer_exec_jmp_back) {
 
 TEST(writer_exec_jz_back) {
 
-	SET_TIMEOUT(1);
+	TIMEOUT(1);
 	SegmentedBuffer segmented;
 	BufferWriter writer {segmented};
 
@@ -994,7 +997,7 @@ TEST(writer_exec_je) {
 
 TEST(writer_exec_loop_jecxz) {
 
-	SET_TIMEOUT(1);
+	TIMEOUT(1);
 
 	SegmentedBuffer segmented;
 	BufferWriter writer {segmented};
@@ -1762,7 +1765,7 @@ TEST (writer_exec_int_0x80) {
 
 TEST (writer_exec_long_back_jmp) {
 
-	SET_TIMEOUT(1);
+	TIMEOUT(1);
 	SegmentedBuffer segmented;
 	BufferWriter writer {segmented};
 
@@ -1784,7 +1787,7 @@ TEST (writer_exec_long_back_jmp) {
 
 TEST (writer_exec_long_back_jz) {
 
-	SET_TIMEOUT(1);
+	TIMEOUT(1);
 	SegmentedBuffer segmented;
 	BufferWriter writer {segmented};
 
@@ -2685,17 +2688,17 @@ TEST (writer_fail_redefinition) {
 	writer.label("main");
 	writer.put_ret();
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.label("main");
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.label("a");
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.label("b");
-	});
+	};
 
 }
 
@@ -2708,37 +2711,37 @@ TEST (writer_fail_invalid_reg_size) {
 	writer.put_movsx(EAX, BH); // valid
 	writer.put_movsx(EDX, AX); // valid
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_mov(EAX, AX);
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_mov(AX, EAX);
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_movsx(AX, AX);
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_movsx(AL, AX);
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_movsx(BH, EDX);
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_xchg(ref<BYTE>("bar"), EBX);
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_xchg(ref<WORD>("bar"), EBX);
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_xchg(ref<BYTE>("bar"), BX);
-	});
+	};
 
 }
 
@@ -2753,21 +2756,21 @@ TEST (writer_fail_invalid_mem_size) {
 	writer.put_mov(AL, ref("a"));   // valid
 	writer.put_mov(AL, 0xFFFFFFFF); // stupid, but valid
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_fst(cast<TWORD>(ref("a")));
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_fst(cast<WORD>(ref("a")));
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_fst(cast<BYTE>(ref("a")));
-	});
+	};
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		writer.put_mov(EAX, cast<BYTE>(ref("a")));
-	});
+	};
 
 }
 
@@ -2777,9 +2780,9 @@ TEST (writer_fail_undefined_label) {
 	BufferWriter writer {segmented};
 	writer.put_mov(EAX, ref("hamburger"));
 
-	EXPECT(std::runtime_error, {
+	EXPECT_THROW(std::runtime_error) {
 		to_executable(segmented);
-	});
+	};
 
 }
 
@@ -2799,6 +2802,7 @@ TEST (writer_elf_simple) {
 	ElfBuffer file = to_elf(segmented, "_start");
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
+	file.save("writer_elf_simple");
 
 	CHECK(result, RunResult::SUCCESS);
 	CHECK(status, 42);
@@ -2898,9 +2902,9 @@ TEST (writer_segmented_data) {
 	CHECK(buffer.size(), getpagesize() * 2); // expect there to be two pages
 	CHECK(buffer.call_u32("read"), 42);
 
-	EXPECT_SIGNAL(SIGSEGV, {
+	EXPECT_SIGNAL(SIGSEGV) {
 		buffer.call_u32("write");
-	});
+	};
 
 }
 
@@ -2949,6 +2953,4 @@ TEST (tasml_tokenize) {
 
 	CHECK(to_executable(segmented).call_i32("_start"), 6);
 
-}
-
-BEGIN(VSTL_MODE_LENIENT)
+};

@@ -1,7 +1,17 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.31)
 project(ASMIOV C CXX)
+include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+FetchContent_Declare(
+		vstl
+		GIT_REPOSITORY https://github.com/magistermaks/lib-vstl
+		GIT_TAG v3.4
+)
+
+FetchContent_MakeAvailable(vstl)
 
 set(ASMIO_SOURCES
 		src/out/buffer/segmented.cpp
@@ -19,7 +29,7 @@ set(ASMIO_SOURCES
 		src/tasml/token.cpp
 )
 
-include_directories(src/ .)
+include_directories(src/ . ${vstl_SOURCE_DIR})
 add_library(asmiov ${ASMIO_SOURCES})
 
 add_executable(tasml src/tasml/tasml.cpp)

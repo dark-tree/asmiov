@@ -35,11 +35,10 @@ add_library(asmiov ${ASMIO_SOURCES})
 add_executable(tasml src/tasml/tasml.cpp)
 target_link_libraries(tasml PRIVATE asmiov)
 
-add_executable(test test/tests.cpp)
+add_executable(test test/x86.cpp)
 target_link_libraries(test PRIVATE asmiov)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-
 	target_compile_options(asmiov PUBLIC
 			-Wall
 			-Wextra
@@ -65,3 +64,5 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 			-Wno-misleading-indentation # Don't complain about non-issues such as "if (thing) do();"
 	)
 endif()
+
+install(TARGETS tasml)

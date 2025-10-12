@@ -13,8 +13,14 @@
 // private libs
 #include <fstream>
 
+namespace test::x86 {
 using namespace asmio;
 using namespace asmio::x86;
+
+/*
+ * region Static
+ * Begin target independent tests for x86
+ */
 
 TEST (syntax_registry_attributes) {
 
@@ -254,9 +260,125 @@ TEST (writer_check_truncation) {
 	writer.label("target");
 	writer.put_ret();
 
+	// don't actually execute
 	EXPECT_ANY() { to_executable(segmented); };
 
 }
+
+TEST (writer_fail_redefinition) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.label("a").put_byte(1);
+	writer.label("b").put_byte(2);
+	writer.label("main");
+	writer.put_ret();
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.label("main");
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.label("a");
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.label("b");
+	};
+
+}
+
+TEST (writer_fail_invalid_reg_size) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.put_movsx(AX, DL);  // valid
+	writer.put_movsx(EAX, BH); // valid
+	writer.put_movsx(EDX, AX); // valid
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_mov(EAX, AX);
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_mov(AX, EAX);
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_movsx(AX, AX);
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_movsx(AL, AX);
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_movsx(BH, EDX);
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_xchg(ref<BYTE>("bar"), EBX);
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_xchg(ref<WORD>("bar"), EBX);
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_xchg(ref<BYTE>("bar"), BX);
+	};
+
+}
+
+TEST (writer_fail_invalid_mem_size) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.label("a");
+	writer.put_dword(0);
+
+	writer.put_mov(AL, ref("a"));   // valid
+	writer.put_mov(AL, 0xFFFFFFFF); // stupid, but valid
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_fst(cast<TWORD>(ref("a")));
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_fst(cast<WORD>(ref("a")));
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_fst(cast<BYTE>(ref("a")));
+	};
+
+	EXPECT_THROW(std::runtime_error) {
+		writer.put_mov(EAX, cast<BYTE>(ref("a")));
+	};
+
+}
+
+TEST (writer_fail_undefined_label) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+	writer.put_mov(EAX, ref("hamburger"));
+
+	EXPECT_THROW(std::runtime_error) {
+		to_executable(segmented);
+	};
+
+}
+
+/*
+ * region Executable
+ * Begin architecture depended tests for x86
+ */
+
+#if ARCH_X86
 
 TEST (writer_exec_no_truncation) {
 
@@ -2678,114 +2800,6 @@ TEST (writer_exec_cmpxchg_mem) {
 
 }
 
-TEST (writer_fail_redefinition) {
-
-	SegmentedBuffer segmented;
-	BufferWriter writer {segmented};
-
-	writer.label("a").put_byte(1);
-	writer.label("b").put_byte(2);
-	writer.label("main");
-	writer.put_ret();
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.label("main");
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.label("a");
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.label("b");
-	};
-
-}
-
-TEST (writer_fail_invalid_reg_size) {
-
-	SegmentedBuffer segmented;
-	BufferWriter writer {segmented};
-
-	writer.put_movsx(AX, DL);  // valid
-	writer.put_movsx(EAX, BH); // valid
-	writer.put_movsx(EDX, AX); // valid
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_mov(EAX, AX);
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_mov(AX, EAX);
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_movsx(AX, AX);
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_movsx(AL, AX);
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_movsx(BH, EDX);
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_xchg(ref<BYTE>("bar"), EBX);
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_xchg(ref<WORD>("bar"), EBX);
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_xchg(ref<BYTE>("bar"), BX);
-	};
-
-}
-
-TEST (writer_fail_invalid_mem_size) {
-
-	SegmentedBuffer segmented;
-	BufferWriter writer {segmented};
-
-	writer.label("a");
-	writer.put_dword(0);
-
-	writer.put_mov(AL, ref("a"));   // valid
-	writer.put_mov(AL, 0xFFFFFFFF); // stupid, but valid
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_fst(cast<TWORD>(ref("a")));
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_fst(cast<WORD>(ref("a")));
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_fst(cast<BYTE>(ref("a")));
-	};
-
-	EXPECT_THROW(std::runtime_error) {
-		writer.put_mov(EAX, cast<BYTE>(ref("a")));
-	};
-
-}
-
-TEST (writer_fail_undefined_label) {
-
-	SegmentedBuffer segmented;
-	BufferWriter writer {segmented};
-	writer.put_mov(EAX, ref("hamburger"));
-
-	EXPECT_THROW(std::runtime_error) {
-		to_executable(segmented);
-	};
-
-}
-
 TEST (writer_elf_simple) {
 
 	using namespace asmio::elf;
@@ -2954,3 +2968,8 @@ TEST (tasml_tokenize) {
 	CHECK(to_executable(segmented).call_i32("_start"), 6);
 
 };
+
+#endif
+;}
+
+#include "aarch64.hpp"

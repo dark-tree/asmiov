@@ -19,7 +19,7 @@ using namespace asmio::x86;
 
 /*
  * region Static
- * Begin target independent tests for x86
+ * Begin target invariant tests for x86
  */
 
 TEST (syntax_registry_attributes) {

@@ -5,6 +5,10 @@
 
 namespace asmio::x86 {
 
+	/*
+	 * class BufferWriter
+	 */
+
 	void BufferWriter::put_inst_rex(bool w, bool r, bool x, bool b) {
 
 		//   7 6 5 4   3   2   1   0

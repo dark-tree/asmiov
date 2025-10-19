@@ -17,6 +17,7 @@
 #include <functional>
 #include <iostream>
 #include <algorithm>
+#include <limits>
 
 // systems
 #ifdef __linux__

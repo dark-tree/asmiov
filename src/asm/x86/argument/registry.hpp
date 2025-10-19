@@ -3,6 +3,7 @@
 #include "external.hpp"
 #include "asm/x86/const.hpp"
 #include "out/buffer/sizes.hpp"
+#include "../../util.hpp"
 
 namespace asmio::x86 {
 
@@ -35,11 +36,11 @@ namespace asmio::x86 {
 	};
 
 	/// Represents a x86 CPU registry
-	struct __attribute__((__packed__)) Registry {
+	struct PACKED Registry {
 
 		/// Register properties
 		enum Flag : uint8_t {
-			NONE        = 0b00000,
+			NONE        = 0b0000000,
 
 			GENERAL     = 0b0000001,
 			FLOATING    = 0b0000010,

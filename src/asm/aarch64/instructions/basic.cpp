@@ -134,4 +134,12 @@ namespace asmio::arm {
 		put_dword(sf << 31 | 0b1011010110 << 21 | src.reg << 5 | dst.reg);
 	}
 
+	void BufferWriter::put_clz(Registry dst, Registry src) {
+		put_inst_count(dst, src, 0);
+	}
+
+	void BufferWriter::put_cls(Registry dst, Registry src) {
+		put_inst_count(dst, src, 1);
+	}
+
 }

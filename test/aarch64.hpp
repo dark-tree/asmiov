@@ -305,6 +305,107 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_bl_br) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(0), 0);
+		writer.put_mov(X(4), LR);
+		writer.put_bl("foo");
+
+		writer.put_mov(X(1), 10);
+		writer.put_add(X(0), X(0), X(1));
+		writer.put_br(X(4)); // return to C++
+
+		writer.label("foo");
+		writer.put_mov(X(0), 40);
+		writer.put_ret(); // check if we correctly return to BL
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 50);
+
+	};
+
+	TEST (writer_exec_clz) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 0x0000'F000'0000'F000);
+		writer.put_clz(X(0), X(1));
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 16);
+
+	};
+
+	TEST (writer_exec_cls_negative) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 0xF000'0000'0000'00FF);
+		writer.put_cls(X(0), X(1));
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 3);
+
+	};
+
+	TEST (writer_exec_cls_positive) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 0x0100'0000'0000'00F0);
+		writer.put_cls(X(0), X(1));
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 6);
+
+	};
+
+	TEST (writer_exec_cbnz) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(0), 0);
+		writer.put_mov(X(1), 1);
+		writer.put_cbnz(X(1), "skip");
+		writer.put_ret();
+
+		writer.label("skip");
+		writer.put_mov(X(0), 0xCB);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 0xCB);
+
+	};
+
+	TEST (writer_exec_cbz) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(0), 0);
+		writer.put_cbz(X(0), "skip");
+		writer.put_ret();
+
+		writer.label("skip");
+		writer.put_mov(X(0), 0xBC);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 0xBC);
+
+	};
+
 #endif
 
 }

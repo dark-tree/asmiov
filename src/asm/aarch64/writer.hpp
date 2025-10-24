@@ -74,6 +74,9 @@ namespace asmio::arm {
 			/// Encode "ADC/ADCS (extended register)" operation
 			void put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags);
 
+			/// Encode "CLS/CLZ" operation
+			void put_inst_count(Registry destination, Registry source, uint8_t imm1);
+
 			/// Insert a PC-relative linkage into the next DWORD
 			void put_link(uint64_t bits, uint64_t left_shift, const Label& label);
 
@@ -132,6 +135,7 @@ namespace asmio::arm {
 
 			BufferWriter(SegmentedBuffer& buffer);
 
+			// basic
 			INST put_adc(Registry dst, Registry a, Registry b);            /// Add with carry
 			INST put_adcs(Registry dst, Registry a, Registry b);           /// Add with carry and set flags
 			INST put_add(Registry dst, Registry a, Registry b, AddType size = AddType::UXTX, uint8_t lsl3 = 0); /// Add two registers, potentially extending one of them
@@ -147,9 +151,17 @@ namespace asmio::arm {
 			INST put_ret();                                                /// Return from procedure using link register
 			INST put_ret(Registry src);                                    /// Return from procedure
 			INST put_rbit(Registry dst, Registry src);                     /// Reverse bits
+			INST put_clz(Registry dst, Registry src);                      /// Count leading zeros
+			INST put_cls(Registry dst, Registry src);                      /// Count leading signs (ones)
 
+			// branch
 			INST put_b(Label label);                                       /// Branch
 			INST put_b(Condition condition, Label label);                  /// Branch conditionally
+			INST put_bl(Label label);                                      /// Branch with link
+			INST put_blr(Registry ptr);                                    /// Branch with link to register
+			INST put_br(Registry ptr);                                     /// Branch to register
+			INST put_cbnz(Registry src, Label label);                      /// Branch if register is not zero
+			INST put_cbz(Registry src, Label label);                       /// Branch if register is zero
 
 
 	};

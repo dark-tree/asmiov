@@ -195,6 +195,16 @@ namespace asmio::arm {
 		put_dword(sf << 31 | 0b0'0'11010000 << 21 | fb | b.reg << 16 | 0b000000 << 10 | a.reg << 5 | destination.reg);
 	}
 
+	void BufferWriter::put_inst_count(Registry destination, Registry source, uint8_t imm1) {
+
+		if (destination.wide() != source.wide()) {
+			throw std::runtime_error {"Invalid operands, both registers need to be of the same size"};
+		}
+
+		uint32_t sf = destination.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b1'0'11010110'00000'00010 << 11 | imm1 << 10 | source.reg << 5 | destination.reg);
+	}
+
 	void BufferWriter::put_link(uint64_t bits, uint64_t left_shift, const Label& label) {
 
 		buffer.add_linkage(label, 0, [bits, left_shift] (SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {

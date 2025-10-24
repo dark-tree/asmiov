@@ -239,6 +239,72 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_no_branch) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 3);
+		writer.put_mov(X(0), 11);
+
+		writer.put_mov(X(0), 22);
+		writer.label("skip_22");
+		writer.put_add(X(0), X(0), X(1));
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 25);
+
+	};
+
+	TEST (writer_exec_b) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 3);
+		writer.put_mov(X(0), 11);
+		writer.put_b("skip_22");
+		writer.put_mov(X(0), 22);
+		writer.label("skip_22");
+		writer.put_add(X(0), X(0), X(1));
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 14);
+
+	};
+
+	TEST (writer_exec_b_cond) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(0), 0);
+
+		writer.put_mov(X(1), 0xFFFF'FFFF'FFFF'FFF0);
+		writer.put_mov(X(2), 0x1F);
+		writer.put_mov(X(3), 0x0F);
+
+		writer.put_adds(X(4), X(1), X(3));
+		writer.put_b(Condition::CS, "fail");
+
+		writer.put_adds(X(4), X(1), X(2));
+		writer.put_b(Condition::CS, "success");
+
+		writer.label("fail");
+		writer.put_mov(X(0), 11);
+		writer.put_ret();
+
+		writer.label("success");
+		writer.put_mov(X(0), 22);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 22);
+
+	};
+
 #endif
 
 }

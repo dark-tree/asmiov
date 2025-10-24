@@ -4,6 +4,7 @@
 #include "argument/add.hpp"
 #include "argument/registry.hpp"
 #include "argument/shift.hpp"
+#include "argument/condition.hpp"
 
 namespace asmio::arm {
 
@@ -72,6 +73,9 @@ namespace asmio::arm {
 
 			/// Encode "ADC/ADCS (extended register)" operation
 			void put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags);
+
+			/// Insert a PC-relative linkage into the next DWORD
+			void put_link(uint64_t bits, uint64_t left_shift, const Label& label);
 
 		public:
 
@@ -143,6 +147,9 @@ namespace asmio::arm {
 			INST put_ret();                                                /// Return from procedure using link register
 			INST put_ret(Registry src);                                    /// Return from procedure
 			INST put_rbit(Registry dst, Registry src);                     /// Reverse bits
+
+			INST put_b(Label label);                                       /// Branch
+			INST put_b(Condition condition, Label label);                  /// Branch conditionally
 
 
 	};

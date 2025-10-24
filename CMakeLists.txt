@@ -41,6 +41,7 @@ set(ASMIO_SOURCES
 
 		src/asm/aarch64/writer.cpp
 		src/asm/aarch64/instructions/basic.cpp
+		src/asm/aarch64/instructions/branch.cpp
 
 		src/tasml/tokenizer.cpp
 		src/tasml/token.cpp

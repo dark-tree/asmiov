@@ -195,4 +195,27 @@ namespace asmio::arm {
 		put_dword(sf << 31 | 0b0'0'11010000 << 21 | fb | b.reg << 16 | 0b000000 << 10 | a.reg << 5 | destination.reg);
 	}
 
+	void BufferWriter::put_link(uint64_t bits, uint64_t left_shift, const Label& label) {
+
+		buffer.add_linkage(label, 0, [bits, left_shift] (SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+			BufferMarker src = buffer->get_label(linkage.label);
+			BufferMarker dst = linkage.target;
+
+			const int64_t distance = buffer->get_offset(src) - buffer->get_offset(dst);
+
+			if (distance & 0b11) {
+				throw std::runtime_error {"Can't reference label '" + linkage.label.string() + "' (offset " + util::to_hex(distance) + ") into target " + util::to_hex(dst.offset) + ", offset is not aligned!"};
+			}
+
+			const uint64_t offset = distance >> 2;
+
+			if (offset > util::bit_fill<uint64_t>(bits)) {
+				throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (offset " + util::to_hex(distance) + ") into target " + util::to_hex(dst.offset) + ", some data would have been truncated!"};
+			}
+
+			*reinterpret_cast<uint32_t*>(buffer->get_pointer(dst)) |= (offset << left_shift);
+		});
+
+	}
+
 }

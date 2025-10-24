@@ -44,12 +44,6 @@ namespace asmio::arm {
 
 	};
 
-	// special registers
-	constexpr Registry UNSET {VOID,  31, Registry::NONE};
-	constexpr Registry WZR   {DWORD, 31, Registry::ZERO | Registry::GENERAL};
-	constexpr Registry XZR   {QWORD, 31, Registry::ZERO | Registry::GENERAL};
-	constexpr Registry SP    {QWORD, 31, Registry::STACK};
-
 	/// Reference arbitrary 32bit register, 'number' MUST be in range [0, 30]
 	constexpr Registry W(uint8_t number) {
 		return {DWORD, static_cast<uint8_t>(number & 0b11111), Registry::GENERAL};
@@ -59,5 +53,13 @@ namespace asmio::arm {
 	constexpr Registry X(uint8_t number) {
 		return {QWORD, static_cast<uint8_t>(number & 0b11111), Registry::GENERAL};
 	}
+
+	// special registers
+	constexpr Registry UNSET {VOID,  31, Registry::NONE};
+	constexpr Registry WZR   {DWORD, 31, Registry::ZERO | Registry::GENERAL};
+	constexpr Registry XZR   {QWORD, 31, Registry::ZERO | Registry::GENERAL};
+	constexpr Registry SP    {QWORD, 31, Registry::STACK};
+	constexpr Registry LR = X(30);
+	constexpr Registry FP = X(29);
 
 }

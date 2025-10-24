@@ -46,7 +46,7 @@ namespace asmio::util {
 	}
 
 	template<typename T>
-	inline bool contains(const T& container, const auto& value) {
+	bool contains(const T& container, const auto& value) {
 		for (const auto& element : container) {
 			if (element == value) return true;
 		}
@@ -65,6 +65,19 @@ namespace asmio::util {
 		if (value > 0xFF) return 2;
 
 		return 1;
+	}
+
+	constexpr int count_trailing_ones(uint64_t value) {
+		return __builtin_ctz(~value); // ctz(~x) == cto(x)
+	}
+
+	template <std::integral T>
+	constexpr T bit_fill(uint64_t count) {
+		if (count >= sizeof(T) * 8) {
+			return std::numeric_limits<T>::max();
+		}
+
+		return (1 << count) - 1;
 	}
 
 	constexpr int min_sign_extended_bytes(int64_t value) {

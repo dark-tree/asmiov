@@ -22,28 +22,14 @@ namespace asmio::arm {
 		put_inst_add_extended(dst, a, b, size, lsl3, true);
 	}
 
-	void BufferWriter::put_adr(Registry destination, uint64_t imm22) {
-
-		if (imm22 > util::bit_fill<uint64_t>(22)) {
-			throw std::runtime_error {"Invalid operands, offset can be at most 22 bits long."};
-		}
-
-		const uint32_t immlo = imm22 & 0b11;
-		const uint32_t immhi = imm22 >> 2;
-
-		put_dword(0b0 << 31 | immlo << 29 | 0b10000 << 24 | immhi << 5 | destination.reg);
+	void BufferWriter::put_adr(Registry destination, Label label) {
+		buffer.add_linkage(label, 0, link_21_5_lo_hi);
+		put_dword(0b0 << 31 | 0b10000 << 24 | destination.reg);
 	}
 
-	void BufferWriter::put_adrp(Registry destination, uint64_t imm22) {
-
-		if (imm22 > util::bit_fill<uint64_t>(22)) {
-			throw std::runtime_error {"Invalid operands, offset can be at most 22 bits long."};
-		}
-
-		const uint32_t immlo = imm22 & 0b11;
-		const uint32_t immhi = imm22 >> 2;
-
-		put_dword(0b1 << 31 | immlo << 29 | 0b10000 << 24 | immhi << 5 | destination.reg);
+	void BufferWriter::put_adrp(Registry destination, Label label) {
+		buffer.add_linkage(label, 0, link_21_5_lo_hi);
+		put_dword(0b1 << 31 | 0b10000 << 24 | destination.reg);
 	}
 
 	void BufferWriter::put_movz(Registry registry, uint16_t imm, uint16_t shift) {
@@ -141,5 +127,12 @@ namespace asmio::arm {
 	void BufferWriter::put_cls(Registry dst, Registry src) {
 		put_inst_count(dst, src, 1);
 	}
+
+	void BufferWriter::put_ldr(Registry registry, Label label) {
+		uint16_t sf = registry.wide() ? 1 : 0;
+		buffer.add_linkage(label, 0, link_19_5_aligned);
+		put_dword(sf << 30 | 0b011000 << 24 | registry.reg);
+	}
+
 
 }

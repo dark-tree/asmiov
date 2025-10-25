@@ -67,6 +67,26 @@ namespace asmio::util {
 		return 1;
 	}
 
+	/**
+	 * Check how many bits can be truncated from a signed number before
+	 * it changed its value, assuming one bit is needed for the sign.
+	 */
+	constexpr int count_redundant_sign_bits(int64_t value) {
+		return __builtin_clzll(value >= 0 ? value : ~value) - 1;
+	}
+
+	/**
+	 * Check if given number signed number can be losslessly
+	 * encoded in the given number of bits, taking into account the sign bits.
+	 */
+	constexpr bool is_signed_encodable(int64_t value, int64_t bits) {
+		return (64 - count_redundant_sign_bits(value)) <= bits;
+	}
+
+	/**
+	 * Count the number of 'ones' form the leading (most
+	 * significant) side of a number.
+	 */
 	constexpr int count_trailing_ones(uint64_t value) {
 		return __builtin_ctz(~value); // ctz(~x) == cto(x)
 	}

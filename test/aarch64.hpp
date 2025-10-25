@@ -406,6 +406,47 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_ldr_literal) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("alpha");
+		writer.put_ldr(X(0), "data");
+		writer.put_ret();
+
+		writer.label("beta");
+		writer.put_ldr(W(0), "data");
+		writer.put_ret();
+
+		writer.label("data");
+		writer.put_qword(0xAABB'CCDD'EEFF'1234);
+
+		uint64_t r0 = to_executable(segmented).call_u64("alpha");
+		CHECK(r0, 0xAABB'CCDD'EEFF'1234);
+
+		r0 = to_executable(segmented).call_u64("beta");
+		CHECK(r0, 0xEEFF'1234);
+
+	};
+
+	TEST (writer_exec_adr) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_adr(X(0), "data");
+		writer.put_ret();
+
+		writer.label("data");
+		writer.put_dword(0xAABBCCDD);
+
+		auto buffer = to_executable(segmented);
+		uint32_t* data = (uint32_t*) buffer.call_u64();
+		CHECK(*data, 0xAABBCCDD);
+
+	};
+
 #endif
 
 }

@@ -59,6 +59,15 @@ namespace asmio::arm {
 
 		private:
 
+			/// Helper function used by some "link_*" types
+			static void encode_shifted_aligned_link(SegmentedBuffer* buffer, const Linkage& linkage, int bits, int left_shift);
+
+			static void link_26_0_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
+			static void link_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
+			static void link_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
+
+		private:
+
 			uint8_t pack_shift(uint8_t shift, bool wide);
 			void assert_register_triplet(Registry a, Registry b, Registry c);
 
@@ -76,9 +85,6 @@ namespace asmio::arm {
 
 			/// Encode "CLS/CLZ" operation
 			void put_inst_count(Registry destination, Registry source, uint8_t imm1);
-
-			/// Insert a PC-relative linkage into the next DWORD
-			void put_link(uint64_t bits, uint64_t left_shift, const Label& label);
 
 		public:
 
@@ -140,8 +146,8 @@ namespace asmio::arm {
 			INST put_adcs(Registry dst, Registry a, Registry b);           /// Add with carry and set flags
 			INST put_add(Registry dst, Registry a, Registry b, AddType size = AddType::UXTX, uint8_t lsl3 = 0); /// Add two registers, potentially extending one of them
 			INST put_adds(Registry dst, Registry a, Registry b, AddType size = AddType::UXTX, uint8_t lsl3 = 0); /// Add two registers, set the flags, potentially extending one of them
-			INST put_adr(Registry destination, uint64_t imm22);            /// Form a PC-relative address
-			INST put_adrp(Registry destination, uint64_t imm22);           /// Form a PC-page-relative address
+			INST put_adr(Registry destination, Label label);            /// Form a PC-relative address
+			INST put_adrp(Registry destination, Label label);           /// Form a PC-page-relative address
 			INST put_movz(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, zero other bits
 			INST put_movk(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, keep other bits
 			INST put_movn(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, zero other bits, then NOT the register
@@ -153,6 +159,7 @@ namespace asmio::arm {
 			INST put_rbit(Registry dst, Registry src);                     /// Reverse bits
 			INST put_clz(Registry dst, Registry src);                      /// Count leading zeros
 			INST put_cls(Registry dst, Registry src);                      /// Count leading signs (ones)
+			INST put_ldr(Registry registry, Label label);
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

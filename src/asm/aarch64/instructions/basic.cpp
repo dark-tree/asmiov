@@ -14,11 +14,11 @@ namespace asmio::arm {
 		put_inst_adc(dst, a, b, true);
 	}
 
-	void BufferWriter::put_add(Registry dst, Registry a, Registry b, AddType size, uint8_t lsl3) {
+	void BufferWriter::put_add(Registry dst, Registry a, Registry b, Sizing size, uint8_t lsl3) {
 		put_inst_add_extended(dst, a, b, size, lsl3, false);
 	}
 
-	void BufferWriter::put_adds(Registry dst, Registry a, Registry b, AddType size, uint8_t lsl3) {
+	void BufferWriter::put_adds(Registry dst, Registry a, Registry b, Sizing size, uint8_t lsl3) {
 		put_inst_add_extended(dst, a, b, size, lsl3, true);
 	}
 
@@ -134,5 +134,16 @@ namespace asmio::arm {
 		put_dword(sf << 30 | 0b011000 << 24 | registry.reg);
 	}
 
+	void BufferWriter::put_ldri(Registry dst, Registry base, int64_t offset, Sizing sizing) {
+		put_inst_ldr(dst, base, offset, sizing, POST);
+	}
+
+	void BufferWriter::put_ildr(Registry dst, Registry base, int64_t offset, Sizing sizing) {
+		put_inst_ldr(dst, base, offset, sizing, PRE);
+	}
+
+	void BufferWriter::put_ldr(Registry dst, Registry base, uint64_t offset, Sizing sizing) {
+		put_inst_ldr(dst, base, std::bit_cast<int64_t>(offset), sizing, OFFSET);
+	}
 
 }

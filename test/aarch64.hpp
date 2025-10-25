@@ -183,7 +183,7 @@ namespace test::arm {
 		writer.put_movz(X(0), 0);
 		writer.put_movz(X(1), 0x0133);
 		writer.put_movz(X(2), 0xF011);
-		writer.put_add(X(0), X(1), X(2), AddType::UXTB);
+		writer.put_add(X(0), X(1), X(2), Sizing::UB);
 		writer.put_ret();
 
 		uint64_t r0 = to_executable(segmented).call_u64();
@@ -444,6 +444,152 @@ namespace test::arm {
 		auto buffer = to_executable(segmented);
 		uint32_t* data = (uint32_t*) buffer.call_u64();
 		CHECK(*data, 0xAABBCCDD);
+
+	};
+
+	TEST (writer_exec_ldr_unsigned_byte) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_adr(X(1), "data");
+		writer.put_ldr(X(2), X(1), 1, Sizing::UB);
+		writer.put_ldr(X(3), X(1), 3, Sizing::UB);
+		writer.put_ldr(X(4), X(1), 4, Sizing::UB);
+		writer.put_add(X(0), X(2), X(3));
+		writer.put_add(X(0), X(0), X(4));
+		writer.put_ret();
+
+		writer.label("data");
+		writer.put_byte(0b000001); // +0
+		writer.put_byte(0b000010); // +1
+		writer.put_byte(0b000100); // +2
+		writer.put_byte(0b001000); // +3
+		writer.put_byte(0b010000); // +4
+		writer.put_byte(0b100000); // +5
+
+		uint64_t r0 = to_executable(segmented).call_u64();
+		CHECK(r0, 0b011010);
+
+	};
+
+	TEST (writer_exec_ldr_signed_word) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_adr(X(1), "data");
+		writer.put_ldr(X(0), X(1), 2, Sizing::SH);
+		writer.put_ret();
+
+		writer.label("data");
+		writer.put_word(0xAAAA);
+		writer.put_word(-13);
+		writer.put_word(0xAAAA);
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, -13); // sign extended
+
+	};
+
+	TEST (writer_exec_ldr_unsigned_word) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_adr(X(1), "data");
+		writer.put_ldr(X(0), X(1), 2, Sizing::UH);
+		writer.put_ret();
+
+		writer.label("data");
+		writer.put_word(0xAAAA);
+		writer.put_word(0xFFFF);
+		writer.put_word(0xAAAA);
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0xFFFF); // not signed extended
+
+	};
+
+	TEST (writer_exec_ldri_unsigned_qword) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_adr(X(1), "data");
+		writer.put_mov(X(0), 0);
+
+		writer.put_ldri(X(2), X(1), 8, Sizing::UX);
+		writer.put_add(X(0), X(2), X(0));
+		writer.put_ldri(X(2), X(1), 8, Sizing::UX);
+		writer.put_add(X(0), X(2), X(0));
+		writer.put_ldri(X(2), X(1), 8, Sizing::UX);
+		writer.put_add(X(0), X(2), X(0));
+
+		writer.put_ret();
+
+		writer.put_word(0xFFFF);
+
+		writer.label("data");
+		writer.put_qword(0b0001);
+		writer.put_qword(0b0010);
+		writer.put_qword(0b0100);
+		writer.put_word(0xFFFF);
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0b0111);
+
+	};
+
+	TEST (writer_exec_ildr_unsigned_dword) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_adr(X(1), "data");
+		writer.put_mov(X(0), 0);
+
+		writer.put_ildr(X(2), X(1), 4, Sizing::UW);
+		writer.put_add(X(0), X(2), X(0));
+		writer.put_ildr(X(2), X(1), 4, Sizing::UW);
+		writer.put_add(X(0), X(2), X(0));
+		writer.put_ildr(X(2), X(1), 4, Sizing::UW);
+		writer.put_add(X(0), X(2), X(0));
+
+		writer.put_ret();
+
+		writer.label("data");
+		writer.put_dword(0x0FFFFFFF);
+		writer.put_dword(0x100000AA);
+		writer.put_dword(0x1000BB00);
+		writer.put_dword(0x10CC0000);
+		writer.put_dword(0x0FFFFFFF);
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0x30CCBBAA);
+
+	};
+
+	TEST (writer_exec_ildr_signed_byte) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_adr(X(1), "data");
+		writer.put_ildr(X(0), X(1), 3, Sizing::SB);
+		writer.put_ret();
+
+		writer.put_word(0xFFFF);
+
+		writer.label("data");
+		writer.put_byte(0xAA);
+		writer.put_byte(0xAA);
+		writer.put_byte(0xAA);
+		writer.put_byte(-42);
+		writer.put_word(0xFFFF);
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, -42);
 
 	};
 

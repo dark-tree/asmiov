@@ -212,7 +212,7 @@ namespace asmio::arm {
 		put_inst_bitmask(0b01100100, destination, source, n_immr_imms);
 	}
 
-	void BufferWriter::put_inst_add_extended(Registry destination, Registry a, Registry b, AddType add, uint8_t imm3, bool set_flags) {
+	void BufferWriter::put_inst_add_extended(Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags) {
 
 		if (b.is(Registry::STACK)) {
 			throw std::runtime_error {"Invalid operands, stack register can't be used as the second source register."};
@@ -223,8 +223,8 @@ namespace asmio::arm {
 		}
 
 		// fix method parameter so that we are less picky in obvious cases
-		if (!b.wide() && add == AddType::SXTX) add = AddType::SXTW;
-		else if (!b.wide() && add == AddType::UXTX) add = AddType::UXTW;
+		if (!b.wide() && add == Sizing::SX) add = Sizing::SW;
+		else if (!b.wide() && add == Sizing::UX) add = Sizing::UW;
 
 		uint16_t sf = destination.wide() ? 1 : 0;
 		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
@@ -247,6 +247,60 @@ namespace asmio::arm {
 
 		uint32_t sf = destination.wide() ? 1 : 0;
 		put_dword(sf << 31 | 0b1'0'11010110'00000'00010 << 11 | imm1 << 10 | source.reg << 5 | destination.reg);
+	}
+
+	void BufferWriter::put_inst_ldr(Registry dst, Registry base, int64_t offset, Sizing sizing, MemoryOperation op) {
+
+		const auto imm_bits = op == OFFSET ? 12 : 9;
+		const auto use_imm12 = op == OFFSET ? 1 << 24 : 0;
+		const auto imm_lsl = op == OFFSET ? 10 : 12;
+
+		const auto mask = util::bit_fill<uint64_t>(imm_bits);
+		const auto size = int64_t(sizing) & 0b11;
+
+		// in offset mode the offset needs to be aligned...
+		if (op == OFFSET) {
+
+			// Warning: Usage depended encoding requirement!
+			// this is however fine as each MemoryOperation is used by separate mnemonic
+			if (offset & util::bit_fill<uint64_t>(size)) {
+				throw std::runtime_error {"Invalid operand, unaligned offset"};
+			}
+
+			offset >>= size;
+		}
+
+		if (dst.reg == base.reg) {
+			throw std::runtime_error {"Invalid operands, the same register can't be used as both the base and destination"};
+		}
+
+		if (op == OFFSET) {
+			if (std::bit_cast<uint64_t>(offset) > mask) {
+				throw std::runtime_error {"Invalid operand, the offset is too large"};
+			}
+		} else {
+			if (!util::is_signed_encodable(offset, 9)) {
+				throw std::runtime_error {"Invalid operand, the offset is too large"};
+			}
+		}
+
+		if (!base.wide()) {
+			throw std::runtime_error {"Invalid operands, wide base register required"};
+		}
+
+		if (base.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operands, base register can't be the zero register"};
+		}
+
+		if (!dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, destination register must be general purpose register"};
+		}
+
+		const auto sign = (uint64_t(sizing) & 0b100)
+			? 0b10 | (dst.wide() ? 0 : 1)
+			: 0b01;
+
+		put_dword(size << 30 | 0b11100 << 25 | use_imm12 | sign << 22 | (mask & offset) << imm_lsl | uint64_t(op) << 10 | base.reg << 5 | dst.reg);
 	}
 
 }

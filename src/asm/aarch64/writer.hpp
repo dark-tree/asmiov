@@ -1,16 +1,23 @@
 #pragma once
 #include <out/buffer/writer.hpp>
 
-#include "argument/add.hpp"
+#include "argument/sizing.hpp"
 #include "argument/registry.hpp"
 #include "argument/shift.hpp"
 #include "argument/condition.hpp"
+#include "argument/sign.hpp"
 
 namespace asmio::arm {
 
 	class BufferWriter : public BasicBufferWriter {
 
 		private:
+
+			enum MemoryOperation {
+				POST = 0b01,
+				PRE = 0b11,
+				OFFSET = 0b00,
+			};
 
 			/**
 			 * Try to compute the ARM immediate bitmask based on a target value, this is a multi-step process
@@ -68,7 +75,8 @@ namespace asmio::arm {
 
 		private:
 
-			uint8_t pack_shift(uint8_t shift, bool wide);
+			static uint8_t pack_shift(uint8_t shift, bool wide);
+			static uint64_t get_size(Size size);
 			void assert_register_triplet(Registry a, Registry b, Registry c);
 
 			/// Encode generic, 16 bit, immediate move, used by MOVN, MOVK, MOVZ
@@ -78,13 +86,16 @@ namespace asmio::arm {
 			void put_inst_orr_bitmask(Registry destination, Registry source, uint16_t n_immr_imms);
 
 			/// Encode "ADD/ADDS (extended register)" operation
-			void put_inst_add_extended(Registry destination, Registry a, Registry b, AddType add, uint8_t imm3, bool set_flags);
+			void put_inst_add_extended(Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags);
 
 			/// Encode "ADC/ADCS (extended register)" operation
 			void put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags);
 
 			/// Encode "CLS/CLZ" operation
 			void put_inst_count(Registry destination, Registry source, uint8_t imm1);
+
+			/// Encode "ILDR/LDRI/LDR" operation
+			void put_inst_ldr(Registry dst, Registry base, int64_t offset, Sizing sizing, MemoryOperation op);
 
 		public:
 
@@ -144,10 +155,10 @@ namespace asmio::arm {
 			// basic
 			INST put_adc(Registry dst, Registry a, Registry b);            /// Add with carry
 			INST put_adcs(Registry dst, Registry a, Registry b);           /// Add with carry and set flags
-			INST put_add(Registry dst, Registry a, Registry b, AddType size = AddType::UXTX, uint8_t lsl3 = 0); /// Add two registers, potentially extending one of them
-			INST put_adds(Registry dst, Registry a, Registry b, AddType size = AddType::UXTX, uint8_t lsl3 = 0); /// Add two registers, set the flags, potentially extending one of them
-			INST put_adr(Registry destination, Label label);            /// Form a PC-relative address
-			INST put_adrp(Registry destination, Label label);           /// Form a PC-page-relative address
+			INST put_add(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Add two registers, potentially extending one of them
+			INST put_adds(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Add two registers, set the flags, potentially extending one of them
+			INST put_adr(Registry destination, Label label);               /// Form a PC-relative address
+			INST put_adrp(Registry destination, Label label);              /// Form a PC-page-relative address
 			INST put_movz(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, zero other bits
 			INST put_movk(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, keep other bits
 			INST put_movn(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, zero other bits, then NOT the register
@@ -159,7 +170,10 @@ namespace asmio::arm {
 			INST put_rbit(Registry dst, Registry src);                     /// Reverse bits
 			INST put_clz(Registry dst, Registry src);                      /// Count leading zeros
 			INST put_cls(Registry dst, Registry src);                      /// Count leading signs (ones)
-			INST put_ldr(Registry registry, Label label);
+			INST put_ldr(Registry registry, Label label);                  /// Load value from memory
+			INST put_ildr(Registry dst, Registry base, int64_t offset, Sizing size); /// Increment base and load value from memory
+			INST put_ldri(Registry dst, Registry base, int64_t offset, Sizing size); /// Load value from memory and increment base
+			INST put_ldr(Registry registry, Registry base, uint64_t offset, Sizing size); /// Load value from memory
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

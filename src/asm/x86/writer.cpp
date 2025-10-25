@@ -95,7 +95,7 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_inst_imm(uint64_t immediate, uint8_t width) {
-		buffer.insert((uint8_t *) &immediate, std::min(width, QWORD));
+		buffer.insert((uint8_t *) &immediate, std::min(width, uint8_t(QWORD)));
 	}
 
 	void BufferWriter::put_linker_command(const Label& label, int32_t addend, int32_t shift, uint8_t width, LinkType type) {
@@ -442,7 +442,7 @@ namespace asmio::x86 {
 		if (dst.is_memreg() && src.is_immediate()) {
 
 			// all tuple instruction use a 32-bit capped immediate values
-			uint8_t imm_size = std::min(DWORD, opr_size);
+			uint8_t imm_size = std::min(uint8_t(DWORD), opr_size);
 
 			set_suffix(imm_size);
 			put_inst_std_ds(0b100000, dst, RegInfo::raw(opcode_reg), opr_size, false /* TODO: sign flag */);

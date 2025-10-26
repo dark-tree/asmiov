@@ -135,15 +135,27 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_ldri(Registry dst, Registry base, int64_t offset, Sizing sizing) {
-		put_inst_ldr(dst, base, offset, sizing, POST);
+		put_inst_ldst(dst, base, offset, sizing, POST, LOAD);
 	}
 
 	void BufferWriter::put_ildr(Registry dst, Registry base, int64_t offset, Sizing sizing) {
-		put_inst_ldr(dst, base, offset, sizing, PRE);
+		put_inst_ldst(dst, base, offset, sizing, PRE, LOAD);
 	}
 
 	void BufferWriter::put_ldr(Registry dst, Registry base, uint64_t offset, Sizing sizing) {
-		put_inst_ldr(dst, base, std::bit_cast<int64_t>(offset), sizing, OFFSET);
+		put_inst_ldst(dst, base, std::bit_cast<int64_t>(offset), sizing, OFFSET, LOAD);
+	}
+
+	void BufferWriter::put_stri(Registry dst, Registry base, int64_t offset, Sizing sizing) {
+		put_inst_ldst(dst, base, offset, sizing, POST, STORE);
+	}
+
+	void BufferWriter::put_istr(Registry dst, Registry base, int64_t offset, Sizing sizing) {
+		put_inst_ldst(dst, base, offset, sizing, PRE, STORE);
+	}
+
+	void BufferWriter::put_str(Registry dst, Registry base, uint64_t offset, Sizing sizing) {
+		put_inst_ldst(dst, base, std::bit_cast<int64_t>(offset), sizing, OFFSET, STORE);
 	}
 
 }

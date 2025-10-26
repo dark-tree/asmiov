@@ -5,7 +5,6 @@
 #include "argument/registry.hpp"
 #include "argument/shift.hpp"
 #include "argument/condition.hpp"
-#include "argument/sign.hpp"
 
 namespace asmio::arm {
 
@@ -13,10 +12,15 @@ namespace asmio::arm {
 
 		private:
 
-			enum MemoryOperation {
+			enum MemoryOperation : uint8_t {
 				POST = 0b01,
 				PRE = 0b11,
 				OFFSET = 0b00,
+			};
+
+			enum MemoryDirection : uint8_t {
+				LOAD = 0b11,
+				STORE = 0b00,
 			};
 
 			/**
@@ -94,8 +98,8 @@ namespace asmio::arm {
 			/// Encode "CLS/CLZ" operation
 			void put_inst_count(Registry destination, Registry source, uint8_t imm1);
 
-			/// Encode "ILDR/LDRI/LDR" operation
-			void put_inst_ldr(Registry dst, Registry base, int64_t offset, Sizing sizing, MemoryOperation op);
+			/// Encode "ILDR/LDRI/LDR" as well as the "ISTR/STRI/STR" operations
+			void put_inst_ldst(Registry dst, Registry base, int64_t offset, Sizing sizing, MemoryOperation op, MemoryDirection dir);
 
 		public:
 
@@ -174,6 +178,9 @@ namespace asmio::arm {
 			INST put_ildr(Registry dst, Registry base, int64_t offset, Sizing size); /// Increment base and load value from memory
 			INST put_ldri(Registry dst, Registry base, int64_t offset, Sizing size); /// Load value from memory and increment base
 			INST put_ldr(Registry registry, Registry base, uint64_t offset, Sizing size); /// Load value from memory
+			INST put_istr(Registry dst, Registry base, int64_t offset, Sizing size);
+			INST put_stri(Registry dst, Registry base, int64_t offset, Sizing size);
+			INST put_str(Registry registry, Registry base, uint64_t offset, Sizing size);
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

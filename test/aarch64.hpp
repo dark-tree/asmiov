@@ -593,6 +593,43 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_stri_byte) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("read");
+		writer.put_adr(X(0), "data");
+		writer.put_ret();
+
+		writer.label("write");
+		writer.put_adr(X(1), "data");
+		writer.put_mov(X(2), 9);
+		writer.put_mov(X(0), 0xF1);
+		writer.put_stri(X(0), X(1), 1, Sizing::SB);
+
+		writer.put_add(X(0), X(0), X(2));
+		writer.put_istr(X(0), X(1), 0, Sizing::UB);
+		writer.put_ret();
+
+		writer.put_word(0xFFFF);
+
+		writer.label("data");
+		writer.put_byte(0);
+		writer.put_byte(0);
+		writer.put_word(0xFFFF);
+
+		auto buffer = to_executable(segmented);
+		buffer.call_i64("write");
+
+		uint8_t* ptr = std::bit_cast<uint8_t*>(buffer.call_i64("read"));
+		CHECK(ptr[0], 0xF1);
+		CHECK(ptr[1], 0xFA);
+		CHECK(ptr[2], 0xFF);
+		CHECK(ptr[3], 0xFF);
+
+	};
+
 #endif
 
 }

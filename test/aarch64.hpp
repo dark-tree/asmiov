@@ -630,6 +630,70 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_eor) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 0b0111'0101);
+		writer.put_mov(X(2), 0b0101'1100);
+
+		writer.put_eor(X(0), X(1), X(2));
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0b0111'0101 ^ 0b0101'1100);
+
+	};
+
+	TEST (writer_exec_orr) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 0b0111'0101);
+		writer.put_mov(X(2), 0b0101'1100);
+
+		writer.put_orr(X(0), X(1), X(2));
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0b0111'0101 | 0b0101'1100);
+
+	};
+
+	TEST (writer_exec_and) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 0b0111'0101);
+		writer.put_mov(X(2), 0b0101'1100);
+
+		writer.put_and(X(0), X(1), X(2));
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0b0111'0101 & 0b0101'1100);
+
+	};
+
+	TEST (writer_exec_and_shifted) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 0b0111'0101);
+		writer.put_mov(X(2), 0b0101'1100);
+
+		writer.put_and(X(0), X(1), X(2), ShiftType::LSR, 3);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0b0111'0101 & 0b0000101'1);
+
+	};
+
 #endif
 
 }

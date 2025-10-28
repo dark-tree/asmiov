@@ -127,6 +127,17 @@ namespace asmio::arm {
 		put_dword(sf << 31 | opc_from_23 << 23 | n_immr_imms << 10 | source.reg << 5 | destination.reg);
 	}
 
+	void BufferWriter::put_inst_shifted_register(uint32_t opc_from_24, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift) {
+		assert_register_triplet(dst, n, m);
+
+		if (!dst.is(Registry::GENERAL) || !n.is(Registry::GENERAL) || !m.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, destination register must be general purpose register"};
+		}
+
+		uint16_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | opc_from_24 << 24 | uint32_t(shift) << 22 | m.reg << 16 | imm6 << 10 | n.reg << 5 | dst.reg);
+	}
+
 	void BufferWriter::encode_shifted_aligned_link(SegmentedBuffer* buffer, const Linkage& linkage, int bits, int left_shift) {
 		BufferMarker src = buffer->get_label(linkage.label);
 		BufferMarker dst = linkage.target;

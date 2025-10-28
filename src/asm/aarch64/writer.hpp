@@ -58,7 +58,7 @@ namespace asmio::arm {
 			uint16_t pack_bitmask(uint32_t size, uint32_t ones, uint32_t roll);
 
 			/**
-			 * Writes a standard bitmask immediate instruction into the buffer,
+			 * Writes a standard 'bitmask immediate' instruction into the buffer,
 			 * with 'sf' derived from destination size.
 			 *
 			 * @param opc_from_23 Opcode (bit 23)
@@ -67,6 +67,19 @@ namespace asmio::arm {
 			 * @param n_immr_imms Packed immediate value, obtained from compute_immediate_bitmask() (bit 10)
 			 */
 			void put_inst_bitmask(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms);
+
+			/**
+			 * Writes the standard 'shifted register' instruction into the buffer,
+			 * with 'sf' derived from destination size.
+			 *
+			 * @param opc_from_24 Opcode (bit 24)
+			 * @param dst Destination register (bit 0)
+			 * @param n Rn source register (bit 5)
+			 * @param m Rm source register (bit 16)
+			 * @param imm6 Number of bits to shift the Rm register (bit 10)
+			 * @param shift Shift type (bit 22)
+			 */
+			void put_inst_shifted_register(uint32_t opc_from_24, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift);
 
 		private:
 
@@ -178,9 +191,12 @@ namespace asmio::arm {
 			INST put_ildr(Registry dst, Registry base, int64_t offset, Sizing size); /// Increment base and load value from memory
 			INST put_ldri(Registry dst, Registry base, int64_t offset, Sizing size); /// Load value from memory and increment base
 			INST put_ldr(Registry registry, Registry base, uint64_t offset, Sizing size); /// Load value from memory
-			INST put_istr(Registry dst, Registry base, int64_t offset, Sizing size);
-			INST put_stri(Registry dst, Registry base, int64_t offset, Sizing size);
-			INST put_str(Registry registry, Registry base, uint64_t offset, Sizing size);
+			INST put_istr(Registry dst, Registry base, int64_t offset, Sizing size); /// Increment base and store value to memory
+			INST put_stri(Registry dst, Registry base, int64_t offset, Sizing size); /// Store value to memory and increment base
+			INST put_str(Registry registry, Registry base, uint64_t offset, Sizing size); /// Store value to memory
+			INST put_and(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise AND between two register, shifting the second one
+			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise XOR between two register, shifting the second one
+			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise OR between two register, shifting the second one
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

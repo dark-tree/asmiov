@@ -170,4 +170,8 @@ namespace asmio::arm {
 		put_inst_shifted_register(0b0101010, dst, a, b, imm6, shift);
 	}
 
+	void BufferWriter::put_svc(uint16_t imm16) {
+		put_dword(0b11010100000 << 21 | imm16 << 5 | 0b00001);
+	}
+
 }

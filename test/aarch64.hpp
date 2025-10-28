@@ -69,6 +69,44 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_fail_rbit_cls_clz_invalid) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_rbit(W(0), X(1));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_cls(W(0), X(1));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_clz(W(0), X(1));
+		};
+
+	};
+
+	TEST (writer_fail_adc_non_generic) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_adc(X(0), X(1), SP);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_adc(X(0), SP, X(1));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_adc(SP, X(0), X(1));
+		};
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM
@@ -442,7 +480,7 @@ namespace test::arm {
 		writer.put_dword(0xAABBCCDD);
 
 		auto buffer = to_executable(segmented);
-		uint32_t* data = (uint32_t*) buffer.call_u64();
+		auto* data = (uint32_t*) buffer.call_u64();
 		CHECK(*data, 0xAABBCCDD);
 
 	};
@@ -622,7 +660,7 @@ namespace test::arm {
 		auto buffer = to_executable(segmented);
 		buffer.call_i64("write");
 
-		uint8_t* ptr = std::bit_cast<uint8_t*>(buffer.call_i64("read"));
+		auto* ptr = std::bit_cast<uint8_t*>(buffer.call_i64("read"));
 		CHECK(ptr[0], 0xF1);
 		CHECK(ptr[1], 0xFA);
 		CHECK(ptr[2], 0xFF);
@@ -693,6 +731,36 @@ namespace test::arm {
 		CHECK(r0, 0b0111'0101 & 0b0000101'1);
 
 	};
+
+	TEST (writer_exec_svc_linux_getcwd) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// https://arm64.syscall.sh/
+		writer.label("getcwd");
+		writer.put_adr(X(0), "buffer");
+		writer.put_mov(X(1), 100);
+		writer.put_mov(X(8), 17); // getcwd
+		writer.put_svc(0);
+
+		writer.put_adr(X(0), "buffer");
+		writer.put_ret();
+
+		writer.label("buffer");
+		writer.put_space(128);
+
+		auto executable = to_executable(segmented);
+		auto ptr = std::bit_cast<char*>(executable.call_i64("getcwd"));
+
+		char path[128];
+		getcwd(path, 100);
+
+		ASSERT(strcmp(path, ptr) == 0);
+
+	};
+
+
 
 #endif
 

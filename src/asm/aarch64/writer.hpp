@@ -197,6 +197,7 @@ namespace asmio::arm {
 			INST put_and(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise AND between two register, shifting the second one
 			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise XOR between two register, shifting the second one
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise OR between two register, shifting the second one
+			INST put_svc(uint16_t imm16);                                  /// Supervisor call
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

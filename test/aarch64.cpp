@@ -1,6 +1,11 @@
-#pragma once
+#define DEBUG_MODE false
+#define VSTL_TEST_COUNT 3
+#define VSTL_PRINT_SKIP_REASON true
+#define VSTL_SUBMODULE true
 
+#include "vstl.hpp"
 #include "asm/aarch64/writer.hpp"
+#include "out/buffer/executable.hpp"
 
 namespace test::arm {
 

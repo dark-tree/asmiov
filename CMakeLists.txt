@@ -22,7 +22,7 @@ endif()
 FetchContent_Declare(
 		vstl
 		GIT_REPOSITORY https://github.com/magistermaks/lib-vstl
-		GIT_TAG v3.4
+		GIT_TAG ba434bf32d08a1d0b3679154aa07cad6d15fbb2e
 )
 
 FetchContent_MakeAvailable(vstl)
@@ -53,7 +53,7 @@ add_library(asmiov ${ASMIO_SOURCES})
 add_executable(tasml src/tasml/tasml.cpp)
 target_link_libraries(tasml PRIVATE asmiov)
 
-add_executable(test test/x86.cpp)
+add_executable(test test/x86.cpp test/aarch64.cpp)
 target_link_libraries(test PRIVATE asmiov)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

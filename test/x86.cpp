@@ -2971,5 +2971,3 @@ TEST (tasml_tokenize) {
 
 #endif
 ;}
-
-#include "aarch64.hpp"

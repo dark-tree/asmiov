@@ -66,7 +66,7 @@ namespace asmio::arm {
 			 * @param source Source register (bit 5)
 			 * @param n_immr_imms Packed immediate value, obtained from compute_immediate_bitmask() (bit 10)
 			 */
-			void put_inst_bitmask(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms);
+			void put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms);
 
 			/**
 			 * Writes the standard 'shifted register' instruction into the buffer,
@@ -80,6 +80,12 @@ namespace asmio::arm {
 			 * @param shift Shift type (bit 22)
 			 */
 			void put_inst_shifted_register(uint32_t opc_from_24, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift);
+
+			/**
+			 * Writes the standard 'extended register' instruction into the buffer,
+			 * with 'sf' derived from destination size. This command accept SP as destination only when set_flags is false.
+			 */
+			void put_inst_extended_register(uint32_t opcode_from_21, Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags);
 
 		private:
 
@@ -101,9 +107,6 @@ namespace asmio::arm {
 
 			/// Encode ORR instruction, using the given N:R:S fields
 			void put_inst_orr_bitmask(Registry destination, Registry source, uint16_t n_immr_imms);
-
-			/// Encode "ADD/ADDS (extended register)" operation
-			void put_inst_add_extended(Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags);
 
 			/// Encode "ADC/ADCS (extended register)" operation
 			void put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags);
@@ -198,6 +201,10 @@ namespace asmio::arm {
 			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise XOR between two register, shifting the second one
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise OR between two register, shifting the second one
 			INST put_svc(uint16_t imm16);                                  /// Supervisor call
+			INST put_sub(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Add two registers, potentially extending one of them
+			INST put_subs(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Add two registers, set the flags, potentially extending one of them
+			INST put_cmp(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Compare
+			INST put_cmn(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Compare negative
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

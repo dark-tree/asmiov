@@ -122,7 +122,7 @@ namespace asmio::arm {
 		return n << 12 | roll << 6 | (nimms & 0b0'111111);
 	}
 
-	void BufferWriter::put_inst_bitmask(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms) {
+	void BufferWriter::put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms) {
 		uint16_t sf = destination.wide() ? 1 : 0;
 		put_dword(sf << 31 | opc_from_23 << 23 | n_immr_imms << 10 | source.reg << 5 | destination.reg);
 	}
@@ -220,17 +220,30 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
 		}
 
-		put_inst_bitmask(0b01100100, destination, source, n_immr_imms);
+		put_inst_bitmask_immediate(0b01100100, destination, source, n_immr_imms);
 	}
 
-	void BufferWriter::put_inst_add_extended(Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags) {
+	void BufferWriter::put_inst_extended_register(uint32_t opcode_from_21, Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags) {
+
+		// we can only accept SP as destination IF set_flags is false
+		const bool allow_sp = !set_flags;
 
 		if (b.is(Registry::STACK)) {
 			throw std::runtime_error {"Invalid operands, stack register can't be used as the second source register."};
 		}
 
-		if (a.is(Registry::ZERO) || destination.is(Registry::ZERO)) {
-			throw std::runtime_error {"Invalid operands, zero register can't be used as destination nor first source here."};
+		if (a.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operands, zero register can't be used as the first source register."};
+		}
+
+		if (allow_sp) {
+			if (destination.is(Registry::ZERO)) {
+				throw std::runtime_error {"Invalid operands, zero register not allowed as destination register in this context."};
+			}
+		} else {
+			if (destination.is(Registry::STACK)) {
+				throw std::runtime_error {"Invalid operands, stack register not allowed as destination register in this context."};
+			}
 		}
 
 		// fix method parameter so that we are less picky in obvious cases
@@ -239,7 +252,7 @@ namespace asmio::arm {
 
 		uint16_t sf = destination.wide() ? 1 : 0;
 		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
-		put_dword(sf << 31 | 0b0'0'01011001 << 21 | fb | b.reg << 16 | uint8_t(add) << 13 | imm3 << 10 | a.reg << 5 | destination.reg);
+		put_dword(sf << 31 | opcode_from_21 << 21 | fb | b.reg << 16 | uint8_t(add) << 13 | imm3 << 10 | a.reg << 5 | destination.reg);
 	}
 
 	void BufferWriter::put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags) {

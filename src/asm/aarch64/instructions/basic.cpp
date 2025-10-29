@@ -15,11 +15,11 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_add(Registry dst, Registry a, Registry b, Sizing size, uint8_t lsl3) {
-		put_inst_add_extended(dst, a, b, size, lsl3, false);
+		put_inst_extended_register(0b0'0'01011001, dst, a, b, size, lsl3, false);
 	}
 
 	void BufferWriter::put_adds(Registry dst, Registry a, Registry b, Sizing size, uint8_t lsl3) {
-		put_inst_add_extended(dst, a, b, size, lsl3, true);
+		put_inst_extended_register(0b0'0'01011001, dst, a, b, size, lsl3, true);
 	}
 
 	void BufferWriter::put_adr(Registry destination, Label label) {
@@ -103,8 +103,8 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operand, non-qword register can't be used here"};
 		}
 
-		if (registry.is(Registry::GENERAL)) {
-
+		if (!registry.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
 		}
 
 		put_dword(0b1101011001011111000000'00000'00000 | registry.reg << 5);
@@ -172,6 +172,22 @@ namespace asmio::arm {
 
 	void BufferWriter::put_svc(uint16_t imm16) {
 		put_dword(0b11010100000 << 21 | imm16 << 5 | 0b00001);
+	}
+
+	void BufferWriter::put_sub(Registry dst, Registry a, Registry b, Sizing size, uint8_t lsl3) {
+		put_inst_extended_register(0b1'0'01011001, dst, a, b, size, lsl3, false);
+	}
+
+	void BufferWriter::put_subs(Registry dst, Registry a, Registry b, Sizing size, uint8_t lsl3) {
+		put_inst_extended_register(0b1'0'01011001, dst, a, b, size, lsl3, true);
+	}
+
+	void BufferWriter::put_cmp(Registry a, Registry b, Sizing size, uint8_t lsl3) {
+		put_subs(a.wide() ? XZR : WZR, a, b, size, lsl3);
+	}
+
+	void BufferWriter::put_cmn(Registry a, Registry b, Sizing size, uint8_t lsl3) {
+		put_adds(a.wide() ? XZR : WZR, a, b, size, lsl3);
 	}
 
 }

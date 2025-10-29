@@ -760,7 +760,111 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_sub) {
 
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 100);
+		writer.put_mov(X(2), 17);
+		writer.put_sub(X(0), X(1), X(2));
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 100 - 17);
+
+	};
+
+	TEST (writer_exec_subs) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 2);
+		writer.put_mov(X(2), 1);
+		writer.put_subs(X(0), X(2), X(1));
+
+		writer.put_b(Condition::NE, "skip_1");
+		writer.put_mov(X(0), 0);
+		writer.put_ret();
+		writer.label("skip_1");
+
+		writer.put_subs(X(0), X(1), X(1));
+
+		writer.put_b(Condition::EQ, "skip_2");
+		writer.put_mov(X(0), 0);
+		writer.put_ret();
+		writer.label("skip_2");
+
+		writer.put_mov(X(0), 22);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 22);
+
+	};
+
+	TEST (writer_exec_cmp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 22);
+		writer.put_mov(X(2), 11);
+		writer.put_cmp(X(1), X(2));
+		writer.put_b(Condition::GT, "gt");
+
+		writer.put_mov(X(0), 0);
+		writer.put_ret();
+		writer.label("gt");
+
+		writer.put_mov(X(1), 11);
+		writer.put_mov(X(2), 22);
+		writer.put_cmp(X(1), X(2));
+		writer.put_b(Condition::GT, "bad");
+
+		writer.put_mov(X(0), 33);
+		writer.put_ret();
+
+		writer.label("bad");
+		writer.put_mov(X(0), 1);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 33);
+
+	};
+
+	TEST (writer_exec_cmn) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X(1), 22);
+		writer.put_mov(X(2), -22);
+		writer.put_cmn(X(1), X(2));
+		writer.put_b(Condition::EQ, "zero");
+
+		writer.put_mov(X(0), 0);
+		writer.put_ret();
+		writer.label("zero");
+
+		writer.put_mov(X(1), 0xFFFF'FFFF'FFFF'FFF0);
+		writer.put_mov(X(2), 0xFF);
+		writer.put_cmn(X(1), X(2));
+		writer.put_b(Condition::CC, "bad");
+
+		writer.put_mov(X(0), 44);
+		writer.put_ret();
+
+		writer.label("bad");
+		writer.put_mov(X(0), 1);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 44);
+
+	};
 
 #endif
 

@@ -4,11 +4,13 @@
 
 namespace asmio {
 
-	constexpr uint8_t VOID = 0;
-	constexpr uint8_t BYTE = 1;
-	constexpr uint8_t WORD = 2;
-	constexpr uint8_t DWORD = 4;
-	constexpr uint8_t QWORD = 8;
-	constexpr uint8_t TWORD = 10;
+	enum Size : uint8_t {
+		VOID = 0,
+		BYTE = 1,
+		WORD = 2,
+		DWORD = 4,
+		QWORD = 8,
+		TWORD = 10,
+	};
 
 }

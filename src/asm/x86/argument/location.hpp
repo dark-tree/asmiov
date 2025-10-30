@@ -5,12 +5,12 @@
 #include "registry.hpp"
 #include "scaled.hpp"
 #include "out/buffer/label.hpp"
-#include "util.hpp"
+#include "../../util.hpp"
 
 namespace asmio::x86 {
 
 	/// Used to represent any valid x86 instruction argument
-	class Location {
+	class PACKED Location {
 
 		public:
 

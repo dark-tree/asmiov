@@ -46,7 +46,7 @@ namespace asmio::util {
 	}
 
 	template<typename T>
-	inline bool contains(const T& container, const auto& value) {
+	bool contains(const T& container, const auto& value) {
 		for (const auto& element : container) {
 			if (element == value) return true;
 		}
@@ -65,6 +65,39 @@ namespace asmio::util {
 		if (value > 0xFF) return 2;
 
 		return 1;
+	}
+
+	/**
+	 * Check how many bits can be truncated from a signed number before
+	 * it changed its value, assuming one bit is needed for the sign.
+	 */
+	constexpr int count_redundant_sign_bits(int64_t value) {
+		return __builtin_clzll(value >= 0 ? value : ~value) - 1;
+	}
+
+	/**
+	 * Check if given number signed number can be losslessly
+	 * encoded in the given number of bits, taking into account the sign bits.
+	 */
+	constexpr bool is_signed_encodable(int64_t value, int64_t bits) {
+		return (64 - count_redundant_sign_bits(value)) <= bits;
+	}
+
+	/**
+	 * Count the number of 'ones' form the leading (most
+	 * significant) side of a number.
+	 */
+	constexpr int count_trailing_ones(uint64_t value) {
+		return __builtin_ctz(~value); // ctz(~x) == cto(x)
+	}
+
+	template <std::integral T>
+	constexpr T bit_fill(uint64_t count) {
+		if (count >= sizeof(T) * 8) {
+			return std::numeric_limits<T>::max();
+		}
+
+		return (1 << count) - 1;
 	}
 
 	constexpr int min_sign_extended_bytes(int64_t value) {

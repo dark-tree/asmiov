@@ -6,6 +6,7 @@
 #include "error.hpp"
 #include <asm/x86/writer.hpp>
 #include <asm/x86/emitter.hpp>
+#include <out/elf/buffer.hpp>
 
 // private libs
 #include <iostream>

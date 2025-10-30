@@ -1,5 +1,5 @@
 # Asmiov
-x86-64 assembler with support for source file parsing (NASM-like Intel syntax) and JIT 
+Multi-arch assembler with support for source file parsing (NASM-like syntax) and JIT 
 code generation using the build-in C++ API with syntax closely matching the source format.
 The project consists of a `tasml` CLI assembler and a `test` unit test runner. 
 

@@ -6,20 +6,36 @@
 #include "section.hpp"
 #include "segment.hpp"
 #include "out/buffer/segmented.hpp"
+#include <sys/stat.h>
 
 #define DEFAULT_ELF_MOUNT 0x08048000
 
 namespace asmio::elf {
 
 	enum struct RunResult : uint8_t {
-		SUCCESS     = 0, // elf file was executed
-		ARGS_ERROR  = 1, // the given arguments are invalid
-		MEMFD_ERROR = 2, // memfd failed
-		SEAL_ERROR  = 3, // fcntl failed
-		FORK_ERROR  = 4, // fork failed
-		EXEC_ERROR  = 5, // fexecve failed
-		WAIT_ERROR  = 6, // waitpid failed
+		SUCCESS,     // elf file was executed
+		ARGS_ERROR,  // the given arguments are invalid
+		MEMFD_ERROR, // memfd failed
+		MMAP_ERROR,  // mmap failed
+		SEAL_ERROR,  // fcntl failed
+		STAT_ERROR,  // fstat failed
+		FORK_ERROR,  // fork failed
+		EXEC_ERROR,  // file not executable
+		WAIT_ERROR,  // waitpid failed
 	};
+
+	inline std::ostream& operator<<(std::ostream& os, RunResult c) {
+		switch(c) {
+			case RunResult::SUCCESS: return os << "SUCCESS";
+			case RunResult::ARGS_ERROR: return os << "ARGS_ERROR";
+			case RunResult::MEMFD_ERROR: return os << "MEMFD_ERROR";
+			case RunResult::SEAL_ERROR: return os << "SEAL_ERROR";
+			case RunResult::FORK_ERROR: return os << "FORK_ERROR";
+			case RunResult::EXEC_ERROR: return os << "EXEC_ERROR";
+			case RunResult::WAIT_ERROR: return os << "WAIT_ERROR";
+			default: return os << "UNKNOWN";
+		}
+	}
 
 	class ElfBuffer {
 
@@ -184,8 +200,16 @@ namespace asmio::elf {
 					return RunResult::MEMFD_ERROR;
 				}
 
+				int* flag = (int*) mmap(nullptr, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+				if (flag == nullptr) {
+					return RunResult::MMAP_ERROR;
+				}
+
 				// copy buffer into memfd
 				write(memfd, buffer.data(), size());
+
+				// we use this to check if the child really run or did execve just fail
+				*flag = 0;
 
 				// add seals to memfd
 				if (fcntl(memfd, F_ADD_SEALS, F_SEAL_WRITE | F_SEAL_GROW | F_SEAL_SHRINK | F_SEAL_SEAL) != 0) {
@@ -200,13 +224,22 @@ namespace asmio::elf {
 				// replace child with memfd elf file
 				if (pid == 0) {
 					fexecve(memfd, (char* const*) argv, (char* const*) envp);
-					return RunResult::EXEC_ERROR;
+
+					// if fexecve fails we need to kill ourselves
+					*flag = 1;
+					exit(1);
 				}
 
 				// wait for child and get status code
 				if (waitpid(pid, status, 0) == -1) {
 					return RunResult::WAIT_ERROR;
 				}
+
+				if (*flag) {
+					return RunResult::EXEC_ERROR;
+				}
+
+				munmap(flag, sizeof(int));
 
 				// obtain return code from child status
 				*status = WEXITSTATUS(*status);

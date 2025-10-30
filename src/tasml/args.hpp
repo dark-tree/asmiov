@@ -57,13 +57,13 @@ namespace tasml {
 							exit(EXIT_ERROR);
 						}
 
-						if (parts.size() < argc) {
+						if (static_cast<int>(parts.size()) < argc) {
 							printf("Invalid syntax, too few arguments given to '%s'!\n", key.c_str());
 							printf("Try '--help' for more info!\n");
 							exit(EXIT_ERROR);
 						}
 
-						if (!finalize && parts.size() > argc) {
+						if (!finalize && static_cast<int>(parts.size()) > argc) {
 							printf("Invalid syntax, too many arguments given to '%s'!\n", key.c_str());
 							printf("Try '--help' for more info!\n");
 							exit(EXIT_ERROR);
@@ -114,7 +114,7 @@ namespace tasml {
 						std::string tmp {"-0"};
 						link(false);
 
-						for (int j = 1; j < part.size(); j ++) {
+						for (int j = 1; j < static_cast<int>(part.size()); j ++) {
 							tmp[1] = part[j];
 							last = store(tmp);
 						}
@@ -149,7 +149,7 @@ namespace tasml {
 			}
 
 			std::vector<std::string>& tail(int length) {
-				if (trailing.size() != length && length != -1) {
+				if (static_cast<int>(trailing.size()) != length && length != -1) {
 					printf("Invalid syntax, expected %d %s!\n", length, (length == 1) ? "file" : "files");
 					printf("Try '--help' for more info!\n");
 					exit(EXIT_ERROR);

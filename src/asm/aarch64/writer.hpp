@@ -1,0 +1,165 @@
+#pragma once
+#include <out/buffer/writer.hpp>
+
+#include "argument/sizing.hpp"
+#include "argument/registry.hpp"
+#include "argument/shift.hpp"
+#include "argument/condition.hpp"
+
+namespace asmio::arm {
+
+	class BufferWriter : public BasicBufferWriter {
+
+		private:
+
+			enum MemoryOperation : uint8_t {
+				POST = 0b01,
+				PRE = 0b11,
+				OFFSET = 0b00,
+			};
+
+			enum MemoryDirection : uint8_t {
+				LOAD = 0b11,
+				STORE = 0b00,
+			};
+
+			/**
+			 * Try to compute the ARM immediate bitmask based on a target value, this is a multi-step process
+			 * that tries to guess the correct coefficients, if that fails it returns a std::nullopt.
+			 *
+			 * @param value The value to encode
+			 * @param wide If the bitmask is expected to be used in a "wide" (64 bit) context
+			 *
+			 * @return Combined 'N:immr:imms' bit pattern, or nullopt.
+			 */
+			std::optional<uint16_t> compute_immediate_bitmask(uint64_t value, bool wide);
+
+			/**
+			 * Try to compute the ARM immediate bitmask based on a target value, this is a multi-step process
+			 * that tries to guess the correct coefficients, if that fails it returns a std::nullopt.
+			 *
+			 * @param value The bit pattern to try encoding
+			 * @param size Size of one repeating element within the pattern
+			 *
+			 * @return Combined 'N:immr:imms' bit pattern, or nullopt.
+			 */
+			std::optional<uint16_t> compute_element_bitmask(uint64_t value, size_t size);
+
+			/**
+			 * Constructs the N:immr:imms value for bitmask immediate instructions,
+			 * the correctness of provided arguments IS NOT CHECKED.
+			 *
+			 * @param size size of one element in bits (2,4,8,16,32,64)
+			 * @param ones number of ones in the element (1 <= ones <= size)
+			 * @param roll right-roll of the elements within one pattern element (roll < size)
+			 *
+			 * @return Combined 'N:immr:imms' bit pattern
+			 */
+			uint16_t pack_bitmask(uint32_t size, uint32_t ones, uint32_t roll);
+
+			/**
+			 * Writes a standard 'bitmask immediate' instruction into the buffer,
+			 * with 'sf' derived from destination size.
+			 */
+			void put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms);
+
+			/**
+			 * Writes the standard 'shifted register' instruction into the buffer,
+			 * with 'sf' derived from destination size.
+			 */
+			void put_inst_shifted_register(uint32_t opc_from_24, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift);
+
+			/**
+			 * Writes the standard 'extended register' instruction into the buffer,
+			 * with 'sf' derived from destination size. This command accepts SP as destination only when set_flags is false.
+			 */
+			void put_inst_extended_register(uint32_t opcode_from_21, Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags);
+
+		private:
+
+			/// Helper function used by some "link_*" types
+			static void encode_shifted_aligned_link(SegmentedBuffer* buffer, const Linkage& linkage, int bits, int left_shift);
+
+			static void link_26_0_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
+			static void link_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
+			static void link_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
+
+		private:
+
+			static uint8_t pack_shift(uint8_t shift, bool wide);
+			static uint64_t get_size(Size size);
+			void assert_register_triplet(Registry a, Registry b, Registry c);
+
+			/// Encode generic, 16 bit, immediate move, used by MOVN, MOVK, MOVZ
+			void put_inst_mov(Registry registry, uint16_t opc, uint16_t imm, uint16_t shift);
+
+			/// Encode ORR instruction, using the given N:R:S fields
+			void put_inst_orr_bitmask(Registry destination, Registry source, uint16_t n_immr_imms);
+
+			/// Encode "ADC/ADCS (extended register)" operation
+			void put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags);
+
+			/// Encode "CLS/CLZ" operation
+			void put_inst_count(Registry destination, Registry source, uint8_t imm1);
+
+			/// Encode "ILDR/LDRI/LDR" as well as the "ISTR/STRI/STR" operations
+			void put_inst_ldst(Registry dst, Registry base, int64_t offset, Sizing sizing, MemoryOperation op, MemoryDirection dir);
+
+		public:
+
+			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
+			void put_inst_orr(Registry destination, Registry source, uint64_t pattern);
+			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12 = false, bool set_flags = false);
+			void put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags = false);
+
+		public:
+
+			BufferWriter(SegmentedBuffer& buffer);
+
+			// basic
+			INST put_adc(Registry dst, Registry a, Registry b);            /// Add with carry
+			INST put_adcs(Registry dst, Registry a, Registry b);           /// Add with carry and set flags
+			INST put_add(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Add two registers, potentially extending one of them
+			INST put_adds(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Add two registers, set the flags, potentially extending one of them
+			INST put_adr(Registry destination, Label label);               /// Form a PC-relative address
+			INST put_adrp(Registry destination, Label label);              /// Form a PC-page-relative address
+			INST put_movz(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, zero other bits
+			INST put_movk(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, keep other bits
+			INST put_movn(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, zero other bits, then NOT the register
+			INST put_mov(Registry dst, uint64_t imm);                      /// Move immediate into register
+			INST put_mov(Registry dst, Registry src);                      /// Move value between registers
+			INST put_nop();                                                /// No operation
+			INST put_ret();                                                /// Return from procedure using link register
+			INST put_ret(Registry src);                                    /// Return from procedure
+			INST put_rbit(Registry dst, Registry src);                     /// Reverse bits
+			INST put_clz(Registry dst, Registry src);                      /// Count leading zeros
+			INST put_cls(Registry dst, Registry src);                      /// Count leading signs (ones)
+			INST put_ldr(Registry registry, Label label);                  /// Load value from memory
+			INST put_ildr(Registry dst, Registry base, int64_t offset, Sizing size); /// Increment base and load value from memory
+			INST put_ldri(Registry dst, Registry base, int64_t offset, Sizing size); /// Load value from memory and increment base
+			INST put_ldr(Registry registry, Registry base, uint64_t offset, Sizing size); /// Load value from memory
+			INST put_istr(Registry dst, Registry base, int64_t offset, Sizing size); /// Increment base and store value to memory
+			INST put_stri(Registry dst, Registry base, int64_t offset, Sizing size); /// Store value to memory and increment base
+			INST put_str(Registry registry, Registry base, uint64_t offset, Sizing size); /// Store value to memory
+			INST put_and(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise AND between two register, shifting the second one
+			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise XOR between two register, shifting the second one
+			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); /// Bitwise OR between two register, shifting the second one
+			INST put_svc(uint16_t imm16);                                  /// Supervisor call
+			INST put_sub(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Add two registers, potentially extending one of them
+			INST put_subs(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Add two registers, set the flags, potentially extending one of them
+			INST put_cmp(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Compare
+			INST put_cmn(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Compare negative
+
+			// branch
+			INST put_b(Label label);                                       /// Branch
+			INST put_b(Condition condition, Label label);                  /// Branch conditionally
+			INST put_bl(Label label);                                      /// Branch with link
+			INST put_blr(Registry ptr);                                    /// Branch with link to register
+			INST put_br(Registry ptr);                                     /// Branch to register
+			INST put_cbnz(Registry src, Label label);                      /// Branch if register is not zero
+			INST put_cbz(Registry src, Label label);                       /// Branch if register is zero
+
+
+	};
+
+}

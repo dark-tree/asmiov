@@ -3,15 +3,11 @@
 #include "external.hpp"
 #include "argument/location.hpp"
 #include "out/buffer/executable.hpp"
-#include "tasml/error.hpp"
-#include "out/elf/buffer.hpp"
 #include "out/buffer/segmented.hpp"
-#include "util.hpp"
+#include "../util.hpp"
 #include "out/buffer/writer.hpp"
 
 namespace asmio::x86 {
-
-	using namespace elf;
 
 	enum LinkType {
 		RELATIVE,

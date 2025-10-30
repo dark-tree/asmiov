@@ -8,11 +8,7 @@
 #define RETURN_TRANSIENT(T, format) {volatile T tmp; asm("" : format (tmp)); return tmp;}
 
 // https://stackoverflow.com/a/66249936
-#if defined(__x86_64__) || defined(_M_X64)
-#	define CALL_INTO_BUFFER(offset, type, format) reinterpret_cast<type (*)()>(buffer + offset)(); RETURN_TRANSIENT(type, format)
-#else
-#	error "Unsupported architecture!"
-#endif
+#define CALL_INTO_BUFFER(offset, type, format) reinterpret_cast<type (*)()>(buffer + offset)(); RETURN_TRANSIENT(type, format)
 
 namespace asmio {
 

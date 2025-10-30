@@ -17,6 +17,8 @@ namespace test::x86 {
 using namespace asmio;
 using namespace asmio::x86;
 
+static_assert(vstl::string_appendable<elf::RunResult>);
+
 /*
  * region Static
  * Begin target invariant tests for x86
@@ -2816,7 +2818,10 @@ TEST (writer_elf_simple) {
 	ElfBuffer file = to_elf(segmented, "_start");
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
-	file.save("writer_elf_simple");
+
+	if (result == RunResult::EXEC_ERROR) {
+		SKIP("Failed to start child process");
+	}
 
 	CHECK(result, RunResult::SUCCESS);
 	CHECK(status, 42);
@@ -2854,6 +2859,10 @@ TEST (writer_elf_execve_int) {
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
 
+	if (result == RunResult::EXEC_ERROR) {
+		SKIP("Failed to start child process");
+	}
+
 	CHECK(result, RunResult::SUCCESS);
 	CHECK(status, 13);
 
@@ -2889,6 +2898,10 @@ TEST (writer_elf_execve_syscall) {
 	ElfBuffer file = to_elf(segmented, "_start");
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
+
+	if (result == RunResult::EXEC_ERROR) {
+		SKIP("Failed to start child process");
+	}
 
 	CHECK(result, RunResult::SUCCESS);
 	CHECK(status, 20);

@@ -60,30 +60,18 @@ namespace asmio::arm {
 			/**
 			 * Writes a standard 'bitmask immediate' instruction into the buffer,
 			 * with 'sf' derived from destination size.
-			 *
-			 * @param opc_from_23 Opcode (bit 23)
-			 * @param destination Destination register (bit 0)
-			 * @param source Source register (bit 5)
-			 * @param n_immr_imms Packed immediate value, obtained from compute_immediate_bitmask() (bit 10)
 			 */
 			void put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms);
 
 			/**
 			 * Writes the standard 'shifted register' instruction into the buffer,
 			 * with 'sf' derived from destination size.
-			 *
-			 * @param opc_from_24 Opcode (bit 24)
-			 * @param dst Destination register (bit 0)
-			 * @param n Rn source register (bit 5)
-			 * @param m Rm source register (bit 16)
-			 * @param imm6 Number of bits to shift the Rm register (bit 10)
-			 * @param shift Shift type (bit 22)
 			 */
 			void put_inst_shifted_register(uint32_t opc_from_24, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift);
 
 			/**
 			 * Writes the standard 'extended register' instruction into the buffer,
-			 * with 'sf' derived from destination size. This command accept SP as destination only when set_flags is false.
+			 * with 'sf' derived from destination size. This command accepts SP as destination only when set_flags is false.
 			 */
 			void put_inst_extended_register(uint32_t opcode_from_21, Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags);
 
@@ -119,54 +107,10 @@ namespace asmio::arm {
 
 		public:
 
-			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0) {
-				assert_register_triplet(a, b, destination);
-
-				// if any one of them is a stack register abort
-				if (!a.is(Registry::GENERAL) || !b.is(Registry::GENERAL) || !destination.is(Registry::GENERAL)) {
-					throw std::runtime_error {"Invalid operands, expected general purpose registers."};
-				}
-
-				uint16_t sf = destination.wide() ? 1 : 0;
-				put_dword(sf << 31 | 0b0101010 << 24 | uint8_t(shift) << 22 | a.reg << 16 | imm6 << 10 | b.reg << 5 | destination.reg);
-			}
-
-			void put_inst_orr(Registry destination, Registry source, uint64_t pattern) {
-				const auto bitmask = compute_immediate_bitmask(pattern, destination.wide());
-
-				if (!bitmask.has_value()) {
-					throw std::runtime_error {"Invalid operands, the given constant is not encodable."};
-				}
-
-				put_inst_orr_bitmask(destination, source, bitmask.value());
-			}
-
-			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12 = false, bool set_flags = false) {
-
-				if (source.is(Registry::ZERO) || destination.is(Registry::ZERO)) {
-					throw std::runtime_error {"Invalid operands, zero register can't be used here."};
-				}
-
-				if (destination.wide() != source.wide()) {
-					throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
-				}
-
-				uint16_t sf = destination.wide() ? 1 : 0;
-				uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
-				put_dword(sf << 31 | 0b0'0'10001 << 24 | fb | (lsl_12 ? 0b01 : 0x00) << 22 | imm12 << 10 | source.reg << 5 | destination.reg);
-			}
-
-			void put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags = false) {
-				assert_register_triplet(a, b, destination);
-
-				if (shift == ShiftType::ROR) {
-					throw std::runtime_error {"Invalid shift type, ROR shift type is not allowed here."};
-				}
-
-				uint32_t sf = destination.wide() ? 1 : 0;
-				uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
-				put_dword(sf << 31 | 0b0'0'01011 << 24 | fb | uint8_t(shift) << 22 | b.reg << 16 | imm6 << 10 | a.reg << 5 | destination.reg);
-			}
+			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
+			void put_inst_orr(Registry destination, Registry source, uint64_t pattern);
+			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12 = false, bool set_flags = false);
+			void put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags = false);
 
 		public:
 

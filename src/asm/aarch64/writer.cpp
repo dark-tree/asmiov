@@ -331,4 +331,53 @@ namespace asmio::arm {
 		put_dword(size << 30 | 0b11100 << 25 | use_imm12 | (uint64_t(dir) & sign) << 22 | (mask & offset) << imm_lsl | uint64_t(op) << 10 | base.reg << 5 | dst.reg);
 	}
 
+	void BufferWriter::put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
+		assert_register_triplet(a, b, destination);
+
+		// if any one of them is a stack register abort
+		if (!a.is(Registry::GENERAL) || !b.is(Registry::GENERAL) || !destination.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers."};
+		}
+
+		uint16_t sf = destination.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b0101010 << 24 | uint8_t(shift) << 22 | a.reg << 16 | imm6 << 10 | b.reg << 5 | destination.reg);
+	}
+
+	void BufferWriter::put_inst_orr(Registry destination, Registry source, uint64_t pattern) {
+		const auto bitmask = compute_immediate_bitmask(pattern, destination.wide());
+
+		if (!bitmask.has_value()) {
+			throw std::runtime_error {"Invalid operands, the given constant is not encodable."};
+		}
+
+		put_inst_orr_bitmask(destination, source, bitmask.value());
+	}
+
+	void BufferWriter::put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12, bool set_flags) {
+
+		if (source.is(Registry::ZERO) || destination.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operands, zero register can't be used here."};
+		}
+
+		if (destination.wide() != source.wide()) {
+			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
+		}
+
+		uint16_t sf = destination.wide() ? 1 : 0;
+		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
+		put_dword(sf << 31 | 0b0'0'10001 << 24 | fb | (lsl_12 ? 0b01 : 0x00) << 22 | imm12 << 10 | source.reg << 5 | destination.reg);
+	}
+
+	void BufferWriter::put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags) {
+		assert_register_triplet(a, b, destination);
+
+		if (shift == ShiftType::ROR) {
+			throw std::runtime_error {"Invalid shift type, ROR shift type is not allowed here."};
+		}
+
+		uint32_t sf = destination.wide() ? 1 : 0;
+		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
+		put_dword(sf << 31 | 0b0'0'01011 << 24 | fb | uint8_t(shift) << 22 | b.reg << 16 | imm6 << 10 | a.reg << 5 | destination.reg);
+	}
+
 }

@@ -12,23 +12,20 @@ namespace asmio::arm {
 
 			/// Register properties
 			enum Flag : uint8_t {
-				NONE        = 0b0000'0000,
-				ZERO        = 0b0000'0001, // this is the special 'zero' register
-				STACK       = 0b0000'0010, // this is SP
-				GENERAL     = 0b0000'0100, // this is any general-purpose register
+				NONE        = 0b0000,
+				ZERO        = 0b0001, // this is the special 'zero' register
+				STACK       = 0b0010, // this is SP
+				GENERAL     = 0b0100, // this is any general-purpose register
 			};
 
-			const uint8_t size; // size in bytes
-			const uint8_t reg;  // registry ARM code
-			const uint8_t flag; // additional flags
+			const uint8_t size : 4; // size in bytes
+			const uint8_t flag : 4; // additional flags
+			const uint8_t reg;      // registry ARM code
 
 			constexpr Registry(uint8_t size, uint8_t reg, uint8_t flag)
-			: size(size), reg(reg), flag(flag) {}
+			: size(size), flag(flag), reg(reg) {}
 
 		private:
-
-			// padding
-			const uint8_t unused = 0;
 
 		public:
 

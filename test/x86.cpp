@@ -5,13 +5,13 @@
 
 #include "vstl.hpp"
 #include "asm/x86/writer.hpp"
-#include "asm/x86/emitter.hpp"
 #include "out/elf/buffer.hpp"
 #include "tasml/tokenizer.hpp"
 #include "tasml/stream.hpp"
 
 // private libs
 #include <fstream>
+#include <asm/x86/module.hpp>
 
 namespace test::x86 {
 using namespace asmio;
@@ -2960,7 +2960,6 @@ TEST (tasml_tokenize) {
 	)";
 
 	SegmentedBuffer segmented;
-	BufferWriter writer {segmented};
 	tasml::ErrorHandler reporter {"<string>", true};
 
 	std::vector<tasml::Token> tokens = tasml::tokenize(reporter, code);
@@ -2971,7 +2970,11 @@ TEST (tasml_tokenize) {
 	}
 
 	tasml::TokenStream stream {tokens};
-	parseBlock(reporter, writer, stream);
+	LanguageModule module;
+
+	while (!stream.empty()) {
+		module.parse(reporter, stream, segmented);
+	}
 
 	if (!reporter.ok()) {
 		reporter.dump();

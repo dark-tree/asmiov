@@ -5,12 +5,12 @@
 #include "tokenizer.hpp"
 #include "error.hpp"
 #include <asm/x86/writer.hpp>
-#include <asm/x86/emitter.hpp>
 #include <out/elf/buffer.hpp>
 
 // private libs
 #include <iostream>
 #include <fstream>
+#include <asm/x86/module.hpp>
 
 #define EXIT_TOKEN_ERROR 2
 #define EXIT_PARSE_ERROR 3
@@ -103,10 +103,15 @@ int main(int argc, char** argv) {
 		tasml::TokenStream stream {tokens}; assembly.clear();
 		handler.assert(EXIT_TOKEN_ERROR);
 
+		asmio::x86::LanguageModule module;
+
 		// parse and assemble
 		asmio::SegmentedBuffer buffer;
-		asmio::x86::BufferWriter writer {buffer};
-		asmio::x86::parseBlock(handler, writer, stream);
+
+		while (!stream.empty()) {
+			module.parse(handler, stream, buffer);
+		}
+
 		handler.assert(EXIT_PARSE_ERROR);
 
 		// assemble buffer and create ELF file

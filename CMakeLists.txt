@@ -5,6 +5,8 @@ include(FetchContent)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(Python3 COMPONENTS Interpreter)
+
 # Use the mold linker automatically for GCC if available,
 # as it is faster, more modern, and produces better errors.
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -27,14 +29,35 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(vstl)
 
+set(ASMIO_WRITERS
+		src/asm/x86/writer.hpp
+)
+
+set(ASMIO_BRIDGES "${ASMIO_WRITERS}")
+
+list(TRANSFORM ASMIO_BRIDGES REPLACE "src/asm/(.*)/writer.hpp" "${PROJECT_BINARY_DIR}/src/generated/\\1.hpp")
+list(TRANSFORM ASMIO_WRITERS PREPEND "${PROJECT_SOURCE_DIR}/")
+
+add_custom_command(
+		CODEGEN
+		OUTPUT ${ASMIO_BRIDGES}
+		COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/util/ingen.py ${ASMIO_WRITERS}
+		DEPENDS ${ASMIO_WRITERS}
+		DEPENDS ${PROJECT_SOURCE_DIR}/util/ingen.py
+)
+
 set(ASMIO_SOURCES
+		${ASMIO_BRIDGES}
+
 		src/out/buffer/segmented.cpp
 		src/out/buffer/executable.cpp
 		src/out/buffer/writer.cpp
 		src/out/buffer/label.cpp
 
+		src/asm/module.cpp
+
 		src/asm/x86/writer.cpp
-		src/asm/x86/emitter.cpp
+		src/asm/x86/module.cpp
 		src/asm/x86/argument/location.cpp
 		src/asm/x86/instructions/cpu.cpp
 		src/asm/x86/instructions/fpu.cpp
@@ -47,7 +70,7 @@ set(ASMIO_SOURCES
 		src/tasml/token.cpp
 )
 
-include_directories(src/ . ${vstl_SOURCE_DIR})
+include_directories(src/ . ${vstl_SOURCE_DIR} "${PROJECT_BINARY_DIR}/src")
 add_library(asmiov ${ASMIO_SOURCES})
 
 add_executable(tasml src/tasml/tasml.cpp)

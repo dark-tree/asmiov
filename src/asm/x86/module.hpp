@@ -1,5 +1,6 @@
 #pragma once
 #include <asm/module.hpp>
+#include <asm/util.hpp>
 
 namespace asmio::x86 {
 
@@ -10,5 +11,7 @@ namespace asmio::x86 {
 		virtual void parse(tasml::ErrorHandler& reporter, tasml::TokenStream& stream, SegmentedBuffer& buffer) const;
 
 	};
+
+	REGISTER_MODULE(LanguageModule);
 
 }

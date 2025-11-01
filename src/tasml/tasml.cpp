@@ -12,6 +12,8 @@
 #include <fstream>
 #include <asm/x86/module.hpp>
 
+#include "top.hpp"
+
 #define EXIT_TOKEN_ERROR 2
 #define EXIT_PARSE_ERROR 3
 #define EXIT_LINKE_ERROR 4
@@ -107,10 +109,7 @@ int main(int argc, char** argv) {
 
 		// parse and assemble
 		asmio::SegmentedBuffer buffer;
-
-		while (!stream.empty()) {
-			module.parse(handler, stream, buffer);
-		}
+		parse_top_scope(handler, stream, buffer);
 
 		handler.assert(EXIT_PARSE_ERROR);
 

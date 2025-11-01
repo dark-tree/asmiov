@@ -67,6 +67,14 @@ namespace asmio {
 
 	}
 
+	const char* Module::name() const {
+		return base_module;
+	}
+
+	FeatureSet Module::features() const {
+		return {};
+	}
+
 	void Module::parse(ErrorHandler& reporter, TokenStream& stream, SegmentedBuffer& buffer) const {
 
 		BasicBufferWriter writer {buffer};

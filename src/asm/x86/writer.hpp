@@ -2,7 +2,6 @@
 
 #include "external.hpp"
 #include "argument/location.hpp"
-#include "out/buffer/executable.hpp"
 #include "out/buffer/segmented.hpp"
 #include "../util.hpp"
 #include "out/buffer/writer.hpp"

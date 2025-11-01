@@ -12,6 +12,7 @@
 // private libs
 #include <fstream>
 #include <asm/x86/module.hpp>
+#include <out/buffer/executable.hpp>
 
 namespace test::x86 {
 using namespace asmio;

@@ -1,28 +1,70 @@
 #include "top.hpp"
 
 #include <asm/module.hpp>
+#include <out/elf/buffer.hpp>
 
-void tasml::parse_top_scope(ErrorHandler& reporter, TokenStream& stream, asmio::SegmentedBuffer& buffer) {
+#include "tokenizer.hpp"
 
-	using namespace asmio;
+namespace tasml {
 
-	Module* module = modules.at(Module::base_module).get();
+	void assemble(ErrorHandler& reporter, TokenStream& stream, asmio::SegmentedBuffer& buffer) {
 
-	while (!stream.empty()) {
+		using namespace asmio;
 
-		if (stream.accept("language") || stream.accept("lang")) {
-			const Token& name = stream.expect(Token::NAME);
+		Module* module = modules.at(Module::base_module).get();
 
-			auto it = modules.find(name.raw);
+		while (!stream.empty()) {
 
-			if (it == modules.end()) {
-				throw std::runtime_error {"No such module '" + name.raw + "' defined!"};
+			if (stream.accept("language") || stream.accept("lang")) {
+				const Token& name = stream.expect(Token::NAME);
+
+				auto it = modules.find(name.raw);
+
+				if (it == modules.end()) {
+					throw std::runtime_error {"No such module '" + name.raw + "' defined!"};
+				}
+
+				module = it->second.get();
 			}
 
-			module = it->second.get();
+
+			TokenStream statement = stream.statement();
+
+			// shouldn't happen
+			if (statement.empty()) {
+				continue;
+			}
+
+			try {
+				module->parse(reporter, statement, buffer);
+			} catch (std::runtime_error& error) {
+				const Token& first = statement.first();
+				reporter.error(first.line, first.column, std::string(error.what()) + ", after " + first.quoted());
+			}
+
 		}
 
-		module->parse(reporter, stream, buffer);
+	}
+
+	asmio::SegmentedBuffer assemble(ErrorHandler& reporter, const std::string& source) {
+
+		// tokenize input
+		std::vector<Token> tokens = tokenize(reporter, source);
+		TokenStream stream {tokens};
+
+		if (!reporter.ok()) {
+			throw std::runtime_error {"Failed to tokenize input"};
+		}
+
+		// parse and assemble
+		asmio::SegmentedBuffer buffer;
+		assemble(reporter, stream, buffer);
+
+		if (!reporter.ok()) {
+			throw std::runtime_error {"Failed to parse input"};
+		}
+
+		return buffer;
 
 	}
 

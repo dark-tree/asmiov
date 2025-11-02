@@ -1,5 +1,7 @@
 #include "module.hpp"
 
+#include <tasml/error.hpp>
+
 #include "src/tasml/stream.hpp"
 #include "writer.hpp"
 
@@ -7,7 +9,7 @@ namespace asmio::x86 {
 
 	using namespace tasml;
 
-	static int getTypeByToken(const Token* token) {
+	static int token_to_sizing(const Token* token) {
 		if (token == nullptr || token->type != Token::NAME) return -1;
 		std::string raw = util::to_lower(token->raw);
 
@@ -32,7 +34,7 @@ namespace asmio::x86 {
 		return it->second;
 	}
 
-	static Registry getRegistryByToken(const Token* token) {
+	static Registry token_to_register(const Token* token) {
 		if (token == nullptr || token->type != Token::NAME) return UNSET;
 		std::string raw = util::to_lower(token->raw);
 
@@ -109,7 +111,7 @@ namespace asmio::x86 {
 		throw std::runtime_error {"Unknown registry " + token->quoted()};
 	}
 
-	static Location parseExpression(TokenStream stream) {
+	static Location parse_expression(TokenStream stream) {
 		const Token* base  = nullptr;
 		const Token* index = nullptr;
 		const Token* scale = nullptr;
@@ -239,39 +241,33 @@ namespace asmio::x86 {
 		const char* name = (label == nullptr) ? nullptr : label->raw.c_str() + 1 /* skip the '@' */;
 		const uint32_t scale_value = (scale == nullptr) ? 0 : scale->as_int();
 
-		return getRegistryByToken(base) + getRegistryByToken(index) * scale_value + offset + name;
+		return token_to_register(base) + token_to_register(index) * scale_value + offset + name;
 	}
 
-	static Location parseInner(TokenStream stream) {
+	static Location parse_inner(TokenStream stream) {
 		if (stream.accept("[")) {
-			return parseExpression(stream.block("[]", "expression")).ref();
+			return parse_expression(stream.block("[]", "expression")).ref();
 		}
 
-		return parseExpression(stream);
+		return parse_expression(stream);
 	}
 
-	static Location parseLocation(TokenStream stream) {
-		//try {
-			const Token* name = &stream.peek();
-			const int size = getTypeByToken(name);
+	static Location parse_location(TokenStream stream) {
+		const Token* name = &stream.peek();
+		const int size = token_to_sizing(name);
 
-			if (size != -1) {
-				stream.next(); // consume 'name' token if it was a cast
-				return parseInner(stream).cast(size);
-			}
+		if (size != -1) {
+			stream.next(); // consume 'name' token if it was a cast
+			return parse_inner(stream).cast(size);
+		}
 
-			return parseInner(stream);
-		//} catch (std::runtime_error& error) {
-		//	//reporter.error(stream.first().line, -1, error.what());
-		//	write = false;
-		//	return {0};
-		//}
+		return parse_inner(stream);
 	}
 
 	template <typename T>
-	Location parseArgument(TokenStream& stream) {
+	Location parse_argument(TokenStream stream) {
 		static_assert(std::is_same_v<T, Location>, "x86 can only accept Location classes as arguments");
-		return parseLocation(stream);
+		return parse_location(stream);
 	}
 
 #	include "generated/x86.hpp"
@@ -288,16 +284,14 @@ namespace asmio::x86 {
 		return {};
 	}
 
-	void LanguageModule::parse(ErrorHandler& reporter, TokenStream& stream, SegmentedBuffer& buffer) const {
-
+	void LanguageModule::parse(ErrorHandler& reporter, TokenStream stream, SegmentedBuffer& buffer) const {
 		BufferWriter writer {buffer};
 
-		if (tryParseInstruction(stream, writer)) {
+		if (try_parse_instruction(stream, writer)) {
 			return;
 		}
 
 		Module::parse(reporter, stream, buffer);
-
 	}
 
 }

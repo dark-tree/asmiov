@@ -1,16 +1,12 @@
 #include "external.hpp"
 #include "util.hpp"
 #include "args.hpp"
-#include "stream.hpp"
-#include "tokenizer.hpp"
 #include "error.hpp"
-#include <asm/x86/writer.hpp>
 #include <out/elf/buffer.hpp>
 
 // private libs
 #include <iostream>
 #include <fstream>
-#include <asm/x86/module.hpp>
 
 #include "top.hpp"
 
@@ -100,33 +96,26 @@ int main(int argc, char** argv) {
 
 	try {
 
-		// tokenize input
-		std::vector<tasml::Token> tokens = tokenize(handler, assembly);
-		tasml::TokenStream stream {tokens}; assembly.clear();
-		handler.assert(EXIT_TOKEN_ERROR);
+		// assemble, on failer this will throw
+		asmio::SegmentedBuffer buffer = tasml::assemble(handler, assembly);
 
-		asmio::x86::LanguageModule module;
-
-		// parse and assemble
-		asmio::SegmentedBuffer buffer;
-		parse_top_scope(handler, stream, buffer);
-
-		handler.assert(EXIT_PARSE_ERROR);
-
-		// assemble buffer and create ELF file
+		// link and create the final ELF file
 		asmio::elf::ElfBuffer elf = asmio::elf::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
 			handler.link(link.target, what);
 		});
-		handler.assert(EXIT_LINKE_ERROR);
+
+		if (!handler.ok()) {
+			throw std::runtime_error {"Failed to link executable"};
+		}
 
 		// write to output file
 		if (!elf.save(output.c_str())) {
-			printf("Failed to save output!\n");
+			printf("Failed to save output\n");
 			return EXIT_ERROR;
 		}
 
 	} catch (std::runtime_error& error) {
-		printf("Unhandled Error: %s\n", error.what());
+		printf("%s, assembly aborted!\n", error.what());
 		return EXIT_ERROR;
 	}
 

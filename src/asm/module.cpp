@@ -2,6 +2,7 @@
 
 #include <out/buffer/sizes.hpp>
 #include <out/buffer/writer.hpp>
+#include <tasml/error.hpp>
 #include <tasml/stream.hpp>
 
 namespace asmio {
@@ -75,7 +76,7 @@ namespace asmio {
 		return {};
 	}
 
-	void Module::parse(ErrorHandler& reporter, TokenStream& stream, SegmentedBuffer& buffer) const {
+	void Module::parse(ErrorHandler& reporter, TokenStream stream, SegmentedBuffer& buffer) const {
 
 		BasicBufferWriter writer {buffer};
 
@@ -100,7 +101,7 @@ namespace asmio {
 				if (c == 'r') flags |= BufferSegment::R;
 				else if (c == 'w') flags |= BufferSegment::W;
 				else if (c == 'x') flags |= BufferSegment::X;
-				else throw std::runtime_error {"Unknown section flag '" + std::to_string(c) + "' in section statment"};
+				else throw std::runtime_error {"Unknown section flag '" + std::to_string(c) + "' in section statement"};
 			}
 
 			stream.terminal();
@@ -117,6 +118,17 @@ namespace asmio {
 		if (stream.accept("d32") || stream.accept("dword")) return encode_args(stream, writer, DWORD);
 		if (stream.accept("d64") || stream.accept("qword")) return encode_args(stream, writer, QWORD);
 		if (stream.accept("d80") || stream.accept("tword")) return encode_args(stream, writer, TWORD);
+
+		/*
+		 * Unexpected token
+		 */
+
+		if (stream.empty()) {
+			return;
+		}
+
+		const Token& token = stream.next();
+		reporter.error(token.line, token.column, "Unknown statement " + token.quoted());
 
 	}
 

@@ -6,8 +6,6 @@
 #include "vstl.hpp"
 #include "asm/x86/writer.hpp"
 #include "out/elf/buffer.hpp"
-#include "tasml/tokenizer.hpp"
-#include "tasml/stream.hpp"
 
 // private libs
 #include <fstream>
@@ -2935,56 +2933,6 @@ TEST (writer_segmented_data) {
 	};
 
 }
-
-TEST (tasml_tokenize) {
-
-	std::string code = R"(
-		text:
-			byte "Hello!", 0
-
-		strlen:
-			mov rcx, /* inline comments! */ rax
-			dec rax
-
-			l_strlen_next:
-				inc rax
-				cmp byte [rax], 0
-			jne @l_strlen_next
-
-			sub rax, rcx
-			ret
-
-		_start:
-			lea rax, @text
-			call @strlen
-			nop; nop; ret // multi-statements
-	)";
-
-	SegmentedBuffer segmented;
-	tasml::ErrorHandler reporter {"<string>", true};
-
-	std::vector<tasml::Token> tokens = tasml::tokenize(reporter, code);
-
-	if (!reporter.ok()) {
-		reporter.dump();
-		FAIL("Tokenizer error!");
-	}
-
-	tasml::TokenStream stream {tokens};
-	LanguageModule module;
-
-	while (!stream.empty()) {
-		module.parse(reporter, stream, segmented);
-	}
-
-	if (!reporter.ok()) {
-		reporter.dump();
-		FAIL("Parser error!");
-	}
-
-	CHECK(to_executable(segmented).call_i32("_start"), 6);
-
-};
 
 #endif
 ;}

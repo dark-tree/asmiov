@@ -8,7 +8,7 @@ namespace asmio::x86 {
 
 		const char* name() const override;
 		FeatureSet features() const override;
-		virtual void parse(tasml::ErrorHandler& reporter, tasml::TokenStream& stream, SegmentedBuffer& buffer) const;
+		virtual void parse(tasml::ErrorHandler& reporter, tasml::TokenStream stream, SegmentedBuffer& buffer) const;
 
 	};
 

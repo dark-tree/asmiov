@@ -77,7 +77,7 @@ add_library(asmiov ${ASMIO_SOURCES})
 add_executable(tasml src/tasml/tasml.cpp)
 target_link_libraries(tasml PRIVATE asmiov)
 
-add_executable(test test/x86.cpp test/aarch64.cpp)
+add_executable(test test/x86.cpp test/aarch64.cpp test/tasml.cpp)
 target_link_libraries(test PRIVATE asmiov)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

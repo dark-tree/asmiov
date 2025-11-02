@@ -48,7 +48,7 @@ namespace asmio {
 		 * and return control to the caller. When creating a module
 		 * the super method must be called by the overriding one.
 		 */
-		virtual void parse(tasml::ErrorHandler& reporter, tasml::TokenStream& stream, SegmentedBuffer& buffer) const;
+		virtual void parse(tasml::ErrorHandler& reporter, tasml::TokenStream stream, SegmentedBuffer& buffer) const;
 
 	};
 

@@ -7,6 +7,7 @@
 // private libs
 #include <iostream>
 #include <fstream>
+#include <asm/module.hpp>
 
 #include "top.hpp"
 
@@ -23,6 +24,7 @@ int main(int argc, char** argv) {
 	args.define("--xansi");
 	args.define("-?").define("-h").define("--help");
 	args.define("--version");
+	args.define("-M").define("--modules");
 
 	args.load(argc, argv);
 	args.undefine();
@@ -31,10 +33,11 @@ int main(int argc, char** argv) {
 		printf("Usage: tasml [options...] [file]\n");
 		printf("Assemble given file into executable ELF\n\n");
 
+		printf("  -h, --help     Display this help page and exit\n");
 		printf("  -i, --stdin    Read input from stdin, not file\n");
 		printf("  -o, --output   Place the output into <file>\n");
 		printf("      --xansi    Disables colored output\n");
-		printf("  -h, --help     Display this help page and exit\n");
+		printf("  -M, --modules  List language modules and exit\n");
 		printf("      --version  Display version information and exit\n");
 
 		return EXIT_OK;
@@ -44,6 +47,14 @@ int main(int argc, char** argv) {
 		printf("Tool-Assisted Machine Language - TASML\n");
 		printf("Version: " ASMIOV_VERSION "\n");
 		printf("Source: " ASMIOV_SOURCE "\n");
+
+		return EXIT_OK;
+	}
+
+	if (args.has("--modules") || args.has("-M")) {
+		for (auto& [name, ptr] : asmio::modules) {
+			printf("%s\n", name.c_str());
+		}
 
 		return EXIT_OK;
 	}

@@ -3,22 +3,28 @@
 
 namespace asmio {
 
-	Label::Label(const std::string& str)
-	: str(static_cast<const char*>(malloc(str.length()))), hash(util::hash_djb2(str.c_str())), allocated(false) {
-		memcpy((void*) this->str, str.c_str(), str.size() + 1);
-	}
+	/*
+	 * class Label
+	 */
 
-	Label::Label(const Label& label)
-	: str(label.str), hash(label.hash), allocated(label.allocated) {
-		if (allocated) {
-			size_t len = strlen(str) + 1;
-			str = static_cast<const char*>(malloc(len));
-			memcpy((void*) str, label.str, len);
+	Label::Label(const std::string& str) {
+		if (str.empty()) {
+			throw std::runtime_error {"Label text can't be empty!"};
 		}
+
+		allocated = true;
+		ptr = malloc(str.length());
+		length = str.length();
+		hash = util::hash_djb2(str.c_str());
+		memcpy(ptr, str.c_str(), length);
 	}
 
 	Label::~Label() {
-		if (allocated) free((void*) str);
+		if (allocated) {
+			allocated = false;
+
+			free(ptr);
+		}
 	}
 
 }

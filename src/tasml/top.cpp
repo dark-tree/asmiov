@@ -25,8 +25,8 @@ namespace tasml {
 				}
 
 				module = it->second.get();
+				continue;
 			}
-
 
 			TokenStream statement = stream.statement();
 

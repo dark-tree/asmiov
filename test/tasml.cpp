@@ -12,38 +12,48 @@
 namespace test::tas {
 	using namespace asmio;
 
-	TEST (tasml_tokenize) {
+	TEST (tasml_emit_x86) {
 
 		std::string code = R"(
 			lang x86
+			section rx
 
-			text:
-				byte "Hello!", 0
-
-			strlen:
-				mov rcx, /* inline comments! */ rax
-				dec rax
-
-				l_strlen_next:
-					inc rax
-					cmp byte [rax], 0
-				jne @l_strlen_next
-
-				sub rax, rcx
-				ret
-
-			_start:
-				lea rax, @text
-				call @strlen
-				nop; nop; ret // multi-statements
+			// random instructions
+			label:
+			mov rcx, rax
+			dec rax
+			cmp byte [rax + rbx * 2], 0
+			jne @label
+			nop
 		)";
 
 		tasml::ErrorHandler reporter {"tasml_tokenize", true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
-		try {
-			SegmentedBuffer buffer = tasml::assemble(reporter, code);
-			CHECK(to_executable(buffer).call_i32("_start"), 6);
-		} catch (std::runtime_error& e) {}
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+	};
+
+	TEST (tasml_emit_aarch64) {
+
+		std::string code = R"(
+			lang aarch64
+			section rx
+
+			// random instructions
+			label:
+			mov x1, 0
+			b ne, @label
+			mov x0, x30
+			mov x8, lr
+			ret x8
+		)";
+
+		tasml::ErrorHandler reporter {"tasml_tokenize", true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
 			reporter.dump();

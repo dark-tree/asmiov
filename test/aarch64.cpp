@@ -6,6 +6,7 @@
 #include "vstl.hpp"
 #include "asm/aarch64/writer.hpp"
 #include "out/buffer/executable.hpp"
+#include <tasml/top.hpp>
 
 namespace test::arm {
 
@@ -868,6 +869,46 @@ namespace test::arm {
 
 		uint64_t r0 = to_executable(segmented).call_i64();
 		CHECK(r0, 44);
+
+	};
+
+	TEST (tasml_exec_simple_linux_syscall) {
+
+		std::string code = R"(
+			lang aarch64
+
+			section r
+			text:
+				byte "Hello!", 0
+
+			section rx
+			_start:
+				mov x0, 100
+				mov x8, 0x5d // exit
+				svc 0
+		)";
+
+		tasml::ErrorHandler reporter {"tasml_tokenize", true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+
+		asmio::elf::ElfBuffer elf = asmio::elf::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
+			reporter.link(link.target, what);
+		});
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Failed to link executable");
+		}
+
+		int rc = 0;
+		asmio::elf::RunResult result = elf.execute("memfd", &rc);
+
+		if (result == asmio::elf::RunResult::EXEC_ERROR) {
+			SKIP("Failed to start child process");
+		}
+
+		CHECK(result, asmio::elf::RunResult::SUCCESS);
+		CHECK(rc, 100);
 
 	};
 

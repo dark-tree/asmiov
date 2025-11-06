@@ -11,6 +11,7 @@
 #include <fstream>
 #include <asm/x86/module.hpp>
 #include <out/buffer/executable.hpp>
+#include <tasml/top.hpp>
 
 namespace test::x86 {
 using namespace asmio;
@@ -2933,6 +2934,46 @@ TEST (writer_segmented_data) {
 	};
 
 }
+
+	TEST (tasml_exec_strlen_linux_syscall) {
+
+		std::string code = R"(
+				lang x86
+
+				text:
+					byte "Hello!", 0
+
+				strlen:
+					mov rcx, /* inline comments! */ rax
+					dec rax
+
+					l_strlen_next:
+						inc rax
+						cmp byte [rax], 0
+					jne @l_strlen_next
+
+					sub rax, rcx
+					ret
+
+				_start:
+					lea rax, @text
+					call @strlen
+					nop; nop; ret // multi-statements
+			)";
+
+		tasml::ErrorHandler reporter {"tasml_tokenize", true};
+
+		try {
+			SegmentedBuffer buffer = tasml::assemble(reporter, code);
+			CHECK(to_executable(buffer).call_i32("_start"), 6);
+		} catch (std::runtime_error& e) {}
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+	};
 
 #endif
 ;}

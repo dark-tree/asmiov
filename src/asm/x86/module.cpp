@@ -1,9 +1,7 @@
 #include "module.hpp"
-
-#include <tasml/error.hpp>
+#include "writer.hpp"
 
 #include "src/tasml/stream.hpp"
-#include "writer.hpp"
 
 namespace asmio::x86 {
 

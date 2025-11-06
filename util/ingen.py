@@ -1,7 +1,5 @@
 #!/bin/env python3
-# Usage: ingen.py <input>
 
-from datetime import datetime
 import sys
 import os
 
@@ -99,33 +97,46 @@ for arg in sys.argv[1:]:
 
 			argc = 0
 			aidx = 0
-			args = []
-			first = True
 
 			ouf.write(f'\tif (statement.accept("{mnemonic}")) {{\n')
+			sets = instructions[mnemonic]
 
-			for set in instructions[mnemonic]:
+			for sdx in range(len(sets)):
+				set = sets[sdx]
 				count = len(set)
-				new = count - argc
 				argc = count
-				i = 0
+				#i = 0
 
-				if (new == 0) and (not first):
-					ouf.write(f'\t\t#warning Unreachable statement in instruction parser for mnemonic "{mnemonic}"!\n')
+				try_prefix = ""
+				try_suffix = ""
+				try_indent = ""
 
-				while aidx < count:
-					arg_name = f'a{aidx}';
-					ouf.write(f'\t\tTokenStream {arg_name} = statement.expression();\n')
+				ndx = sdx + 1
+				if ndx < len(sets):
+					if count >= len(sets[ndx]):
+						try_prefix = "\t\t\ttry {\n"
+						try_suffix = "\t\t\t} catch (const std::runtime_error& e) {}\n"
+						try_indent = "\t"
+
+				new_args = count
+				args = []
+
+				if sdx > 0:
+					new_args -= len(sets[sdx - 1])
+
+				for new_arg in range(0, new_args):
+					ouf.write(f'\t\tTokenStream a{aidx} = statement.expression();\n')
 					aidx += 1
-					args.append(f'parse_argument<{set[i]}>({arg_name})')
-					i += 1
+
+				for i in range(0, count):
+					args.append(f'parse_argument<{set[i]}>(a{i})')
 
 				ouf.write(f'\n\t\tif (statement.empty()) {{\n')
-				ouf.write(f'\t\t\twriter.put_{mnemonic}({", ".join(args)});\n')
-				ouf.write(f'\t\t\treturn true;\n')
+				ouf.write(try_prefix)
+				ouf.write(f'\t\t\t{try_indent}writer.put_{mnemonic}({", ".join(args)});\n')
+				ouf.write(f'\t\t\t{try_indent}return true;\n')
+				ouf.write(try_suffix)
 				ouf.write(f'\t\t}}\n\n')
-
-				first = False
 
 			ouf.write(f'\t\tthrow std::runtime_error {{"Invalid argument count"}};\n')
 			ouf.write(f'\t}}\n\n')

@@ -162,6 +162,17 @@ namespace asmio::util {
 
 	}
 
+	inline int64_t parse_decimal(const std::string_view& str) {
+
+		int64_t value;
+
+		if (std::from_chars(str.data(), str.data() + str.size(), value).ec == std::errc {}) {
+			return value;
+		}
+
+		throw std::runtime_error {"Can't parse '" + std::string(str) + "' as an integer!"};
+	}
+
 	inline long double parse_float(const char* str) {
 
 		size_t offset;

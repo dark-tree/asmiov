@@ -40,7 +40,6 @@ list(TRANSFORM ASMIO_BRIDGES REPLACE "src/asm/(.*)/writer.hpp" "${PROJECT_BINARY
 list(TRANSFORM ASMIO_WRITERS PREPEND "${PROJECT_SOURCE_DIR}/")
 
 add_custom_command(
-		CODEGEN
 		OUTPUT ${ASMIO_BRIDGES}
 		COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/util/ingen.py ${ASMIO_WRITERS}
 		DEPENDS ${ASMIO_WRITERS}
@@ -64,6 +63,7 @@ set(ASMIO_SOURCES
 		src/asm/x86/instructions/fpu.cpp
 
 		src/asm/aarch64/writer.cpp
+		src/asm/aarch64/module.cpp
 		src/asm/aarch64/instructions/basic.cpp
 		src/asm/aarch64/instructions/branch.cpp
 
@@ -73,7 +73,7 @@ set(ASMIO_SOURCES
 )
 
 include_directories(src/ . ${vstl_SOURCE_DIR} "${PROJECT_BINARY_DIR}/src")
-add_library(asmiov ${ASMIO_SOURCES})
+add_library(asmiov OBJECT ${ASMIO_SOURCES})
 
 add_executable(tasml src/tasml/tasml.cpp)
 target_link_libraries(tasml PRIVATE asmiov)

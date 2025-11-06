@@ -2935,45 +2935,74 @@ TEST (writer_segmented_data) {
 
 }
 
-	TEST (tasml_exec_strlen_linux_syscall) {
+TEST (label_anonymous) {
 
-		std::string code = R"(
-				lang x86
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
-				text:
-					byte "Hello!", 0
+	Label l1 = Label::make_unique();
+	Label l2 = Label::make_unique();
 
-				strlen:
-					mov rcx, /* inline comments! */ rax
-					dec rax
+	writer.label(l1);
+	writer.put_mov(EAX, 2137);
+	writer.put_ret();
 
-					l_strlen_next:
-						inc rax
-						cmp byte [rax], 0
-					jne @l_strlen_next
+	writer.label("normal");
+	writer.put_mov(EAX, 2345);
+	writer.put_ret();
 
-					sub rax, rcx
-					ret
+	writer.label(l2);
+	writer.put_mov(EAX, 11);
+	writer.put_ret();
 
-				_start:
-					lea rax, @text
-					call @strlen
-					nop; nop; ret // multi-statements
-			)";
+	ExecutableBuffer buffer = to_executable(segmented);
+	CHECK(buffer.call_u32(l1), 2137);
+	CHECK(buffer.call_u32("normal"), 2345);
+	CHECK(buffer.call_u32(l2), 11);
+	CHECK(buffer.call_u32(l1), 2137);
 
-		tasml::ErrorHandler reporter {"tasml_tokenize", true};
 
-		try {
-			SegmentedBuffer buffer = tasml::assemble(reporter, code);
-			CHECK(to_executable(buffer).call_i32("_start"), 6);
-		} catch (std::runtime_error& e) {}
+}
 
-		if (!reporter.ok()) {
-			reporter.dump();
-			FAIL("Errors generated");
-		}
+TEST (tasml_exec_strlen_linux_syscall) {
 
-	};
+	std::string code = R"(
+			lang x86
+
+			text:
+				byte "Hello!", 0
+
+			strlen:
+				mov rcx, /* inline comments! */ rax
+				dec rax
+
+				l_strlen_next:
+					inc rax
+					cmp byte [rax], 0
+				jne @l_strlen_next
+
+				sub rax, rcx
+				ret
+
+			_start:
+				lea rax, @text
+				call @strlen
+				nop; nop; ret // multi-statements
+		)";
+
+	tasml::ErrorHandler reporter {"tasml_tokenize", true};
+
+	try {
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+		CHECK(to_executable(buffer).call_i32("_start"), 6);
+	} catch (std::runtime_error& e) {}
+
+	if (!reporter.ok()) {
+		reporter.dump();
+		FAIL("Errors generated");
+	}
+
+};
 
 #endif
 ;}

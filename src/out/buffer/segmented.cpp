@@ -4,7 +4,7 @@
 namespace asmio {
 
 	/*
-	 * BufferSegment
+	 * class BufferSegment
 	 */
 
 	BufferSegment::BufferSegment(uint32_t index, uint8_t flags) noexcept
@@ -44,7 +44,7 @@ namespace asmio {
 	}
 
 	/*
-	 * SegmentedBuffer
+	 * class SegmentedBuffer
 	 */
 
 	SegmentedBuffer::SegmentedBuffer() {
@@ -96,7 +96,7 @@ namespace asmio {
 			return it->second;
 		}
 
-		throw std::runtime_error {"Undefined label '" + std::string(label.c_str()) + "' used"};
+		throw std::runtime_error {"Undefined label '" + label.string() + "' used"};
 	}
 
 	void SegmentedBuffer::add_label(const Label& label) {
@@ -107,7 +107,7 @@ namespace asmio {
 			return;
 		}
 
-		throw std::runtime_error {"Can't redefine label '" + std::string(label.c_str()) + "', in section #" + std::to_string(selected)};
+		throw std::runtime_error {"Can't redefine label '" + label.string() + "', in section #" + std::to_string(selected)};
 	}
 
 	bool SegmentedBuffer::has_label(const Label& label) {

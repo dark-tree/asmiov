@@ -153,6 +153,12 @@ namespace tasml {
 				return next();
 			}
 
+			/// Rewind the state of this stream back to how it was when it was first created,
+			/// if the stream is already in starting position no action will be taken.
+			void rewind() {
+				index = std::min(index, start + 1);
+			}
+
 			void terminal() {
 				if (accept(";")) return; // semicolon
 				if (empty()) return;        // last token

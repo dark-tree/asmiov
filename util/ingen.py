@@ -3,6 +3,10 @@
 import sys
 import os
 
+# This script is used to automatically generate the glue code between
+# architecture specific Buffer Writers and the TASML assembler in infrastructure,
+# specifically the language module exposed by the language though the registry.
+
 for arg in sys.argv[1:]:
 	arch = os.path.basename(os.path.dirname(arg))
 	output = "src/generated/" + arch + ".hpp"
@@ -14,7 +18,6 @@ for arg in sys.argv[1:]:
 	with open(arg) as inf:
 
 		os.makedirs(os.path.dirname(output), exist_ok=True)
-		instructions = {}
 
 		for line in inf:
 			if not 'INST ' in line:
@@ -110,6 +113,7 @@ for arg in sys.argv[1:]:
 				try_prefix = ""
 				try_suffix = ""
 				try_indent = ""
+				needs_cleanup = False
 
 				ndx = sdx + 1
 				if ndx < len(sets):
@@ -117,6 +121,7 @@ for arg in sys.argv[1:]:
 						try_prefix = "\t\t\ttry {\n"
 						try_suffix = "\t\t\t} catch (const std::runtime_error& e) {}\n"
 						try_indent = "\t"
+						needs_cleanup = True
 
 				new_args = count
 				args = []
@@ -136,7 +141,16 @@ for arg in sys.argv[1:]:
 				ouf.write(f'\t\t\t{try_indent}writer.put_{mnemonic}({", ".join(args)});\n')
 				ouf.write(f'\t\t\t{try_indent}return true;\n')
 				ouf.write(try_suffix)
-				ouf.write(f'\t\t}}\n\n')
+
+				if needs_cleanup:
+					ouf.write("\n")
+					for arx in range(0, aidx):
+						ouf.write(f"\t\t\ta{arx}.rewind();\n")
+
+				ouf.write(f'\t\t}}\n')
+
+				if not needs_cleanup:
+					ouf.write("\n")
 
 			ouf.write(f'\t\tthrow std::runtime_error {{"Invalid argument count"}};\n')
 			ouf.write(f'\t}}\n\n')

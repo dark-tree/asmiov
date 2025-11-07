@@ -1,5 +1,7 @@
 #pragma once
 
+#include <out/elf/header.hpp>
+
 #include "external.hpp"
 #include "label.hpp"
 
@@ -71,6 +73,12 @@ namespace asmio {
 			std::vector<BufferSegment> sections;
 			LabelMap<BufferMarker> labels;
 			std::vector<Linkage> linkages;
+
+		public:
+
+			// is there some cleaner way to do this?
+			// we at least need to make it target file agnostic in the future
+			elf::Machine elf_machine = elf::Machine::NONE;
 
 		public:
 

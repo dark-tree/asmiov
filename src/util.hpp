@@ -133,6 +133,12 @@ namespace asmio::util {
 		return hash;
 	}
 
+	constexpr uint64_t hash_tmix64(uint64_t x) {
+		x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+		x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+		return x ^ (x >> 31);
+	}
+
 	inline int64_t parse_int(const char* str) {
 
 		int base = 10;
@@ -160,6 +166,17 @@ namespace asmio::util {
 
 		return value;
 
+	}
+
+	inline int64_t parse_decimal(const std::string_view& str) {
+
+		int64_t value;
+
+		if (std::from_chars(str.data(), str.data() + str.size(), value).ec == std::errc {}) {
+			return value;
+		}
+
+		throw std::runtime_error {"Can't parse '" + std::string(str) + "' as an integer!"};
 	}
 
 	inline long double parse_float(const char* str) {

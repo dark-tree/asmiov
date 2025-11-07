@@ -10,7 +10,7 @@
 namespace asmio::x86 {
 
 	/// Used to represent any valid x86 instruction argument
-	class PACKED Location {
+	class Location {
 
 		public:
 
@@ -20,7 +20,7 @@ namespace asmio::x86 {
 			const bool reference : 4; // is this location a memory reference
 			const uint8_t size;
 			const int64_t offset;
-			const char* label;
+			const Label label;
 
 			constexpr void check_non_referential(const char* why) const {
 				if (reference) throw std::runtime_error {why};
@@ -29,28 +29,28 @@ namespace asmio::x86 {
 		public:
 
 			template<typename T>
-			constexpr Location(T offset = 0) // can the same thing be archived with some smart overload?
+			Location(T offset = 0) // can the same thing be archived with some smart overload?
 			: Location(UNSET, UNSET, 1, util::get_int_or(offset), util::get_ptr_or(offset), VOID, false) {}
 
-			constexpr Location(Registry registry)
-			: Location(registry, UNSET, 1, 0, nullptr, registry.size, false) {}
+			Location(Registry registry)
+			: Location(registry, UNSET, 1, 0, {}, registry.size, false) {}
 
-			constexpr Location(ScaledRegistry index)
+			Location(ScaledRegistry index)
 			: Location(UNSET, index.registry, index.scale, 0, nullptr, index.registry.size, false) {}
 
-			constexpr explicit Location(Registry base, Registry index, uint32_t scale, int64_t offset, const char* label, int size, bool reference)
+			explicit Location(Registry base, Registry index, uint32_t scale, int64_t offset, const Label& label, int size, bool reference)
 			: base(base), index(index), scale(scale), reference(reference), size(size), offset(offset), label(label) {
 				check_valid_scale(index, scale);
 			}
 
 		public:
 
-			constexpr Location ref() const {
+			Location ref() const {
 				check_non_referential("Can't reference a reference!");
 				return Location {base, index, scale, offset, label, VOID, true};
 			}
 
-			constexpr Location cast(uint8_t bytes) const {
+			Location cast(uint8_t bytes) const {
 				if (reference || is_immediate()) {
 					return Location {base, index, scale, offset, label, bytes, reference};
 				}
@@ -58,17 +58,17 @@ namespace asmio::x86 {
 				throw std::runtime_error {"The result of this expression is of fixed size!"};
 			}
 
-			constexpr Location operator + (int64_t extend) const {
+			Location operator + (int64_t extend) const {
 				check_non_referential("Can't modify a reference!");
 				return Location {base, index, scale, offset + extend, label, size, false};
 			}
 
-			constexpr Location operator - (int64_t extend) const {
+			Location operator - (int64_t extend) const {
 				check_non_referential("Can't modify a reference!");
 				return Location {base, index, scale, offset - extend, label, size, false};
 			}
 
-			constexpr Location operator + (const char* label) const {
+			Location operator + (const Label& label) const {
 				check_non_referential("Can't modify a reference!");
 				return Location {base, index, scale, offset, label, size, false};
 			}
@@ -100,7 +100,7 @@ namespace asmio::x86 {
 
 			/// Checks if this location requires label resolution
 			constexpr bool is_labeled() const {
-				return label != nullptr;
+				return !label.empty();
 			}
 
 			/// Checks if this location is a memory reference
@@ -139,7 +139,7 @@ namespace asmio::x86 {
 			}
 
 			constexpr uint8_t get_mod_flag() const {
-				if (label != nullptr) return MOD_QUAD;
+				if (!label.empty()) return MOD_QUAD;
 				if (offset == 0) return MOD_NONE;
 				if (util::min_bytes(offset) == BYTE) return MOD_BYTE;
 				return MOD_QUAD;
@@ -159,19 +159,19 @@ namespace asmio::x86 {
 	 * Operators
 	 */
 
-	constexpr Location operator + (Registry registry, int offset) {
+	inline Location operator + (Registry registry, int offset) {
 		return Location {registry, UNSET, 1, offset, nullptr, registry.size, false};
 	}
 
-	constexpr Location operator - (Registry registry, int offset) {
+	inline Location operator - (Registry registry, int offset) {
 		return Location {registry, UNSET, 1, -offset, nullptr, registry.size, false};
 	}
 
-	constexpr Location operator + (Registry registry, const Label& label) {
-		return Location {registry, UNSET, 1, 0, label.c_str(), registry.size, false};
+	inline Location operator + (Registry registry, const Label& label) {
+		return Location {registry, UNSET, 1, 0, label, registry.size, false};
 	}
 
-	constexpr Location operator + (Registry base, ScaledRegistry index) {
+	inline Location operator + (Registry base, ScaledRegistry index) {
 		uint8_t size = base.size;
 
 		if (index.registry.size != VOID) {
@@ -186,19 +186,19 @@ namespace asmio::x86 {
 		return Location {base, index.registry, index.scale, 0, nullptr, size, false};
 	}
 
-	constexpr Location operator + (ScaledRegistry index, int offset) {
+	inline Location operator + (ScaledRegistry index, int offset) {
 		return Location {index} + offset;
 	}
 
-	constexpr Location operator - (ScaledRegistry index, int offset) {
+	inline Location operator - (ScaledRegistry index, int offset) {
 		return Location {index} - offset;
 	}
 
-	constexpr Location operator + (ScaledRegistry index, const Label& label) {
-		return Location {index} + label.c_str();
+	inline Location operator + (ScaledRegistry index, const Label& label) {
+		return Location {index} + label;
 	}
 
-	constexpr Location operator + (Registry base, Registry index) {
+	inline Location operator + (Registry base, Registry index) {
 		return base + (index * 1);
 	}
 

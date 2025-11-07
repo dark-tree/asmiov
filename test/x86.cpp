@@ -5,13 +5,13 @@
 
 #include "vstl.hpp"
 #include "asm/x86/writer.hpp"
-#include "asm/x86/emitter.hpp"
 #include "out/elf/buffer.hpp"
-#include "tasml/tokenizer.hpp"
-#include "tasml/stream.hpp"
 
 // private libs
 #include <fstream>
+#include <asm/x86/module.hpp>
+#include <out/buffer/executable.hpp>
+#include <tasml/top.hpp>
 
 namespace test::x86 {
 using namespace asmio;
@@ -2815,7 +2815,9 @@ TEST (writer_elf_simple) {
 	writer.put_mov(RAX, 1); // sys_exit
 	writer.put_int(0x80); // 32 bit syscall
 
+	segmented.elf_machine = Machine::X86_64;
 	ElfBuffer file = to_elf(segmented, "_start");
+
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
 
@@ -2855,6 +2857,7 @@ TEST (writer_elf_execve_int) {
 	writer.put_int(0x80); // 32 bit syscall
 	writer.put_ret();
 
+	segmented.elf_machine = Machine::X86_64;
 	ElfBuffer file = to_elf(segmented, "_start");
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
@@ -2895,6 +2898,7 @@ TEST (writer_elf_execve_syscall) {
 	writer.put_syscall();
 	writer.put_ret();
 
+	segmented.elf_machine = Machine::X86_64;
 	ElfBuffer file = to_elf(segmented, "_start");
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
@@ -2935,50 +2939,72 @@ TEST (writer_segmented_data) {
 
 }
 
-TEST (tasml_tokenize) {
-
-	std::string code = R"(
-		text:
-			byte "Hello!", 0
-
-		strlen:
-			mov rcx, /* inline comments! */ rax
-			dec rax
-
-			l_strlen_next:
-				inc rax
-				cmp byte [rax], 0
-			jne @l_strlen_next
-
-			sub rax, rcx
-			ret
-
-		_start:
-			lea rax, @text
-			call @strlen
-			nop; nop; ret // multi-statements
-	)";
+TEST (label_anonymous) {
 
 	SegmentedBuffer segmented;
 	BufferWriter writer {segmented};
-	tasml::ErrorHandler reporter {"<string>", true};
 
-	std::vector<tasml::Token> tokens = tasml::tokenize(reporter, code);
+	Label l1 = Label::make_unique();
+	Label l2 = Label::make_unique();
+
+	writer.label(l1);
+	writer.put_mov(EAX, 2137);
+	writer.put_ret();
+
+	writer.label("normal");
+	writer.put_mov(EAX, 2345);
+	writer.put_ret();
+
+	writer.label(l2);
+	writer.put_mov(EAX, 11);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = to_executable(segmented);
+	CHECK(buffer.call_u32(l1), 2137);
+	CHECK(buffer.call_u32("normal"), 2345);
+	CHECK(buffer.call_u32(l2), 11);
+	CHECK(buffer.call_u32(l1), 2137);
+
+
+}
+
+TEST (tasml_exec_strlen_linux_syscall) {
+
+	std::string code = R"(
+			lang x86
+
+			text:
+				byte "Hello!", 0
+
+			strlen:
+				mov rcx, /* inline comments! */ rax
+				dec rax
+
+				l_strlen_next:
+					inc rax
+					cmp byte [rax], 0
+				jne @l_strlen_next
+
+				sub rax, rcx
+				ret
+
+			_start:
+				lea rax, @text
+				call @strlen
+				nop; nop; ret // multi-statements
+		)";
+
+	tasml::ErrorHandler reporter {"tasml_tokenize", true};
+
+	try {
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+		CHECK(to_executable(buffer).call_i32("_start"), 6);
+	} catch (std::runtime_error& e) {}
 
 	if (!reporter.ok()) {
 		reporter.dump();
-		FAIL("Tokenizer error!");
+		FAIL("Errors generated");
 	}
-
-	tasml::TokenStream stream {tokens};
-	parseBlock(reporter, writer, stream);
-
-	if (!reporter.ok()) {
-		reporter.dump();
-		FAIL("Parser error!");
-	}
-
-	CHECK(to_executable(segmented).call_i32("_start"), 6);
 
 };
 

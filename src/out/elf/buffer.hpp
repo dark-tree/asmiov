@@ -91,14 +91,14 @@ namespace asmio::elf {
 				identifier.magic[3] = 'F';
 
 				// rest of the ELF identifier
-				identifier.capacity = Capacity::BIT_32;
+				identifier.capacity = Capacity::BIT_64;
 				identifier.encoding = Encoding::LSB;
 				identifier.version = VERSION;
 				memset(identifier.pad, 0, 9);
 
 				// fill the file header
 				header.type = FileType::EXEC;
-				header.machine = Machine::X86_64;
+				header.machine = segmented.elf_machine;
 				header.version = VERSION;
 				header.entrypoint = mount + entrypoint;
 				header.flags = 0;

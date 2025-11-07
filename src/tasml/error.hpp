@@ -1,7 +1,6 @@
 #pragma once
 
 #include "external.hpp"
-#include "../asm/util.hpp"
 #include "out/buffer/segmented.hpp"
 
 namespace tasml {

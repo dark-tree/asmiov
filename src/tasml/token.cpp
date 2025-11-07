@@ -1,6 +1,8 @@
 
 #include "token.hpp"
 
+#include <util.hpp>
+
 namespace tasml {
 
 	int64_t Token::as_int() const {

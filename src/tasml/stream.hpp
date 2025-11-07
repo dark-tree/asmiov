@@ -105,6 +105,13 @@ namespace tasml {
 				return tokens[index];
 			}
 
+			/// Returns a reference to the previous token,
+			/// if there was nothing to return it creates and throws a report.
+			const Token& prev() const {
+				if (index <= 0) throw std::runtime_error {"Unexpected start of " + std::string(name) + ", expected a preceding token"};
+				return tokens[index - 1];
+			}
+
 			/// Consumes the next token, and returns a reference to it
 			/// if there was nothing left to consume (stream was empty) it creates and throws a report.
 			const Token& next() {
@@ -146,6 +153,26 @@ namespace tasml {
 				return next();
 			}
 
+			/// Rewind the state of this stream back to how it was when it was first created,
+			/// if the stream is already in starting position no action will be taken.
+			void rewind() {
+				index = std::min(index, start + 1);
+			}
+
+			void terminal() {
+				if (accept(";")) return; // semicolon
+				if (empty()) return;        // last token
+				if (index == 0) return;     // first token
+
+				const Token& token = peek();
+				const Token& last = prev();
+
+				if (token.line == last.line) {
+					throw std::runtime_error {"Unexpected token '" + token.raw + "', expected end of line or semicolon!"};
+				}
+
+			}
+
 			/// Helper for creating bracket-bound sub-streams, takes two strings, first the pattern (e.g. "{}" or "()")
 			/// and second the name for the sub-stream. Expects the opening bracket to have already been consumed!
 			TokenStream block(const char str[2], const char* name) {
@@ -159,7 +186,7 @@ namespace tasml {
 
 			/// Consumes tokens until the end of input or a ',' is reached
 			/// Returns a sub-stream of the consumed tokens
-			TokenStream expression(const char* name) {
+			TokenStream expression(const char* name = "expression") {
 				long begin = index;
 
 				while (!empty()) {
@@ -178,9 +205,31 @@ namespace tasml {
 
 			/// Consumes tokens until the end of line or a ';' is reached
 			/// Returns a sub-stream of the consumed tokens
-			TokenStream statement(const char* name) {
+			TokenStream statement(const char* name = "statement") {
 				long begin = index;
 				size_t line = peek().line;
+
+				while (!empty()) {
+					const Token& token = peek();
+
+					if (token.line != line || token.raw == ";") {
+						break;
+					}
+
+					next();
+				}
+
+				long finish = index;
+				accept(";");
+
+				return TokenStream {tokens, begin - 1, finish, name};
+			}
+
+			/// Consumes tokens until the end of line or a ';' is reached
+			/// Returns a sub-stream of the consumed tokens, looks at the previous token to determine statement line
+			TokenStream tail(const char* name = "statement") {
+				long begin = index;
+				size_t line = prev().line;
 
 				while (!empty()) {
 					const Token& token = peek();

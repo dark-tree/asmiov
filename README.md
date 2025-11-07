@@ -10,6 +10,8 @@ implements the assembler itself.
 ## Utility
 The example of the syntax used by `tasml` utility, the API version of the exact same code can be seen below.
 ```asm
+lang x86
+
 text:
 	byte "Hello!", 0
 
@@ -28,7 +30,7 @@ strlen:
 _start:
 	lea rax, @text
 	call @strlen
-	mov edi, rax // exit code
+	mov rdi, rax // exit code
 	mov rax, 60 // sys_exit
 	syscall
 ```

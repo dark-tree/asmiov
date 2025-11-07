@@ -18,6 +18,7 @@
 #include <iostream>
 #include <algorithm>
 #include <limits>
+#include <charconv>
 
 // systems
 #ifdef __linux__

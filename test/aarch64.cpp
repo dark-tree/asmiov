@@ -888,7 +888,7 @@ namespace test::arm {
 				svc 0
 		)";
 
-		tasml::ErrorHandler reporter {"tasml_tokenize", true};
+		tasml::ErrorHandler reporter {vstl_self.name, true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		asmio::elf::ElfBuffer elf = asmio::elf::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
@@ -905,6 +905,55 @@ namespace test::arm {
 
 		CHECK(result, asmio::elf::RunResult::SUCCESS);
 		CHECK(rc, 100);
+
+	};
+
+	TEST (tasml_exec_mul_madd_maddl) {
+
+		std::string code = R"(
+			lang aarch64
+
+			section rx
+			l_madd_1007:
+				mov x1, 5
+				mov x2, 200
+				mov x3, 7
+				madd x0, x1, x2, x3
+				ret
+
+			l_mul_500:
+				mov x1, 5
+				mov x2, 100
+				mov x3, 7
+				mul x0, x1, x2
+				ret
+
+			l_umaddl:
+				mov w1, 0xFEB00000
+				mov w2, 16
+				mov x3, 7
+				umaddl x0, w1, w2, x3
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer;
+
+		try {
+			buffer = tasml::assemble(reporter, code);
+		} catch (std::runtime_error& e) {
+			reporter.dump();
+			FAIL("Failed to assemble - " + std::string(e.what()));
+		}
+
+		uint64_t r0 = to_executable(buffer).call_i64("l_madd_1007");
+		CHECK(r0, 1007);
+
+		r0 = to_executable(buffer).call_i64("l_mul_500");
+		CHECK(r0, 500);
+
+		r0 = to_executable(buffer).call_i64("l_umaddl");
+		CHECK(r0, 0xF'EB000007);
 
 	};
 

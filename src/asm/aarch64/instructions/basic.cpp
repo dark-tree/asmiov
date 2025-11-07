@@ -97,6 +97,10 @@ namespace asmio::arm {
 		put_ret(LR);
 	}
 
+	void BufferWriter::put_brk(uint16_t imm) {
+		put_dword(0b11010100'001 << 21 | imm << 5 | 0b00000);
+	}
+
 	void BufferWriter::put_ret(Registry registry) {
 
 		if (!registry.wide()) {
@@ -188,6 +192,38 @@ namespace asmio::arm {
 
 	void BufferWriter::put_cmn(Registry a, Registry b, Sizing size, uint8_t lsl3) {
 		put_adds(a.wide() ? XZR : WZR, a, b, size, lsl3);
+	}
+
+	void BufferWriter::put_madd(Registry dst, Registry a, Registry b, Registry addend) {
+		assert_register_triplet(a, b, dst);
+
+		// we have four register so the last one needs to be checked manually
+		if (dst.wide() != addend.wide()) {
+			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
+		}
+
+		uint32_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b0011011000 << 21 | b.reg << 16 | addend.reg << 10 | a.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_smaddl(Registry dst, Registry a, Registry b, Registry addend) {
+		put_inst_maddl(dst, a, b, addend, false);
+	}
+
+	void BufferWriter::put_umaddl(Registry dst, Registry a, Registry b, Registry addend) {
+		put_inst_maddl(dst, a, b, addend, true);
+	}
+
+	void BufferWriter::put_mul(Registry dst, Registry a, Registry b) {
+		put_madd(dst, a, b, dst.wide() ? XZR : WZR);
+	}
+
+	void BufferWriter::put_smul(Registry dst, Registry a, Registry b) {
+		put_smaddl(dst, a, b, XZR);
+	}
+
+	void BufferWriter::put_umul(Registry dst, Registry a, Registry b) {
+		put_umaddl(dst, a, b, XZR);
 	}
 
 }

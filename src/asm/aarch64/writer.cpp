@@ -331,12 +331,29 @@ namespace asmio::arm {
 		put_dword(size << 30 | 0b11100 << 25 | use_imm12 | (uint64_t(dir) & sign) << 22 | (mask & offset) << imm_lsl | uint64_t(op) << 10 | base.reg << 5 | dst.reg);
 	}
 
+	void BufferWriter::put_inst_maddl(Registry dst, Registry a, Registry b, Registry addend, bool is_unsigned) {
+		if (!dst.wide() ) {
+			throw std::runtime_error {"Invalid operands, expected qword destination register"};
+		}
+
+		if (!addend.wide() ) {
+			throw std::runtime_error {"Invalid operands, expected qword addend register"};
+		}
+
+		if (a.wide() || b.wide()) {
+			throw std::runtime_error {"Invalid operands, expected dword multiplication registers"};
+		}
+
+		uint64_t uf = is_unsigned ? 1 : 0;
+		put_dword(0b10011011 << 24 | uf << 23 | 0b01 << 21 | b.reg << 16 | addend.reg << 10 | a.reg << 5 | dst.reg);
+	}
+
 	void BufferWriter::put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		assert_register_triplet(a, b, destination);
 
 		// if any one of them is a stack register abort
 		if (!a.is(Registry::GENERAL) || !b.is(Registry::GENERAL) || !destination.is(Registry::GENERAL)) {
-			throw std::runtime_error {"Invalid operands, expected general purpose registers."};
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
 		}
 
 		uint16_t sf = destination.wide() ? 1 : 0;
@@ -347,7 +364,7 @@ namespace asmio::arm {
 		const auto bitmask = compute_immediate_bitmask(pattern, destination.wide());
 
 		if (!bitmask.has_value()) {
-			throw std::runtime_error {"Invalid operands, the given constant is not encodable."};
+			throw std::runtime_error {"Invalid operands, the given constant is not encodable"};
 		}
 
 		put_inst_orr_bitmask(destination, source, bitmask.value());
@@ -356,11 +373,11 @@ namespace asmio::arm {
 	void BufferWriter::put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12, bool set_flags) {
 
 		if (source.is(Registry::ZERO) || destination.is(Registry::ZERO)) {
-			throw std::runtime_error {"Invalid operands, zero register can't be used here."};
+			throw std::runtime_error {"Invalid operands, zero register can't be used here"};
 		}
 
 		if (destination.wide() != source.wide()) {
-			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
+			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width"};
 		}
 
 		uint16_t sf = destination.wide() ? 1 : 0;
@@ -372,7 +389,7 @@ namespace asmio::arm {
 		assert_register_triplet(a, b, destination);
 
 		if (shift == ShiftType::ROR) {
-			throw std::runtime_error {"Invalid shift type, ROR shift type is not allowed here."};
+			throw std::runtime_error {"Invalid shift type, ROR shift type is not allowed here"};
 		}
 
 		uint32_t sf = destination.wide() ? 1 : 0;

@@ -105,6 +105,9 @@ namespace asmio::arm {
 			/// Encode "ILDR/LDRI/LDR" as well as the "ISTR/STRI/STR" operations
 			void put_inst_ldst(Registry dst, Registry base, int64_t offset, Sizing sizing, MemoryOperation op, MemoryDirection dir);
 
+			/// Encode "SMADDL/UMADDL" operation
+			void put_inst_maddl(Registry dst, Registry a, Registry b, Registry addend, bool is_unsigned);
+
 		public:
 
 			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
@@ -130,6 +133,7 @@ namespace asmio::arm {
 			INST put_mov(Registry dst, Registry src);                      /// Move value between registers
 			INST put_nop();                                                /// No operation
 			INST put_ret();                                                /// Return from procedure using link register
+			INST put_brk(uint16_t imm);                                    /// Generates a Breakpoint Instruction exception
 			INST put_ret(Registry src);                                    /// Return from procedure
 			INST put_rbit(Registry dst, Registry src);                     /// Reverse bits
 			INST put_clz(Registry dst, Registry src);                      /// Count leading zeros
@@ -149,6 +153,12 @@ namespace asmio::arm {
 			INST put_subs(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Add two registers, set the flags, potentially extending one of them
 			INST put_cmp(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Compare
 			INST put_cmn(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); /// Compare negative
+			INST put_madd(Registry dst, Registry a, Registry b, Registry addend); /// Multiply and Add 64 bit registers
+			INST put_smaddl(Registry dst, Registry a, Registry b, Registry addend); /// Signed multiply two 32 bit registers and add 64 bit register
+			INST put_umaddl(Registry dst, Registry a, Registry b, Registry addend); /// Unsigned multiply two 32 bit registers and add 64 bit register
+			INST put_mul(Registry dst, Registry a, Registry b);            /// Multiply 64 bit registers
+			INST put_smul(Registry dst, Registry a, Registry b);           /// Signed multiply 32 bit registers
+			INST put_umul(Registry dst, Registry a, Registry b);           /// Unsigned multiply 32 bit registers
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

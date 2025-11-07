@@ -40,7 +40,7 @@ namespace asmio::arm {
 			int index = util::parse_decimal(raw.substr(1));
 
 			if (index >= 0 && index <= 30) {
-				return X(index);
+				return W(index);
 			}
 
 			throw std::runtime_error {"Invalid register number, expected value in range [0, 30]"};

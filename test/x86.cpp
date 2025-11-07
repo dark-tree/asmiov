@@ -2815,7 +2815,9 @@ TEST (writer_elf_simple) {
 	writer.put_mov(RAX, 1); // sys_exit
 	writer.put_int(0x80); // 32 bit syscall
 
+	segmented.elf_machine = Machine::X86_64;
 	ElfBuffer file = to_elf(segmented, "_start");
+
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
 
@@ -2855,6 +2857,7 @@ TEST (writer_elf_execve_int) {
 	writer.put_int(0x80); // 32 bit syscall
 	writer.put_ret();
 
+	segmented.elf_machine = Machine::X86_64;
 	ElfBuffer file = to_elf(segmented, "_start");
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);
@@ -2895,6 +2898,7 @@ TEST (writer_elf_execve_syscall) {
 	writer.put_syscall();
 	writer.put_ret();
 
+	segmented.elf_machine = Machine::X86_64;
 	ElfBuffer file = to_elf(segmented, "_start");
 	int status;
 	RunResult result = file.execute("memfd-elf-1", &status);

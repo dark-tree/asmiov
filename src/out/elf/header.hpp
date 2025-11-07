@@ -4,7 +4,7 @@
 
 namespace asmio::elf {
 
-	constexpr const uint32_t VERSION = 1;
+	constexpr uint32_t VERSION = 1;
 
 	enum struct FileType : uint16_t {
 		NONE = 0,  // No file type
@@ -22,7 +22,8 @@ namespace asmio::elf {
 		M68K  = 4,  // Motorola 68000
 		M88K  = 5,  // Motorola 88000
 		I860  = 7,  // Intel 80860
-		X86_64 = 62 // AMD x86-64 architecture
+		X86_64 = 62, // AMD x86-64 architecture
+		AARCH64 = 183 // AArch64
 	};
 
 	enum struct Capacity : uint8_t {
@@ -50,9 +51,9 @@ namespace asmio::elf {
 		FileType type;                  // Specifies the file type
 		Machine machine;                // Specifies the required architecture
 		uint32_t version;               // Version of the Elf file, same as Identification->version
-		uint32_t entrypoint;            // Virtual address to which the system first transfers control
-		uint32_t program_table_offset;  // Offset to the program table header, or 0
-		uint32_t section_table_offset;  // Offset to the section table header, or 0
+		uint64_t entrypoint;            // Virtual address to which the system first transfers control
+		uint64_t program_table_offset;  // Offset to the program table header, or 0
+		uint64_t section_table_offset;  // Offset to the section table header, or 0
 		uint32_t flags;                 // Processor-specific flags associated with the file
 		uint16_t header_size;           // Size of the FileHeader struct
 		uint16_t program_entry_size;    // Size in bytes of one entry in the program table

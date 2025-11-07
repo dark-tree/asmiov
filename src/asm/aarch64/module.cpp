@@ -135,4 +135,8 @@ namespace asmio::arm {
 		Module::parse(reporter, stream, buffer);
 	}
 
+	elf::Machine LanguageModule::machine() const {
+		return elf::Machine::AARCH64;
+	}
+
 }

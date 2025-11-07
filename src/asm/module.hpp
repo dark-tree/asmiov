@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
+#include <out/elf/header.hpp>
+
 #include "util.hpp"
 
 // TODO decouple from tasml, those classes should be moved to asmio
@@ -49,6 +51,13 @@ namespace asmio {
 		 * the super method must be called by the overriding one.
 		 */
 		virtual void parse(tasml::ErrorHandler& reporter, tasml::TokenStream stream, SegmentedBuffer& buffer) const;
+
+		/**
+		 * Obtain the ELF machine identifier used by this architecture,
+		 * if ELF output is not supported of the architecture can't be easily deduced for
+		 * the module Machine::NONE should be used.
+		 */
+		virtual elf::Machine machine() const;
 
 	};
 

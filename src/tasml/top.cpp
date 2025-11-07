@@ -25,6 +25,8 @@ namespace tasml {
 				}
 
 				module = it->second.get();
+				buffer.elf_machine = module->machine();
+
 				continue;
 			}
 

@@ -903,10 +903,6 @@ namespace test::arm {
 		int rc = 0;
 		asmio::elf::RunResult result = elf.execute("memfd", &rc);
 
-		if (result == asmio::elf::RunResult::EXEC_ERROR) {
-			SKIP("Failed to start child process");
-		}
-
 		CHECK(result, asmio::elf::RunResult::SUCCESS);
 		CHECK(rc, 100);
 

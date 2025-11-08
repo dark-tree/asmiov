@@ -2984,6 +2984,26 @@ TEST (label_anonymous) {
 
 }
 
+TEST (label_anonymous_jmp) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	Label l1 = Label::make_unique();
+
+	writer.put_jmp(l1);
+	writer.put_mov(RAX, 0);
+	writer.put_ret();
+
+	writer.label(l1);
+	writer.put_mov(EAX, 666);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = to_executable(segmented);
+	CHECK(buffer.call_u64(l1), 666);
+
+}
+
 TEST (tasml_exec_strlen_linux_syscall) {
 
 	std::string code = R"(

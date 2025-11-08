@@ -16,6 +16,9 @@ struct StaticBlock {
 /// Allows one to merge two tokens, even macro values
 #define JOIN_PARTS(first, second) JOIN_PARTS_RESOLVED(first, second)
 
+/// Used to mark prefixes for the python codegen
+#define PREFIX BufferWriter&
+
 /// Used to mark instructions for the python codegen
 #define INST void
 

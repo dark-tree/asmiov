@@ -85,11 +85,11 @@ namespace asmio::x86 {
 			BufferWriter(SegmentedBuffer& buffer);
 
 			// string (i386)
-			BufferWriter& put_rep();                    /// Repeat
-			BufferWriter& put_repe();                   /// Repeat while equal
-			BufferWriter& put_repz();                   /// Repeat while zero
-			BufferWriter& put_repne();                  /// Repeat while not equal
-			BufferWriter& put_repnz();                  /// Repeat while not zero
+			PREFIX put_rep();                           /// Repeat
+			PREFIX put_repe();                          /// Repeat while equal
+			PREFIX put_repz();                          /// Repeat while zero
+			PREFIX put_repne();                         /// Repeat while not equal
+			PREFIX put_repnz();                         /// Repeat while not zero
 			INST put_movsb();                           /// Move byte from [ESI] to [EDI]
 			INST put_movsw();                           /// Move word from [ESI] to [EDI]
 			INST put_movsd();                           /// Move dword from [ESI] to [EDI]

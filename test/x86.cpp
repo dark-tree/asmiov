@@ -2996,17 +2996,42 @@ TEST (tasml_exec_strlen_linux_syscall) {
 
 	tasml::ErrorHandler reporter {"tasml_tokenize", true};
 
-	try {
-		SegmentedBuffer buffer = tasml::assemble(reporter, code);
-		CHECK(to_executable(buffer).call_i32("_start"), 6);
-	} catch (std::runtime_error& e) {}
-
-	if (!reporter.ok()) {
-		reporter.dump();
-		FAIL("Errors generated");
-	}
+	SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+	CHECK(to_executable(buffer).call_i32("_start"), 6);
 
 };
+
+	TEST (tasml_exec_string_prefix) {
+
+		std::string code = R"(
+			lang x86
+
+			section rw
+			text:
+				byte "Hello!", 0
+
+			section rx
+			_start:
+				mov al, 0x41 // A
+				lea rdi, @text
+				mov rcx, 5
+				rep stosb
+				ret
+
+			get_ptr:
+				lea rax, @text
+				ret
+		)";
+
+		SegmentedBuffer segmented = tasml::assemble(vstl_self.name, code);
+		ExecutableBuffer buffer = to_executable(segmented);
+
+		buffer.call_i64("_start");
+		const char* ptr = (const char*) buffer.call_i64("get_ptr");
+
+		ASSERT(strcmp(ptr, "AAAAA!") == 0);
+
+	};
 
 #endif
 ;}

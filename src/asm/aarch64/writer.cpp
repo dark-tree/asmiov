@@ -348,6 +348,15 @@ namespace asmio::arm {
 		put_dword(0b10011011 << 24 | uf << 23 | 0b01 << 21 | b.reg << 16 | addend.reg << 10 | a.reg << 5 | dst.reg);
 	}
 
+	void BufferWriter::put_inst_mulh(Registry dst, Registry a, Registry b, bool is_unsigned) {
+		if (!dst.wide() || !a.wide() || !b.wide()) {
+			throw std::runtime_error {"Invalid operands, expected qword registers"};
+		}
+
+		uint64_t uf = is_unsigned ? 1 : 0;
+		put_dword(0b10011011 << 24 | uf << 23 | 0b10 << 21 | a.reg << 16 | 0b11111 << 10 | b.reg << 5 | dst.reg);
+	}
+
 	void BufferWriter::put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		assert_register_triplet(a, b, destination);
 

@@ -108,6 +108,9 @@ namespace asmio::arm {
 			/// Encode "SMADDL/UMADDL" operation
 			void put_inst_maddl(Registry dst, Registry a, Registry b, Registry addend, bool is_unsigned);
 
+			/// Encode "UMULH/SMULH" operation
+			void put_inst_mulh(Registry dst, Registry a, Registry b, bool is_unsigned);
+
 		public:
 
 			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
@@ -159,6 +162,8 @@ namespace asmio::arm {
 			INST put_mul(Registry dst, Registry a, Registry b);            /// Multiply 64 bit registers
 			INST put_smul(Registry dst, Registry a, Registry b);           /// Signed multiply 32 bit registers
 			INST put_umul(Registry dst, Registry a, Registry b);           /// Unsigned multiply 32 bit registers
+			INST put_smulh(Registry dst, Registry a, Registry b);          /// Signed multiply high
+			INST put_umulh(Registry dst, Registry a, Registry b);          /// Unsigned multiply high
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

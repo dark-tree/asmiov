@@ -226,4 +226,12 @@ namespace asmio::arm {
 		put_umaddl(dst, a, b, XZR);
 	}
 
+	void BufferWriter::put_smulh(Registry dst, Registry a, Registry b) {
+		put_inst_mulh(dst, a, b, false);
+	}
+
+	void BufferWriter::put_umulh(Registry dst, Registry a, Registry b) {
+		put_inst_mulh(dst, a, b, true);
+	}
+
 }

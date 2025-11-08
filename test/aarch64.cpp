@@ -957,6 +957,36 @@ namespace test::arm {
 
 	};
 
+	TEST (tasml_exec_umulh) {
+
+		std::string code = R"(
+			lang aarch64
+
+			section rx
+			l_mul_low:
+				mov x1, 0xFAFFFFFFFBFFFFFE
+				mov x2, 0x0000000100000000
+				mul x0, x1, x2
+				ret
+
+			l_mul_high:
+				mov x1, 0xFAFFFFFFFBFFFFFE
+				mov x2, 0x0000000100000000
+				umulh x0, x1, x2
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+
+		uint64_t r0 = to_executable(buffer).call_i64("l_mul_low");
+		CHECK(r0, 0xFBFFFFFE00000000);
+
+		r0 = to_executable(buffer).call_i64("l_mul_high");
+		CHECK(r0, 0xFAFFFFFF);
+
+	};
+
 #endif
 
 }

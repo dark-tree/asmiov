@@ -139,29 +139,51 @@ namespace asmio::util {
 		return x ^ (x >> 31);
 	}
 
+	inline int digit_value(char c) {
+		if (c >= '0' && c <= '9') {
+			return c - '0';
+		}
+
+		if (c >= 'a' && c <= 'f') {
+			return c - 'a' + 10;
+		}
+
+		if (c >= 'A' && c <= 'F') {
+			return c - 'A' + 10;
+		}
+
+		throw std::runtime_error {"Invalid digit '" + std::string(1, c) + "'"};
+	}
+
 	inline int64_t parse_int(const char* str) {
 
 		int base = 10;
-		size_t length = strlen(str);
-		const char* digits = str;
+		int length = strlen(str);
 
 		if (length > 2 && str[0] == '0') {
-			if (str[1] == 'x') { digits = str + 2; base = 16; }
-			if (str[1] == 'o') { digits = str + 2; base = 8;  }
-			if (str[1] == 'b') { digits = str + 2; base = 2;  }
+			if (str[1] == 'x') { str += 2; base = 16; }
+			else if (str[1] == 'o') { str += 2; base = 8;  }
+			else if (str[1] == 'b') { str += 2; base = 2;  }
 		}
 
-		size_t offset;
-		int64_t value;
+		// update length as we could have changed starting point
+		length = strlen(str);
+		int64_t value = 0;
 
-		try {
-			value = std::stoll(digits, &offset, base);
-		} catch(...) {
-			throw std::runtime_error {"exception thrown"};
-		}
+		for (int i = 0; i < length; i ++) {
+			char c = str[i];
 
-		if (offset != length - (base != 10 ? 2 : 0)) {
-			throw std::runtime_error {"some input ignored"};
+			if (c == '\'' || c == '_') {
+				continue;
+			}
+
+			int next = digit_value(c);
+
+			if (next >= base) {
+				throw std::runtime_error {"invalid number format"};
+			}
+
+			value = (value * base) + next;
 		}
 
 		return value;

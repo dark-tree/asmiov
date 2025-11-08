@@ -23,8 +23,34 @@ namespace asmio {
 
 	}
 
+	ExecutableBuffer::ExecutableBuffer(ExecutableBuffer&& other) noexcept {
+		labels = std::move(other.labels);
+
+		std::swap(buffer, other.buffer);
+		std::swap(length, other.length);
+	}
+
+	ExecutableBuffer::ExecutableBuffer(const ExecutableBuffer& other) {
+		labels = other.labels;
+		buffer = (uint8_t*) mmap(nullptr, other.length, PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+		length = other.length;
+	}
+
 	ExecutableBuffer::~ExecutableBuffer() {
-		munmap(buffer, length);
+		if (buffer != nullptr) {
+			munmap(buffer, length);
+		}
+
+		buffer = nullptr;
+		length = 0;
+	}
+
+	ExecutableBuffer& ExecutableBuffer::operator=(ExecutableBuffer&& other) noexcept {
+		labels = std::move(other.labels);
+
+		std::swap(buffer, other.buffer);
+		std::swap(length, other.length);
+		return *this;
 	}
 
 	void ExecutableBuffer::bake(SegmentedBuffer& segmented) {

@@ -18,13 +18,19 @@ namespace asmio {
 		private:
 
 			LabelMap<size_t> labels;
-			uint8_t* buffer;
-			size_t length;
+			uint8_t* buffer = nullptr;
+			size_t length = 0;
 
 		public:
 
+			ExecutableBuffer() = default;
 			explicit ExecutableBuffer(size_t total);
+
+			ExecutableBuffer(ExecutableBuffer&& other) noexcept;
+			explicit ExecutableBuffer(const ExecutableBuffer& other);
 			~ExecutableBuffer();
+
+			ExecutableBuffer& operator =(ExecutableBuffer&& other) noexcept;
 
 			/// Copy data from segmented buffer and configure memory protection
 			void bake(SegmentedBuffer& segmented);

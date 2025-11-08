@@ -3047,5 +3047,38 @@ TEST (tasml_exec_strlen_linux_syscall) {
 
 	}
 
+	TEST (exec_move_constructor) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("get_42");
+		writer.put_mov(RAX, 42);
+		writer.put_ret();
+
+		writer.label("get_37");
+		writer.put_mov(RAX, 37);
+		writer.put_ret();
+
+		ExecutableBuffer buffer;
+		int size;
+
+		{
+			buffer = to_executable(segmented);
+			CHECK(buffer.call_i64("get_42"), 42);
+			CHECK(buffer.call_i64("get_37"), 37);
+
+			size = buffer.size();
+		}
+
+		ExecutableBuffer moved = std::move(buffer);
+		CHECK(moved.call_i64("get_42"), 42);
+		CHECK(moved.call_i64("get_37"), 37);
+
+		CHECK(buffer.size(), 0);
+		CHECK(moved.size(), size);
+
+	}
+
 #endif
 ;}

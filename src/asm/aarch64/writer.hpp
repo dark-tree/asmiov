@@ -111,6 +111,9 @@ namespace asmio::arm {
 			/// Encode "UMULH/SMULH" operation
 			void put_inst_mulh(Registry dst, Registry a, Registry b, bool is_unsigned);
 
+			/// Encode "UDIV/UDIV" operation
+			void put_inst_div(Registry dst, Registry a, Registry b, bool is_unsigned);
+
 		public:
 
 			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
@@ -164,6 +167,8 @@ namespace asmio::arm {
 			INST put_umul(Registry dst, Registry a, Registry b);           /// Unsigned multiply 32 bit registers
 			INST put_smulh(Registry dst, Registry a, Registry b);          /// Signed multiply high
 			INST put_umulh(Registry dst, Registry a, Registry b);          /// Unsigned multiply high
+			INST put_sdiv(Registry dst, Registry a, Registry b);           /// Signed Divide
+			INST put_udiv(Registry dst, Registry a, Registry b);           /// Unsigned Divide
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

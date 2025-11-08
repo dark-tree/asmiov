@@ -234,4 +234,12 @@ namespace asmio::arm {
 		put_inst_mulh(dst, a, b, true);
 	}
 
+	void BufferWriter::put_sdiv(Registry dst, Registry a, Registry b) {
+		put_inst_div(dst, a, b, false);
+	}
+
+	void BufferWriter::put_udiv(Registry dst, Registry a, Registry b) {
+		put_inst_div(dst, a, b, true);
+	}
+
 }

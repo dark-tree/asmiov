@@ -987,6 +987,48 @@ namespace test::arm {
 
 	};
 
+	TEST (tasml_exec_udiv) {
+
+		std::string code = R"(
+			lang aarch64
+
+			section rx
+			l_div:
+				mov x1, 507
+				mov x2, 12
+				udiv x0, x1, x2
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+
+		uint64_t r0 = to_executable(buffer).call_i64("l_div");
+		CHECK(r0, 42);
+
+	};
+
+	TEST (tasml_exec_sdiv) {
+
+		std::string code = R"(
+			lang aarch64
+
+			section rx
+			l_div:
+				mov x1, 507
+				mov x2, -12
+				sdiv x0, x1, x2
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+
+		uint64_t r0 = to_executable(buffer).call_i64("l_div");
+		CHECK(r0, -42);
+
+	};
+
 #endif
 
 }

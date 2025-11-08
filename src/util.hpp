@@ -159,6 +159,14 @@ namespace asmio::util {
 
 		int base = 10;
 		int length = strlen(str);
+		int64_t sign = 1;
+
+		if (str[0] == '+') {
+			str ++;
+		} else if (str[0] == '-') {
+			str ++;
+			sign = -1;
+		}
 
 		if (length > 2 && str[0] == '0') {
 			if (str[1] == 'x') { str += 2; base = 16; }
@@ -186,7 +194,7 @@ namespace asmio::util {
 			value = (value * base) + next;
 		}
 
-		return value;
+		return value * sign;
 
 	}
 

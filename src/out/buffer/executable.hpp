@@ -13,6 +13,9 @@ namespace asmio {
 	template <typename T>
 	concept trivially_copyable = std::is_trivially_copyable_v<T>;
 
+	template <typename T>
+	concept integral_or_void = std::is_integral_v<T> || std::is_void_v<T>;
+
 	class ExecutableBuffer {
 
 		private:
@@ -46,7 +49,7 @@ namespace asmio {
 
 		public:
 
-			template <std::integral R, trivially_copyable... Args>
+			template <integral_or_void R, trivially_copyable... Args>
 			R scall(const Label& label, Args... args) {
 				const uint64_t offset = labels.at(label);
 
@@ -66,7 +69,11 @@ namespace asmio {
 					next += element;
 				}
 
-				TAIL_CALL(offset, R, "=r", params);
+				if constexpr (std::is_void_v<R>) {
+					CALL_POINTER(offset, void, params);
+				} else {
+					TAIL_CALL(offset, R, "=r", params);
+				}
 			}
 
 			/*

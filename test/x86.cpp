@@ -3063,6 +3063,25 @@ TEST (tasml_exec_strlen_linux_syscall) {
 
 	}
 
+	TEST (exec_scall_void) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("main");
+		writer.put_mov(RBX, ref<QWORD>(RAX));
+		writer.put_mov(ref<QWORD>(RBX), 42);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+
+		uint64_t value = 0;
+		buffer.scall<void>("main", &value);
+
+		CHECK(value, 42);
+
+	}
+
 	TEST (exec_move_constructor) {
 
 		SegmentedBuffer segmented;

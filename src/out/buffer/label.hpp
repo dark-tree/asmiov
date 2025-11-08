@@ -62,7 +62,18 @@ namespace asmio {
 				}
 
 				length = strlen(str);
-				hash = util::hash_djb2(str);
+				hash = util::hash_djb2(str, length);
+
+				if (length == 0) {
+					throw std::runtime_error {"Label text can't be empty!"};
+				}
+			}
+
+			constexpr Label(const std::string_view& view)
+			: allocated(false) {
+				str = view.data();
+				length = view.length();
+				hash = util::hash_djb2(str, length);
 
 				if (length == 0) {
 					throw std::runtime_error {"Label text can't be empty!"};

@@ -123,11 +123,11 @@ namespace asmio::util {
 		return stream.str();
 	}
 
-	constexpr uint64_t hash_djb2(const char *str) {
+	constexpr uint64_t hash_djb2(const char* str, size_t bytes) {
 		uint64_t hash = 5381;
 
-		for (int c; (c = *str) != 0; str++) {
-			hash = (hash << 5) + hash * 33 + c;
+		for (size_t i = 0; i < bytes; i ++) {
+			hash = (hash << 5) + hash * 33 + str[i];
 		}
 
 		return hash;

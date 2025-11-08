@@ -15,7 +15,7 @@ namespace asmio {
 		allocated = true;
 		ptr = malloc(str.length());
 		length = str.length();
-		hash = util::hash_djb2(str.c_str());
+		hash = util::hash_djb2(str.c_str(), length);
 		memcpy(ptr, str.c_str(), length);
 	}
 

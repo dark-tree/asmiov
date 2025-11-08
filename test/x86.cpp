@@ -84,6 +84,22 @@ TEST (min_extended_integer_bytes) {
 
 }
 
+	TEST (label_string_view) {
+
+		std::string base = "aaabbb";
+		std::string_view view = base;
+
+		std::string_view view_a = view.substr(0, 3);
+		std::string_view view_b = view.substr(3, 3);
+
+		Label label_a {"aaa"};
+		Label label_b {"bbb"};
+
+		CHECK(label_a, Label(view_a));
+		CHECK(label_b, Label(view_b));
+
+	}
+
 TEST (writer_check_push) {
 
 	SegmentedBuffer buffer;

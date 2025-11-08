@@ -1029,6 +1029,24 @@ namespace test::arm {
 
 	};
 
+	TEST (exec_scall_simple_add) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("simple_add");
+		writer.put_ldr(X1, X0, 0, Sizing::UX);
+		writer.put_ldr(X2, X0, 8, Sizing::UX);
+		writer.put_add(X0, X1, X2);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.scall<int64_t>("simple_add", (int64_t) 11, (int64_t) 133), 144);
+		CHECK(buffer.scall<int64_t>("simple_add", (int64_t) 100, (int64_t) 1), 101);
+		CHECK(buffer.scall<int64_t>("simple_add", 0x1000'0000'0000'0000, 0x1000'0000'0000'0000), 0x2000'0000'0000'0000);
+
+	};
+
 #endif
 
 }

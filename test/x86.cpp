@@ -3017,21 +3017,35 @@ TEST (tasml_exec_strlen_linux_syscall) {
 				mov rcx, 5
 				rep stosb
 				ret
-
-			get_ptr:
-				lea rax, @text
-				ret
 		)";
 
 		SegmentedBuffer segmented = tasml::assemble(vstl_self.name, code);
 		ExecutableBuffer buffer = to_executable(segmented);
 
 		buffer.call_i64("_start");
-		const char* ptr = (const char*) buffer.call_i64("get_ptr");
+		const char* ptr = (const char*) buffer.address("text");
 
 		ASSERT(strcmp(ptr, "AAAAA!") == 0);
 
 	};
+
+	TEST (exec_scall_simple_add) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("simple_add");
+		writer.put_mov(RBX, ref(RAX));
+		writer.put_add(RBX, ref(RAX + 8));
+		writer.put_mov(RAX, RBX);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.scall<int64_t>("simple_add", (int64_t) 11, (int64_t) 133), 144);
+		CHECK(buffer.scall<int64_t>("simple_add", (int64_t) 100, (int64_t) 1), 101);
+		CHECK(buffer.scall<int64_t>("simple_add", 0x1000'0000'0000'0000, 0x1000'0000'0000'0000), 0x2000'0000'0000'0000);
+
+	}
 
 #endif
 ;}

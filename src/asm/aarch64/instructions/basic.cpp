@@ -254,4 +254,27 @@ namespace asmio::arm {
 		put_inst_rev(dst, src, 0b11);
 	}
 
+	void BufferWriter::put_ror(Registry dst, Registry src, Registry bits) {
+		assert_register_triplet(dst, src, bits);
+
+		uint16_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b0011010110 << 21 | bits.reg << 16 | 0b0010'11 << 10 | src.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_ror(Registry dst, Registry src, uint8_t imm5) {
+		put_extr(dst, src, src, imm5);
+	}
+
+	void BufferWriter::put_extr(Registry dst, Registry low, Registry high, uint8_t imm5) {
+		assert_register_triplet(dst, low, high);
+		const uint8_t max_shift = dst.wide() ? 63 : 31;
+
+		if (imm5 > max_shift) {
+			throw std::runtime_error {"Invalid operands, shift value too large for this context"};
+		}
+
+		const uint16_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b00100111 << 23 | sf << 22 | low.reg << 16 | imm5 << 10 | high.reg << 5 | dst.reg);
+	}
+
 }

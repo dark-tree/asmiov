@@ -175,6 +175,9 @@ namespace asmio::arm {
 			INST put_rev16(Registry dst, Registry src);                    /// Reverse bytes in 16-bit words
 			INST put_rev32(Registry dst, Registry src);                    /// Reverse bytes in 32-bit dwords
 			INST put_rev64(Registry dst, Registry src);                    /// Reverse bytes in 64-bit qwords
+			INST put_ror(Registry dst, Registry src, Registry bits);       /// Rotate Right by register
+			INST put_ror(Registry dst, Registry src, uint8_t imm);         /// Rotate Right by immediate
+			INST put_extr(Registry dst, Registry left, Registry right, uint8_t imm5); /// Extract register
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

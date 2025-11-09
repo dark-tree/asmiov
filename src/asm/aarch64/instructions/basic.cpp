@@ -242,4 +242,16 @@ namespace asmio::arm {
 		put_inst_div(dst, a, b, true);
 	}
 
+	void BufferWriter::put_rev16(Registry dst, Registry src) {
+		put_inst_rev(dst, src, 0b01);
+	}
+
+	void BufferWriter::put_rev32(Registry dst, Registry src) {
+		put_inst_rev(dst, src, 0b10);
+	}
+
+	void BufferWriter::put_rev64(Registry dst, Registry src) {
+		put_inst_rev(dst, src, 0b11);
+	}
+
 }

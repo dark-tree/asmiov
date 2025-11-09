@@ -1045,6 +1045,48 @@ namespace test::arm {
 		CHECK(buffer.scall<int64_t>("simple_add", (int64_t) 100, (int64_t) 1), 101);
 		CHECK(buffer.scall<int64_t>("simple_add", 0x1000'0000'0000'0000, 0x1000'0000'0000'0000), 0x2000'0000'0000'0000);
 
+	}
+
+	TEST (writer_exec_rev16) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD11CC22);
+		writer.put_rev16(X0, X1);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0x00FF00EE'11DD22CC);
+
+	}
+
+	TEST (writer_exec_rev32) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD11CC22);
+		writer.put_rev32(X0, X1);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0x00EE00FF'22CC11DD);
+
+	}
+
+	TEST (writer_exec_rev64) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD11CC22);
+		writer.put_rev64(X0, X1);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0x22CC11DD'00EE00FF);
+
 	};
 
 #endif

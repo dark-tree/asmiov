@@ -365,6 +365,22 @@ namespace asmio::arm {
 		put_dword(sf << 31 | 0b0011010110 << 21 | b.reg << 16 | 0b00001 << 11 | uf << 10 | a.reg << 5 | dst.reg);
 	}
 
+	void BufferWriter::put_inst_rev(Registry dst, Registry src, uint16_t size_opc_10) {
+
+		if (size_opc_10 == 0b01) {
+			if (dst.wide() != src.wide()) {
+				throw std::runtime_error {"Invalid operands, input and output registers needs to be of the same size"};
+			}
+		} else {
+			if (!dst.wide() || !src.wide()) {
+				throw std::runtime_error {"Invalid operands, expected QWORD registers"};
+			}
+		}
+
+		uint32_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b1011010110 << 21 | size_opc_10 << 10 | src.reg << 5 | dst.reg);
+	}
+
 	void BufferWriter::put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		assert_register_triplet(a, b, destination);
 

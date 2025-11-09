@@ -117,6 +117,9 @@ namespace asmio::arm {
 			/// Encode "REV16/REV32/REV64" operation
 			void put_inst_rev(Registry dst, Registry src, uint16_t size_opc_10);
 
+			/// Encode "LSL/LSR/ROR" operation
+			void put_inst_shift_v(Registry dst, Registry src, Registry bits, ShiftType shift);
+
 		public:
 
 			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
@@ -176,6 +179,10 @@ namespace asmio::arm {
 			INST put_rev32(Registry dst, Registry src);                    /// Reverse bytes in 32-bit dwords
 			INST put_rev64(Registry dst, Registry src);                    /// Reverse bytes in 64-bit qwords
 			INST put_ror(Registry dst, Registry src, Registry bits);       /// Rotate Right by register
+			INST put_lsr(Registry dst, Registry src, Registry bits);       /// Logical Shift Right by register
+			INST put_lsl(Registry dst, Registry src, Registry bits);       /// Logical Shift Left by register
+			INST put_asr(Registry dst, Registry src, Registry bits);       /// Arithmetic Shift Right by register
+			INST put_asl(Registry dst, Registry src, Registry bits);       /// Arithmetic Shift Left by register
 			INST put_ror(Registry dst, Registry src, uint8_t imm);         /// Rotate Right by immediate
 			INST put_extr(Registry dst, Registry left, Registry right, uint8_t imm5); /// Extract register
 

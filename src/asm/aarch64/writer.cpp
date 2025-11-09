@@ -381,6 +381,13 @@ namespace asmio::arm {
 		put_dword(sf << 31 | 0b1011010110 << 21 | size_opc_10 << 10 | src.reg << 5 | dst.reg);
 	}
 
+	void BufferWriter::put_inst_shift_v(Registry dst, Registry src, Registry bits, ShiftType shift) {
+		assert_register_triplet(dst, src, bits);
+
+		uint16_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b0011010110 << 21 | bits.reg << 16 | 0b0010 << 12 | uint32_t(shift) << 10 | src.reg << 5 | dst.reg);
+	}
+
 	void BufferWriter::put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		assert_register_triplet(a, b, destination);
 

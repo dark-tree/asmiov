@@ -255,10 +255,23 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_ror(Registry dst, Registry src, Registry bits) {
-		assert_register_triplet(dst, src, bits);
+		put_inst_shift_v(dst, src, bits, ShiftType::ROR);
+	}
 
-		uint16_t sf = dst.wide() ? 1 : 0;
-		put_dword(sf << 31 | 0b0011010110 << 21 | bits.reg << 16 | 0b0010'11 << 10 | src.reg << 5 | dst.reg);
+	void BufferWriter::put_lsr(Registry dst, Registry src, Registry bits) {
+		put_inst_shift_v(dst, src, bits, ShiftType::LSR);
+	}
+
+	void BufferWriter::put_lsl(Registry dst, Registry src, Registry bits) {
+		put_inst_shift_v(dst, src, bits, ShiftType::LSL);
+	}
+
+	void BufferWriter::put_asr(Registry dst, Registry src, Registry bits) {
+		put_inst_shift_v(dst, src, bits, ShiftType::ASR);
+	}
+
+	void BufferWriter::put_asl(Registry dst, Registry src, Registry bits) {
+		put_lsl(dst, src, bits);
 	}
 
 	void BufferWriter::put_ror(Registry dst, Registry src, uint8_t imm5) {

@@ -89,10 +89,6 @@ namespace asmio::arm {
 		put_inst_orr(dst, src, dst.wide() ? XZR : WZR);
 	}
 
-	void BufferWriter::put_nop() {
-		put_dword(0b1101010100'0'00'011'0010'0000'000'11111);
-	}
-
 	void BufferWriter::put_ret() {
 		put_ret(LR);
 	}
@@ -288,6 +284,54 @@ namespace asmio::arm {
 
 		const uint16_t sf = dst.wide() ? 1 : 0;
 		put_dword(sf << 31 | 0b00100111 << 23 | sf << 22 | low.reg << 16 | imm5 << 10 | high.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_hint(uint8_t imm7) {
+		put_dword(0b1101010100'0'00'011'0010 << 12 | (0b1111'111 & imm7) << 5 | 0b11111);
+	}
+
+	void BufferWriter::put_hlt(uint16_t imm) {
+		put_dword(0b11010100'010 << 21 | imm << 5 | 0b000'00);
+	}
+
+	void BufferWriter::put_hvc(uint16_t imm) {
+		put_dword(0b11010100'000 << 21 | imm << 5 | 0b000'10);
+	}
+
+	void BufferWriter::put_isb() {
+		put_dword(0b1101010100'0'00'011'0011 << 12 | 0b1111 << 8 | 0b1'10'11111);
+	}
+
+	void BufferWriter::put_nop() {
+		put_hint(0b0000'000);
+	}
+
+	void BufferWriter::put_yield() {
+		put_hint(0b0000'001);
+	}
+
+	void BufferWriter::put_wfe() {
+		put_hint(0b0000'010);
+	}
+
+	void BufferWriter::put_wfi() {
+		put_hint(0b0000'011);
+	}
+
+	void BufferWriter::put_sev() {
+		put_hint(0b0000'100);
+	}
+
+	void BufferWriter::put_sevl() {
+		put_hint(0b0000'101);
+	}
+
+	void BufferWriter::put_esb() {
+		put_hint(0b0010'000);
+	}
+
+	void BufferWriter::put_psb() {
+		put_hint(0b0010'001);
 	}
 
 }

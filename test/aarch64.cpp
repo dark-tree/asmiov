@@ -125,7 +125,25 @@ namespace test::arm {
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
 
+		writer.put_hint(0); // nop
 		writer.put_nop();
+		writer.put_ret();
+
+		to_executable(segmented).call_u64();
+
+	};
+
+	TEST (writer_exec_hint) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// none of those should cause problems
+		writer.put_yield();
+		writer.put_wfi();
+		writer.put_wfe();
+		writer.put_sev();
+		writer.put_sevl();
 		writer.put_ret();
 
 		to_executable(segmented).call_u64();

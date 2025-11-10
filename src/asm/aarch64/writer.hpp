@@ -143,7 +143,6 @@ namespace asmio::arm {
 			INST put_movn(Registry dst, uint16_t imm, uint16_t shift = 0); /// Move shifted WORD into register, zero other bits, then NOT the register
 			INST put_mov(Registry dst, uint64_t imm);                      /// Move immediate into register
 			INST put_mov(Registry dst, Registry src);                      /// Move value between registers
-			INST put_nop();                                                /// No operation
 			INST put_ret();                                                /// Return from procedure using link register
 			INST put_brk(uint16_t imm);                                    /// Generates a Breakpoint Instruction exception
 			INST put_ret(Registry src);                                    /// Return from procedure
@@ -185,6 +184,18 @@ namespace asmio::arm {
 			INST put_asl(Registry dst, Registry src, Registry bits);       /// Arithmetic Shift Left by register
 			INST put_ror(Registry dst, Registry src, uint8_t imm);         /// Rotate Right by immediate
 			INST put_extr(Registry dst, Registry left, Registry right, uint8_t imm5); /// Extract register
+			INST put_hint(uint8_t imm7);                                   /// Architectural hint
+			INST put_hlt(uint16_t imm);                                    /// Halt
+			INST put_hvc(uint16_t imm);                                    /// Hypervisor Call
+			INST put_isb();                                                /// Instruction Synchronization Barrier
+			INST put_nop();                                                /// No operation
+			INST put_yield();                                              /// Indicate spin-lock
+			INST put_wfe();                                                /// Wait For Event
+			INST put_wfi();                                                /// Wait For Interrupt
+			INST put_sev();                                                /// Send Event
+			INST put_sevl();                                               /// Send Event Local
+			INST put_esb();                                                /// Error Synchronization Barrier
+			INST put_psb();                                                /// Profiling Synchronization Barrier.
 
 			// branch
 			INST put_b(Label label);                                       /// Branch

@@ -1166,6 +1166,38 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_csel) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("first");
+		writer.put_mov(X0, 0);
+		writer.put_mov(X1, 32);
+		writer.put_mov(X2, 21);
+		writer.put_b("tail");
+
+		writer.label("second");
+		writer.put_mov(X0, 0);
+		writer.put_mov(X1, 11);
+		writer.put_mov(X2, 37);
+		writer.put_b("tail");
+
+		writer.put_ret();
+
+		writer.label("tail");
+		writer.put_mov(X0, 0);
+		writer.put_cmp(X1, X2);
+		writer.put_csel(Condition::GT, X0, X1, X2);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+
+		CHECK(exec.call_i64("first"), 32);
+		CHECK(exec.call_i64("second"), 37);
+
+	};
+
 #endif
 
 }

@@ -184,6 +184,7 @@ namespace asmio::arm {
 			INST put_asl(Registry dst, Registry src, Registry bits);       /// Arithmetic Shift Left by register
 			INST put_ror(Registry dst, Registry src, uint8_t imm);         /// Rotate Right by immediate
 			INST put_extr(Registry dst, Registry left, Registry right, uint8_t imm5); /// Extract register
+			INST put_csel(Condition condition, Registry dst, Registry truthy, Registry falsy); /// Conditional Select
 			INST put_hint(uint8_t imm7);                                   /// Architectural hint
 			INST put_hlt(uint16_t imm);                                    /// Halt
 			INST put_hvc(uint16_t imm);                                    /// Hypervisor Call

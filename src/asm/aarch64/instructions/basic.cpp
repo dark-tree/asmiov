@@ -286,6 +286,13 @@ namespace asmio::arm {
 		put_dword(sf << 31 | 0b00100111 << 23 | sf << 22 | low.reg << 16 | imm5 << 10 | high.reg << 5 | dst.reg);
 	}
 
+	void BufferWriter::put_csel(Condition condition, Registry dst, Registry truthy, Registry falsy) {
+		assert_register_triplet(dst, truthy, falsy);
+
+		const uint16_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b00'11010100 << 21 | falsy.reg << 16 | uint32_t(condition) << 12 | truthy.reg << 5 | dst.reg);
+	}
+
 	void BufferWriter::put_hint(uint8_t imm7) {
 		put_dword(0b1101010100'0'00'011'0010 << 12 | (0b1111'111 & imm7) << 5 | 0b11111);
 	}

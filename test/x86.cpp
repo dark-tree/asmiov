@@ -990,6 +990,74 @@ TEST(writer_exec_and_not_xor_or) {
 
 }
 
+TEST (writer_exec_and_immediate) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.put_mov(RCX, 0xFFFF'FFFF'FFFF'FFFF);
+	writer.put_and(CL, 0b00001111);
+	writer.put_mov(RAX, RCX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = to_executable(segmented);
+	uint64_t rax = buffer.call_i64();
+
+	CHECK(rax, 0xFFFF'FFFF'FFFF'FF0F);
+
+}
+
+TEST (writer_exec_xor_immediate) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.put_mov(RCX, 0xFFFF'FFFF'FFFF'FFFF);
+	writer.put_xor(CL, 0b00001111);
+	writer.put_mov(RAX, RCX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = to_executable(segmented);
+	uint64_t rax = buffer.call_i64();
+
+	CHECK(rax, 0xFFFF'FFFF'FFFF'FFF0);
+
+}
+
+TEST (writer_exec_and_r8_immediate) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.put_mov(R8, 0xFFFF'FFFF'FFFF'FFFF);
+	writer.put_and(R8L, 0b00001111);
+	writer.put_mov(RAX, R8);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = to_executable(segmented);
+	uint64_t rax = buffer.call_i64();
+
+	CHECK(rax, 0xFFFF'FFFF'FFFF'FF0F);
+
+}
+
+TEST (writer_exec_xor_rax_immediate) {
+
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
+
+	writer.put_mov(RCX, 0xFFFF'FFFF'FFFF'FFFF);
+	writer.put_and(RCX, 0b00001111);
+	writer.put_mov(RAX, RCX);
+	writer.put_ret();
+
+	ExecutableBuffer buffer = to_executable(segmented);
+	uint64_t rax = buffer.call_i64();
+
+	CHECK(rax, 0xF);
+
+}
+
 TEST(writer_exec_bts_btr_btc) {
 
 	SegmentedBuffer segmented;

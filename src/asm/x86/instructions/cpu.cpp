@@ -378,7 +378,7 @@ namespace asmio::x86 {
 
 	/// Binary And
 	void BufferWriter::put_and(Location dst, Location src) {
-		put_inst_tuple(dst, src, 0b001000, 0b110);
+		put_inst_tuple(dst, src, 0b001000, 0b100);
 	}
 
 	/// Binary Or
@@ -388,7 +388,7 @@ namespace asmio::x86 {
 
 	/// Binary Xor
 	void BufferWriter::put_xor(Location dst, Location src) {
-		put_inst_tuple(dst, src, 0b001100, 0b010);
+		put_inst_tuple(dst, src, 0b001100, 0b110);
 	}
 
 	/// Bit Test

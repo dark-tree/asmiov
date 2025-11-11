@@ -344,6 +344,10 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operands, expected dword multiplication registers"};
 		}
 
+		if (!dst.is(Registry::GENERAL) || !a.is(Registry::GENERAL) || !b.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
 		uint64_t uf = is_unsigned ? 1 : 0;
 		put_dword(0b10011011 << 24 | uf << 23 | 0b01 << 21 | b.reg << 16 | addend.reg << 10 | a.reg << 5 | dst.reg);
 	}
@@ -353,6 +357,10 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operands, expected qword registers"};
 		}
 
+		if (!dst.is(Registry::GENERAL) || !a.is(Registry::GENERAL) || !b.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
 		uint64_t uf = is_unsigned ? 1 : 0;
 		put_dword(0b10011011 << 24 | uf << 23 | 0b10 << 21 | a.reg << 16 | 0b11111 << 10 | b.reg << 5 | dst.reg);
 	}
@@ -360,12 +368,20 @@ namespace asmio::arm {
 	void BufferWriter::put_inst_div(Registry dst, Registry a, Registry b, bool is_unsigned) {
 		assert_register_triplet(a, b, dst);
 
+		if (!dst.is(Registry::GENERAL) || !a.is(Registry::GENERAL) || !b.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
 		uint32_t sf = dst.wide() ? 1 : 0;
 		uint64_t uf = is_unsigned ? 0 : 1;
 		put_dword(sf << 31 | 0b0011010110 << 21 | b.reg << 16 | 0b00001 << 11 | uf << 10 | a.reg << 5 | dst.reg);
 	}
 
 	void BufferWriter::put_inst_rev(Registry dst, Registry src, uint16_t size_opc_10) {
+
+		if (!dst.is(Registry::GENERAL) || !src.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
 
 		if (size_opc_10 == 0b01) {
 			if (dst.wide() != src.wide()) {
@@ -384,12 +400,20 @@ namespace asmio::arm {
 	void BufferWriter::put_inst_shift_v(Registry dst, Registry src, Registry bits, ShiftType shift) {
 		assert_register_triplet(dst, src, bits);
 
+		if (!dst.is(Registry::GENERAL) || !src.is(Registry::GENERAL) || !bits.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
 		uint16_t sf = dst.wide() ? 1 : 0;
 		put_dword(sf << 31 | 0b0011010110 << 21 | bits.reg << 16 | 0b0010 << 12 | uint32_t(shift) << 10 | src.reg << 5 | dst.reg);
 	}
 
 	void BufferWriter::put_inst_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy, bool increment_truth) {
 		assert_register_triplet(dst, truthy, falsy);
+
+		if (!dst.is(Registry::GENERAL) || !truthy.is(Registry::GENERAL) || !falsy.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
 
 		const uint16_t sf = dst.wide() ? 1 : 0;
 		put_dword(sf << 31 | 0b00'11010100 << 21 | falsy.reg << 16 | uint32_t(condition) << 12 | increment_truth << 10 | truthy.reg << 5 | dst.reg);

@@ -25,10 +25,7 @@ namespace asmio::arm {
 			constexpr Registry(uint8_t size, uint8_t reg, uint8_t flag)
 			: size(size), flag(flag), reg(reg) {}
 
-		private:
-
 		public:
-
 
 			/// Check if the register has a given flag
 			constexpr bool is(Flag mask) const {

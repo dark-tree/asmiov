@@ -17,6 +17,10 @@ namespace asmio::arm {
 		AL = 0b1110, NV = 0b1111,
 	};
 
+	/**
+	 * Invert the condition as if it had been negated,
+	 * always true condition can't be inverted as AArch64 dropped support for the 'never' condition code.
+	 */
 	constexpr Condition invert(Condition condition) {
 		if (condition == Condition::AL) throw std::runtime_error {"The 'always' condition can't be inverted, as there is no 'never' condition!"};
 		return (Condition) (uint32_t(condition) ^ 1);

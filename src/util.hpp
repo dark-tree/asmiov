@@ -55,7 +55,7 @@ namespace asmio::util {
 	}
 
 	inline std::string to_lower(std::string s) {
-		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
+		std::ranges::transform(s, s.begin(), [] (const int c) noexcept -> int { return std::tolower(c); });
 		return s;
 	}
 
@@ -71,7 +71,7 @@ namespace asmio::util {
 	 * Check how many bits can be truncated from a signed number before
 	 * it changed its value, assuming one bit is needed for the sign.
 	 */
-	constexpr int count_redundant_sign_bits(int64_t value) {
+	constexpr int count_redundant_sign_bits(const int64_t value) {
 		return __builtin_clzll(value >= 0 ? value : ~value) - 1;
 	}
 
@@ -158,7 +158,7 @@ namespace asmio::util {
 	inline int64_t parse_int(const char* str) {
 
 		int base = 10;
-		int length = strlen(str);
+		size_t length = strlen(str);
 		int64_t sign = 1;
 
 		if (str[0] == '+') {
@@ -178,7 +178,7 @@ namespace asmio::util {
 		length = strlen(str);
 		int64_t value = 0;
 
-		for (int i = 0; i < length; i ++) {
+		for (size_t i = 0; i < length; i ++) {
 			char c = str[i];
 
 			if (c == '\'' || c == '_') {

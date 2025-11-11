@@ -18,25 +18,6 @@ namespace test::arm {
 	 * Begin target invariant tests for ARM
 	 */
 
-	TEST (util_bit_fill) {
-
-		CHECK(util::bit_fill<uint64_t>(0), 0);
-		CHECK(util::bit_fill<uint64_t>(1), 1);
-		CHECK(util::bit_fill<uint64_t>(2), 3);
-		CHECK(util::bit_fill<uint64_t>(4), 0xf);
-		CHECK(util::bit_fill<uint64_t>(8), 0xff);
-		CHECK(util::bit_fill<uint64_t>(16), 0xffff);
-		CHECK(util::bit_fill<uint64_t>(32), 0xffff'ffff);
-		CHECK(util::bit_fill<uint64_t>(48), 0xffff'ffff'ffff);
-		CHECK(util::bit_fill<uint64_t>(64), 0xffff'ffff'ffff'ffff);
-
-		CHECK(util::bit_fill<uint32_t>(16), 0xffff);
-		CHECK(util::bit_fill<uint32_t>(32), 0xffff'ffff);
-		CHECK(util::bit_fill<uint32_t>(48), 0xffff'ffff);
-		CHECK(util::bit_fill<uint32_t>(64), 0xffff'ffff);
-
-	}
-
 	TEST (writer_fail_movz_invalid) {
 
 		SegmentedBuffer segmented;

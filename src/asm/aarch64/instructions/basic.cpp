@@ -86,6 +86,18 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_mov(Registry dst, Registry src) {
+
+		if (src.is(Registry::STACK) || dst.is(Registry::STACK)) {
+
+			// when dealing with SP zero can't be used
+			if (src.is(Registry::ZERO) || dst.is(Registry::ZERO)) {
+				throw std::runtime_error {"Invalid operands, zero registry can't be used int this context"};
+			}
+
+			put_add(dst, src, XZR);
+			return;
+		}
+
 		put_inst_orr(dst, src, dst.wide() ? XZR : WZR);
 	}
 

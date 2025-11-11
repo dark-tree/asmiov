@@ -120,6 +120,9 @@ namespace asmio::arm {
 			/// Encode "LSL/LSR/ROR" operation
 			void put_inst_shift_v(Registry dst, Registry src, Registry bits, ShiftType shift);
 
+			/// Encode "CSINC/CSEL/CSET/CINC" operation
+			void put_inst_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy, bool increment_truth);
+
 		public:
 
 			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
@@ -185,6 +188,10 @@ namespace asmio::arm {
 			INST put_ror(Registry dst, Registry src, uint8_t imm);         /// Rotate Right by immediate
 			INST put_extr(Registry dst, Registry left, Registry right, uint8_t imm5); /// Extract register
 			INST put_csel(Condition condition, Registry dst, Registry truthy, Registry falsy); /// Conditional Select
+			INST put_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy); /// Conditional Select and Increment if false
+			INST put_cinc(Condition condition, Registry dst, Registry src);/// Conditional Increment if true
+			INST put_cinc(Condition condition, Registry dst);              /// Conditional Increment if true
+			INST put_cset(Condition condition, Registry dst);              /// Conditional Set if true
 			INST put_hint(uint8_t imm7);                                   /// Architectural hint
 			INST put_hlt(uint16_t imm);                                    /// Halt
 			INST put_hvc(uint16_t imm);                                    /// Hypervisor Call

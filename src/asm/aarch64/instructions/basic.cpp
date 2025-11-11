@@ -287,10 +287,23 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_csel(Condition condition, Registry dst, Registry truthy, Registry falsy) {
-		assert_register_triplet(dst, truthy, falsy);
+		put_inst_csinc(condition, dst, truthy, falsy, false);
+	}
 
-		const uint16_t sf = dst.wide() ? 1 : 0;
-		put_dword(sf << 31 | 0b00'11010100 << 21 | falsy.reg << 16 | uint32_t(condition) << 12 | truthy.reg << 5 | dst.reg);
+	void BufferWriter::put_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy) {
+		put_inst_csinc(condition, dst, truthy, falsy, true);
+	}
+
+	void BufferWriter::put_cinc(Condition condition, Registry dst, Registry src) {
+		put_csinc(invert(condition), dst, src, src);
+	}
+
+	void BufferWriter::put_cinc(Condition condition, Registry dst) {
+		put_csinc(invert(condition), dst, dst, dst);
+	}
+
+	void BufferWriter::put_cset(Condition condition, Registry dst) {
+		put_cinc(condition, dst, dst.wide() ? XZR : WZR);
 	}
 
 	void BufferWriter::put_hint(uint8_t imm7) {

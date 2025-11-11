@@ -1198,6 +1198,64 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_cinc) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("first");
+		writer.put_mov(X0, 7);
+		writer.put_mov(X1, 100);
+		writer.put_mov(X2, 200);
+		writer.put_b("tail");
+
+		writer.label("second");
+		writer.put_mov(X0, 7);
+		writer.put_mov(X1, 200);
+		writer.put_mov(X2, 100);
+		writer.put_b("tail");
+
+		writer.label("tail");
+		writer.put_cmp(X1, X2);
+		writer.put_cinc(Condition::GT, X0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+
+		CHECK(exec.call_i64("first"), 7);
+		CHECK(exec.call_i64("second"), 8);
+
+	};
+
+	TEST (writer_exec_cset) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("first");
+		writer.put_mov(X0, 7);
+		writer.put_mov(X1, 100);
+		writer.put_mov(X2, 200);
+		writer.put_b("tail");
+
+		writer.label("second");
+		writer.put_mov(X0, 7);
+		writer.put_mov(X1, 200);
+		writer.put_mov(X2, 100);
+		writer.put_b("tail");
+
+		writer.label("tail");
+		writer.put_cmp(X1, X2);
+		writer.put_cset(Condition::GT, X0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+
+		CHECK(exec.call_i64("first"), 0);
+		CHECK(exec.call_i64("second"), 1);
+
+	};
+
 #endif
 
 }

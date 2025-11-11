@@ -97,7 +97,7 @@ namespace asmio::util {
 			return std::numeric_limits<T>::max();
 		}
 
-		return (1 << count) - 1;
+		return (1UL << count) - 1UL;
 	}
 
 	constexpr int min_sign_extended_bytes(int64_t value) {

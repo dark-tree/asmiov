@@ -210,15 +210,15 @@ namespace asmio::arm {
 			INST put_psb();                                                ///< Profiling Synchronization Barrier.
 
 			// branch
-			INST put_b(const Label& label);                                       ///< Branch
-			INST put_b(Condition condition, const Label& label);                  ///< Branch conditionally
-			INST put_bl(const Label& label);                                      ///< Branch with link
+			INST put_b(const Label& label);                                ///< Branch
+			INST put_b(Condition condition, const Label& label);           ///< Branch conditionally
+			INST put_bl(const Label& label);                               ///< Branch with link
 			INST put_blr(Registry ptr);                                    ///< Branch with link to register
 			INST put_br(Registry ptr);                                     ///< Branch to register
-			INST put_cbnz(Registry src, const Label& label);                      ///< Branch if register is not zero
-			INST put_cbz(Registry src, const Label& label);                       ///< Branch if register is zero
-			INST put_tbz(Registry test, uint16_t bit6, const Label& label);       ///< Test bit and Branch if Zero
-			INST put_tbnz(Registry test, uint16_t bit6, const Label& label);      ///< Test bit and Branch if Not Zero
+			INST put_cbnz(Registry src, const Label& label);               ///< Branch if register is not zero
+			INST put_cbz(Registry src, const Label& label);                ///< Branch if register is zero
+			INST put_tbz(Registry test, uint16_t bit6, const Label& label);  ///< Test bit and Branch if Zero
+			INST put_tbnz(Registry test, uint16_t bit6, const Label& label); ///< Test bit and Branch if Not Zero
 
 	};
 

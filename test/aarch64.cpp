@@ -18,6 +18,25 @@ namespace test::arm {
 	 * Begin target invariant tests for ARM
 	 */
 
+	TEST (util_bit_fill) {
+
+		CHECK(util::bit_fill<uint64_t>(0), 0);
+		CHECK(util::bit_fill<uint64_t>(1), 1);
+		CHECK(util::bit_fill<uint64_t>(2), 3);
+		CHECK(util::bit_fill<uint64_t>(4), 0xf);
+		CHECK(util::bit_fill<uint64_t>(8), 0xff);
+		CHECK(util::bit_fill<uint64_t>(16), 0xffff);
+		CHECK(util::bit_fill<uint64_t>(32), 0xffff'ffff);
+		CHECK(util::bit_fill<uint64_t>(48), 0xffff'ffff'ffff);
+		CHECK(util::bit_fill<uint64_t>(64), 0xffff'ffff'ffff'ffff);
+
+		CHECK(util::bit_fill<uint32_t>(16), 0xffff);
+		CHECK(util::bit_fill<uint32_t>(32), 0xffff'ffff);
+		CHECK(util::bit_fill<uint32_t>(48), 0xffff'ffff);
+		CHECK(util::bit_fill<uint32_t>(64), 0xffff'ffff);
+
+	}
+
 	TEST (writer_fail_movz_invalid) {
 
 		SegmentedBuffer segmented;
@@ -110,6 +129,37 @@ namespace test::arm {
 		EXPECT_THROW(std::runtime_error) {
 			writer.put_adc(SP, X(0), X(1));
 		};
+
+	};
+
+	TEST (writer_check_pattern_mov) {
+
+		{
+			SegmentedBuffer segmented;
+			BufferWriter writer {segmented};
+
+			writer.put_mov(X0, 0xFF00'FF00'FF00'FF00);
+
+			CHECK(segmented.segments()[0].size(), 4);
+		}
+
+		{
+			SegmentedBuffer segmented;
+			BufferWriter writer {segmented};
+
+			writer.put_mov(X0, 0xFFFF'0000'FFFF'0000);
+
+			CHECK(segmented.segments()[0].size(), 4);
+		}
+
+		{
+			SegmentedBuffer segmented;
+			BufferWriter writer {segmented};
+
+			writer.put_mov(X0, 0x1111'1111'1111'1111);
+
+			CHECK(segmented.segments()[0].size(), 4);
+		}
 
 	};
 

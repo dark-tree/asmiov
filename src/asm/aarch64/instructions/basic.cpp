@@ -105,10 +105,6 @@ namespace asmio::arm {
 		put_ret(LR);
 	}
 
-	void BufferWriter::put_brk(uint16_t imm) {
-		put_dword(0b11010100'001 << 21 | imm << 5 | 0b00000);
-	}
-
 	void BufferWriter::put_ret(Registry registry) {
 
 		if (!registry.wide()) {
@@ -322,12 +318,20 @@ namespace asmio::arm {
 		put_dword(0b1101010100'0'00'011'0010 << 12 | (0b1111'111 & imm7) << 5 | 0b11111);
 	}
 
-	void BufferWriter::put_hlt(uint16_t imm) {
-		put_dword(0b11010100'010 << 21 | imm << 5 | 0b000'00);
+	void BufferWriter::put_hlt(uint16_t imm16) {
+		put_dword(0b11010100'010 << 21 | imm16 << 5 | 0b000'00);
 	}
 
-	void BufferWriter::put_hvc(uint16_t imm) {
-		put_dword(0b11010100'000 << 21 | imm << 5 | 0b000'10);
+	void BufferWriter::put_hvc(uint16_t imm16) {
+		put_dword(0b11010100'000 << 21 | imm16 << 5 | 0b000'10);
+	}
+
+	void BufferWriter::put_smc(uint16_t imm16) {
+		put_dword(0b11010100'000 << 21 | imm16 << 5 | 0b000'11);
+	}
+
+	void BufferWriter::put_brk(uint16_t imm) {
+		put_dword(0b11010100'001 << 21 | imm << 5 | 0b00000);
 	}
 
 	void BufferWriter::put_isb() {

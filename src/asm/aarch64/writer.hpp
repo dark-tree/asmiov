@@ -147,7 +147,6 @@ namespace asmio::arm {
 			INST put_mov(Registry dst, uint64_t imm);                      ///< Move immediate into register
 			INST put_mov(Registry dst, Registry src);                      ///< Move value between registers
 			INST put_ret();                                                ///< Return from procedure using link register
-			INST put_brk(uint16_t imm);                                    ///< Generates a Breakpoint Instruction exception
 			INST put_ret(Registry src);                                    ///< Return from procedure
 			INST put_rbit(Registry dst, Registry src);                     ///< Reverse bits
 			INST put_clz(Registry dst, Registry src);                      ///< Count leading zeros
@@ -162,7 +161,6 @@ namespace asmio::arm {
 			INST put_and(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one
 			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise XOR between two register, shifting the second one
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise OR between two register, shifting the second one
-			INST put_svc(uint16_t imm16);                                  ///< Supervisor call
 			INST put_sub(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, potentially extending one of them
 			INST put_subs(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, set the flags, potentially extending one of them
 			INST put_cmp(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Compare
@@ -192,9 +190,14 @@ namespace asmio::arm {
 			INST put_cinc(Condition condition, Registry dst, Registry src);///< Conditional Increment if true
 			INST put_cinc(Condition condition, Registry dst);              ///< Conditional Increment if true
 			INST put_cset(Condition condition, Registry dst);              ///< Conditional Set if true
+
+			// control
+			INST put_svc(uint16_t imm16);                                  ///< Supervisor call
+			INST put_hvc(uint16_t imm16);                                  ///< Hypervisor Call
+			INST put_smc(uint16_t imm16);                                  ///< Secure Monitor Call
+			INST put_hlt(uint16_t imm16);                                  ///< Halt
+			INST put_brk(uint16_t imm16);                                  ///< Breakpoint Instruction exception
 			INST put_hint(uint8_t imm7);                                   ///< Architectural hint
-			INST put_hlt(uint16_t imm);                                    ///< Halt
-			INST put_hvc(uint16_t imm);                                    ///< Hypervisor Call
 			INST put_isb();                                                ///< Instruction Synchronization Barrier
 			INST put_nop();                                                ///< No operation
 			INST put_yield();                                              ///< Indicate spin-lock

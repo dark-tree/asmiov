@@ -1273,6 +1273,44 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_tbnz) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 0);
+		writer.put_mov(X1, 0xFF00'FF00'FF00'FF00);
+		writer.put_tbnz(X1, 60, "bit_set");
+		writer.put_ret();
+
+		writer.label("bit_set");
+		writer.put_mov(X0, 11);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 11);
+
+	};
+
+	TEST (writer_exec_tbz) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 12);
+		writer.put_mov(X1, 0xFF00'FF00'FF00'FF00);
+		writer.put_tbz(X1, 60, "bit_set");
+		writer.put_ret();
+
+		writer.label("bit_set");
+		writer.put_mov(X0, 0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 12);
+
+	};
+
 #endif
 
 }

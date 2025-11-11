@@ -63,8 +63,9 @@ for arg in sys.argv[1:]:
 							definition = parts[0].strip()
 							value = parts[1].strip()
 
+						definition = definition.removeprefix("const").strip()
 						parts = definition.split(" ")
-						type = parts[0].strip()
+						type = parts[0].removesuffix("&").strip()
 						name = parts[1].strip()
 
 						args.append({'type': type, 'name': name, 'value': value})

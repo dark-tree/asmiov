@@ -81,6 +81,7 @@ namespace asmio::arm {
 			static void encode_shifted_aligned_link(SegmentedBuffer* buffer, const Linkage& linkage, int bits, int left_shift);
 
 			static void link_26_0_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
+			static void link_14_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
 			static void link_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
 			static void link_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
 
@@ -209,14 +210,15 @@ namespace asmio::arm {
 			INST put_psb();                                                ///< Profiling Synchronization Barrier.
 
 			// branch
-			INST put_b(Label label);                                       ///< Branch
-			INST put_b(Condition condition, Label label);                  ///< Branch conditionally
-			INST put_bl(Label label);                                      ///< Branch with link
+			INST put_b(const Label& label);                                       ///< Branch
+			INST put_b(Condition condition, const Label& label);                  ///< Branch conditionally
+			INST put_bl(const Label& label);                                      ///< Branch with link
 			INST put_blr(Registry ptr);                                    ///< Branch with link to register
 			INST put_br(Registry ptr);                                     ///< Branch to register
-			INST put_cbnz(Registry src, Label label);                      ///< Branch if register is not zero
-			INST put_cbz(Registry src, Label label);                       ///< Branch if register is zero
-
+			INST put_cbnz(Registry src, const Label& label);                      ///< Branch if register is not zero
+			INST put_cbz(Registry src, const Label& label);                       ///< Branch if register is zero
+			INST put_tbz(Registry test, uint16_t bit6, const Label& label);       ///< Test bit and Branch if Zero
+			INST put_tbnz(Registry test, uint16_t bit6, const Label& label);      ///< Test bit and Branch if Not Zero
 
 	};
 

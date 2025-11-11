@@ -165,6 +165,10 @@ namespace asmio::arm {
 		encode_shifted_aligned_link(buffer, linkage, 19, 5);
 	}
 
+	void BufferWriter::link_14_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+		encode_shifted_aligned_link(buffer, linkage, 14, 5);
+	}
+
 	void BufferWriter::link_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
 		BufferMarker src = buffer->get_label(linkage.label);
 		BufferMarker dst = linkage.target;

@@ -134,7 +134,6 @@ namespace asmio {
 		uint64_t address = mount;
 
 		for (const BufferSegment& bs : segmented.segments()) {
-
 			if (bs.empty()) {
 				continue;
 			}
@@ -145,9 +144,7 @@ namespace asmio {
 			chunk->push(bs.tail);
 
 			address += bs.size();
-
 		}
-
 	}
 
 	bool ElfBuffer::save(const char* path) const {

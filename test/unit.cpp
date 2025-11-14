@@ -190,4 +190,31 @@ namespace test::unit {
 
 	};
 
+	TEST (util_chunk_buffer_relink) {
+
+		int abc = 0x44;
+
+		ChunkBuffer buffer {std::endian::big};
+
+		buffer.put<uint8_t>(0x11);
+		buffer.put<uint8_t>(0x22);
+		buffer.put<uint8_t>(0x33);
+
+		buffer.link<uint8_t>([&] { return abc; });
+
+		abc = 0x21;
+		auto bytes_1 = buffer.bake();
+		std::vector<uint8_t> expected_1 = { 0x11, 0x22, 0x33, 0x21 };
+
+		CHECK(bytes_1, expected_1);
+
+		abc = 0x37;
+		auto bytes_2 = buffer.bake();
+		std::vector<uint8_t> expected_2 = { 0x11, 0x22, 0x33, 0x37 };
+
+		CHECK(bytes_2, expected_2);
+
+	};
+
+
 }

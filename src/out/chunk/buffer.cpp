@@ -209,15 +209,13 @@ namespace asmio {
 	std::vector<uint8_t> ChunkBuffer::bake() {
 		std::vector<uint8_t> buffer;
 		freeze();
+		bake(buffer);
 
 		for (auto& link : m_linkers) {
-			link.linker(link.target->shared_bytes.data() + link.offset);
+			size_t offset = link.target->offset() + link.offset;
+			link.linker(buffer.data() + offset);
 		}
 
-		m_linkers.clear();
-		m_linkers.shrink_to_fit();
-
-		bake(buffer);
 		return buffer;
 	}
 

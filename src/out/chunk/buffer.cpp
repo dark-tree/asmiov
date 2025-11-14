@@ -1,0 +1,224 @@
+#include "buffer.hpp"
+
+namespace asmio {
+
+	/*
+	 * class ChunkBuffer::Appender
+	 */
+
+	void ChunkBuffer::Appender::write(uint8_t* data, size_t size) const {
+		buffer.reserve(size + buffer.size());
+		buffer.insert(buffer.end(), data, data + size);
+		*size_ptr += size;
+	}
+
+	void ChunkBuffer::Appender::write(uint8_t value, size_t size) const {
+		buffer.reserve(size + buffer.size());
+
+		for (size_t i = 0; i < size; i++) {
+			buffer.push_back(value);
+		}
+
+		*size_ptr += size;
+	}
+
+	ChunkBuffer::Appender::Appender(std::vector<uint8_t>& buffer, uint32_t* size_ptr)
+		: buffer(buffer), size_ptr(size_ptr) {
+	}
+
+	/*
+	 * class ChunkBuffer
+	 */
+
+	ChunkBuffer::ChunkBuffer(uint32_t align, std::endian endian, ChunkBuffer* root, ChunkBuffer* parent) noexcept
+		: alignment(std::max(static_cast<uint32_t>(1), align)), endianness(endian), m_parent(parent), m_root(root) {
+	}
+
+	ChunkBuffer::ChunkBuffer(std::endian endian, uint32_t align) noexcept
+		: alignment(std::max(static_cast<uint32_t>(1), align)), endianness(endian) {
+	}
+
+	ChunkBuffer::ChunkBuffer(uint32_t align, std::endian endian) noexcept
+		: alignment(std::max(static_cast<uint32_t>(1), align)), endianness(endian) {
+	}
+
+
+	ChunkBuffer::Appender ChunkBuffer::begin_bytes() {
+		if (last_region != ARRAY) {
+			m_regions.emplace_back(Array {shared_bytes.size(), 0});
+		}
+
+		last_region = ARRAY;
+		return {shared_bytes, &std::get<Array>(m_regions.back()).size};
+	}
+
+	ChunkBuffer::Ptr ChunkBuffer::begin_chunk(uint32_t align, std::endian endian) {
+		auto chunk = std::make_shared<ChunkBuffer>(align, endian, m_root, this);
+		last_region = CHUNK;
+		m_regions.emplace_back(chunk);
+		return chunk;
+	}
+
+	void ChunkBuffer::freeze() {
+		this->state = CACHING;
+
+		for (const auto& var : m_regions) {
+			if (std::holds_alternative<Ptr>(var)) {
+				std::get<Ptr>(var)->freeze();
+			}
+		}
+	}
+
+	void ChunkBuffer::bake(std::vector<uint8_t>& output) const {
+		const size_t offset = output.size();
+		const size_t padding = util::align_padding(offset, (size_t) alignment);
+
+		output.resize(offset + padding, 0);
+
+		for (const auto& var : m_regions) {
+
+			// we do it region-by-region so that alignment may be calculated
+			if (std::holds_alternative<Array>(var)) {
+				Array info = std::get<Array>(var);
+
+				auto begin = shared_bytes.begin() + info.offset;
+				output.insert(output.end(), begin, begin + info.size);
+			} else {
+				std::get<Ptr>(var)->bake(output);
+			}
+		}
+	}
+
+	void ChunkBuffer::add_link(const Linker& linker) {
+		m_root->m_linkers.emplace_back(this, shared_bytes.size(), linker);
+	}
+
+	void ChunkBuffer::set_root(ChunkBuffer* chunk) {
+		this->m_root = chunk;
+
+		for (const auto& var : m_regions) {
+			if (std::holds_alternative<Ptr>(var)) {
+				std::get<Ptr>(var)->set_root(chunk);
+			}
+		}
+	}
+
+	size_t ChunkBuffer::regions() const {
+		return m_regions.size();
+	}
+
+	size_t ChunkBuffer::bytes() const {
+		return shared_bytes.size();
+	}
+
+	size_t ChunkBuffer::size(size_t offset) const {
+		if (state == PRESENT) {
+			return m_size;
+		}
+
+		size_t total = util::align_padding(offset, (size_t) alignment);
+
+		for (const auto& var : m_regions) {
+
+			// we do it region-by-region so that alignment may be calculated
+			if (std::holds_alternative<Array>(var)) {
+				total += std::get<Array>(var).size;
+			} else {
+				total += std::get<Ptr>(var)->size(offset + total);
+			}
+		}
+
+		if (state == CACHING) {
+			m_offset = (int64_t) offset;
+			m_size = (int64_t) total;
+			state = PRESENT;
+		}
+
+		return total;
+	}
+
+	size_t ChunkBuffer::size() const {
+		return size(offset());
+	}
+
+	size_t ChunkBuffer::offset(const ChunkBuffer* child) const {
+		size_t offset = 0;
+
+		if (m_parent != nullptr) {
+			offset = m_parent->offset(this);
+		}
+
+		offset = util::align_up(offset, (size_t) alignment);
+
+		if (child == nullptr) {
+			return offset;
+		}
+
+		for (const auto& var : m_regions) {
+
+			// we do it region-by-region so that alignment may be calculated
+			if (std::holds_alternative<Ptr>(var)) {
+				auto& ptr = std::get<Ptr>(var);
+
+				if (ptr.get() == child) {
+					return offset;
+				}
+
+				offset += ptr->size(offset);
+			} else {
+				offset += std::get<Array>(var).size;
+			}
+		}
+
+		throw std::runtime_error {"Unable to calculate offset of an out-of-tree chunk!"};
+	}
+
+	ChunkBuffer* ChunkBuffer::root() {
+		return m_root;
+	}
+
+	ChunkBuffer& ChunkBuffer::adopt(const Ptr& orphan) {
+
+		if (orphan->m_parent != nullptr) {
+			throw std::runtime_error {"Unable to adopt element from another tree!"};
+		}
+
+		orphan->m_parent = this;
+		orphan->set_root(m_root);
+
+		for (Link& link : orphan->m_linkers) {
+			m_root->m_linkers.emplace_back(link);
+		}
+
+		orphan->m_linkers.clear();
+		orphan->m_linkers.shrink_to_fit();
+
+		last_region = CHUNK;
+		m_regions.emplace_back(orphan);
+		return *this;
+	}
+
+	ChunkBuffer::Ptr ChunkBuffer::chunk(uint32_t align) {
+		return begin_chunk(align, endianness);
+	}
+
+	ChunkBuffer::Ptr ChunkBuffer::chunk(std::endian endian, uint32_t align) {
+		return begin_chunk(align, endian);
+	}
+
+	std::vector<uint8_t> ChunkBuffer::bake() {
+		std::vector<uint8_t> buffer;
+		freeze();
+
+		for (auto& link : m_linkers) {
+			link.linker(link.target->shared_bytes.data() + link.offset);
+		}
+
+		m_linkers.clear();
+		m_linkers.shrink_to_fit();
+
+		bake(buffer);
+		return buffer;
+	}
+
+}

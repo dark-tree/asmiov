@@ -38,29 +38,31 @@ namespace asmio {
 		MSB  = 2,   // Two's complement, big-endian.
 	};
 
-	struct __attribute__((__packed__)) Identification {
-		uint8_t magic[4];  // Magic number identifying the file as an ELF object file
-		ElfClass capacity; // Size of basic data types
-		ElfData encoding; // Endianness
-		uint8_t version;   // Same as FileHeader->version
-		uint8_t pad[9];    // Must all be 0
+	struct __attribute__((__packed__)) ElfIdentification {
+		uint8_t magic[4];    ///< Magic number identifying the file as an ELF object file
+		ElfClass clazz;      ///< Size of basic data types
+		ElfData data;        ///< Endianness
+		uint8_t version;     ///< Same as FileHeader->version
+		uint8_t abi;         ///< Target operating system
+		uint8_t abi_version; ///< Version of the ABI to which the object is targeted
+		uint8_t pad[7];      ///< Must all be 0
 	};
 
-	struct __attribute__((__packed__)) FileHeader {
-		Identification identifier;      // The initial bytes mark the file
-		ElfType type;                   // Specifies the file type
-		ElfMachine machine;             // Specifies the required architecture
-		uint32_t version;               // Version of the Elf file, same as Identification->version
-		uint64_t entrypoint;            // Virtual address to which the system first transfers control
-		uint64_t program_table_offset;  // Offset to the program table header, or 0
-		uint64_t section_table_offset;  // Offset to the section table header, or 0
-		uint32_t flags;                 // Processor-specific flags associated with the file
-		uint16_t header_size;           // Size of the FileHeader struct
-		uint16_t program_entry_size;    // Size in bytes of one entry in the program table
-		uint16_t program_entry_count;   // Number of entries in the program table
-		uint16_t section_entry_size;    // Size in bytes of one entry in the section table
-		uint16_t section_entry_count;   // Number of entries in the section table
-		uint16_t section_string_offset; // Section index of the entry associated with the section name string table
+	struct __attribute__((__packed__)) ElfFileHeader {
+		ElfIdentification identification; ///< The initial bytes mark the file
+		ElfType type;        ///< Specifies the file type
+		ElfMachine machine;  ///< Specifies the required architecture
+		uint32_t version;    ///< Version of the Elf file, same as Identification->version
+		uint64_t entry;      ///< Virtual address to which the system first transfers control
+		uint64_t phoff;      ///< Offset to the program table header, or 0
+		uint64_t shoff;      ///< Offset to the section table header, or 0
+		uint32_t flags;      ///< Processor-specific flags associated with the file
+		uint16_t ehsize;     ///< Size of the FileHeader struct
+		uint16_t phentsize;  ///< Size in bytes of one entry in the program table
+		uint16_t phnum;      ///< Number of entries in the program table
+		uint16_t shentsize;  ///< Size in bytes of one entry in the section table
+		uint16_t shnum;      ///< Number of entries in the section table
+		uint16_t shstrndx;   ///< Section index of the entry associated with the section name string table
 	};
 
 }

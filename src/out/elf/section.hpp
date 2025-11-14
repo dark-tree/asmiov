@@ -28,16 +28,16 @@ namespace asmio {
 	};
 
 	struct __attribute__((__packed__)) ElfSectionHeader {
-		uint32_t name;       // Offset into the string table
-		ElfSectionType type; // Section type
-		uint64_t flags;      // See SectionFlags
-		uint64_t address;    // Virtual address at which the section should reside in memory
-		uint64_t offset;     // Offset to the first byte of the section
-		uint64_t size;       // section's size in bytes
-		uint32_t link;       // Section header table index link
-		uint32_t info;       // This member holds extra information
-		uint64_t alignment;  // Alignment should be a positive, integral power of 2, and address must be congruent to 0, modulo the value of alignment
-		uint64_t entry_size; // Size of one entry for sections where the entries have a fixed size, 0 otherwise
+		uint32_t name;       ///< Offset into the string table
+		ElfSectionType type; ///< Section type
+		uint64_t flags;      ///< See SectionFlags
+		uint64_t addr;       ///< Virtual address at which the section should reside in memory
+		uint64_t offset;     ///< Offset to the first byte of the section
+		uint64_t size;       ///< section's size in bytes
+		uint32_t link;       ///< Section header table index link
+		uint32_t info;       ///< This member holds extra information
+		uint64_t addralign;  ///< Alignment should be a positive, integral power of 2, and address must be congruent to 0, modulo the value of alignment
+		uint64_t entsize;    ///< Size of one entry for sections where the entries have a fixed size, 0 otherwise
 	};
 
 	struct __attribute__((__packed__)) ElfRelocationInfo {
@@ -45,12 +45,12 @@ namespace asmio {
 		uint32_t type;
 	};
 
-	struct __attribute__((__packed__)) ElfImplicitRelocation { // Elf32_Rel
+	struct __attribute__((__packed__)) ElfImplicitRelocation {
 		uint64_t offset;
 		ElfRelocationInfo info;
 	};
 
-	struct __attribute__((__packed__)) ElfExplicitRelocation { // Elf32_Rela
+	struct __attribute__((__packed__)) ElfExplicitRelocation {
 		uint64_t offset;
 		ElfRelocationInfo info;
 		int64_t addend;

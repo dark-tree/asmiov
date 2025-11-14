@@ -39,6 +39,15 @@ namespace asmio {
 		}
 	}
 
+	inline uint32_t to_elf_flags(const BufferSegment& segment) {
+		uint32_t flags = 0;
+		if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
+		if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
+		if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
+
+		return flags;
+	}
+
 	/**
 	 * Based on Tool Interface Standard (TIS) Executable and Linking Format (ELF)
 	 * Specification (version 1.2), and the ELF man page.
@@ -67,41 +76,51 @@ namespace asmio {
 
 			void define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, uint32_t link, uint32_t info) {
 
-				auto header = section_headers->chunk();
+				auto chunk = section_headers->chunk();
 
-				header->put<uint32_t>(section_string_table->bytes()); // sh_name
-				header->put<uint32_t>(type); // sh_type
-				header->put<uint64_t>(0); // sh_flags
-				header->put<uint64_t>(0); // sh_addr
+				chunk->link<ElfSectionHeader>([=, this] (auto& header) {
 
-				if (section) {
-					header->link<uint64_t>([=] { return section->offset(); }); // sh_offset
-					header->link<uint64_t>([=] { return section->size(); }); // sh_size
-				} else {
-					header->put<uint64_t>(0);
-					header->put<uint64_t>(0);
-				}
+					header.name = section_string_table->bytes();
+					header.type = type;
+					header.flags = 0;
+					header.addr = 0;
 
-				header->put<uint32_t>(link); // sh_link
-				header->put<uint32_t>(info); // sh_info
-				header->put<uint64_t>(0); // sh_addralign
-				header->put<uint64_t>(0); // sh_entsize
+					if (section) {
+						header.offset = section->offset();
+						header.size = section->size();
+					} else {
+						header.offset = 0;
+						header.size = 0;
+					}
+
+					header.link = link;
+					header.info = info;
+					header.addralign = 0;
+					header.entsize = 0;
+
+				});
 
 				section_string_table->write(name);
 
 			}
 
-			void define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t null_tail, uint64_t align) {
-				auto header = segment_headers->chunk();
+			void define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t tail, uint64_t align) {
+				auto chunk = segment_headers->chunk();
 
-				header->put<uint32_t>(type); // p_type
-				header->put<uint32_t>(flags); // p_flags
-				header->link<uint64_t>([=] { return segment == nullptr ? 0 : segment->offset(); }); // p_offset
-				header->put<uint64_t>(address); // p_vaddr
-				header->put<uint64_t>(0); // p_paddr (unused)
-				header->link<uint64_t>([=] { return segment == nullptr ? 0 : segment->size(); }); // p_filesz
-				header->link<uint64_t>([=] { return (segment == nullptr ? 0 : segment->size()) + null_tail; }); // p_memsz
-				header->put<uint64_t>(align); // p_align
+				chunk->link<ElfSegmentHeader>([=] (auto& header) {
+
+					const size_t bytes = segment == nullptr ? 0 : segment->size();
+
+					header.type = type;
+					header.flags = flags;
+					header.offset = segment == nullptr ? 0 : segment->offset();
+					header.vaddr = address;
+					header.paddr = 0;
+					header.filesz = bytes;
+					header.memsz = bytes + tail;
+					header.align = align;
+
+				});
 			}
 
 		public:
@@ -117,29 +136,39 @@ namespace asmio {
 				sections = root->chunk();
 				section_string_table = segments->chunk();
 
-				// ELF magic number
-				header->put<uint8_t>(0x7f, 'E', 'L', 'F');
+				header->link<ElfFileHeader>([=, this] (auto& header) {
 
-				// rest of the ELF identifier
-				header->put<uint8_t>(ElfClass::BIT_64);
-				header->put<uint8_t>(ElfData::LSB);
-				header->put<uint8_t>(ELF_VERSION);
-				header->put<uint8_t>(0, 0); // ABI
-				header->align(16);
+					auto& ident = header.identification;
 
-				header->put<uint16_t>(ElfType::EXEC); // e_type
-				header->put<uint16_t>(machine); // e_machine
-				header->put<uint32_t>(ELF_VERSION); // e_version
-				header->put<uint64_t>(mount + entrypoint); // e_entry
-				header->link<uint64_t>([this] { return segment_headers->regions() == 0 ? 0 : segment_headers->offset(); });
-				header->link<uint64_t>([this] { return section_headers->regions() == 0 ? 0 : section_headers->offset(); });
-				header->put<uint32_t>(0); // e_flags
-				header->link<uint16_t>([=] { return header->size(); }); // e_ehsize
-				header->link<uint16_t>([this] { return has_segments ? 6*8 + 2*4 : 0; }); // e_phentsize
-				header->link<uint16_t>([this] { return segment_headers->regions(); }); // e_phnum
-				header->link<uint16_t>([this] { return has_sections ? 6*8 + 4*4 : 0; }); // e_shentsize
-				header->link<uint16_t>([this] { return section_headers->regions(); }); // e_shnum
-				header->put<uint16_t>(1); // e_shstrndx
+					// ELF magic number
+					ident.magic[0] = 0x7F;
+					ident.magic[1] = 'E';
+					ident.magic[2] = 'L';
+					ident.magic[3] = 'F';
+
+					// rest of the ELF identifier
+					ident.clazz = ElfClass::BIT_64;
+					ident.data = ElfData::LSB;
+					ident.version = ELF_VERSION;
+					ident.abi = 0;
+					ident.abi_version = 0;
+					memset(ident.pad, 0, sizeof(ident.pad));
+
+					header.type = ElfType::EXEC;
+					header.machine = machine;
+					header.version = ELF_VERSION;
+					header.entry = mount + entrypoint;
+					header.phoff = has_segments ? segment_headers->offset() : 0;
+					header.shoff = has_sections ? section_headers->offset() : 0;
+					header.flags = 0;
+					header.ehsize = sizeof(header);
+					header.phentsize = sizeof(ElfSegmentHeader);
+					header.phnum = segment_headers->regions();
+					header.shentsize = sizeof(ElfSectionHeader);
+					header.shnum = section_headers->regions();
+					header.shentsize = has_sections ? 1 : 0;
+
+				});
 
 			}
 
@@ -168,17 +197,6 @@ namespace asmio {
 
 	class ElfBuffer : ElfFile {
 
-		private:
-
-			uint32_t translate_flags(const BufferSegment& segment) {
-				uint32_t flags = 0;
-				if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
-				if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
-				if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
-
-				return flags;
-			}
-
 		public:
 
 			/**
@@ -198,7 +216,7 @@ namespace asmio {
 						continue;
 					}
 
-					auto chunk = segment(ElfSegmentType::LOAD, translate_flags(bs), address, bs.tail);
+					auto chunk = segment(ElfSegmentType::LOAD, to_elf_flags(bs), address, bs.tail);
 
 					chunk->write(bs.buffer);
 					chunk->push(bs.tail);

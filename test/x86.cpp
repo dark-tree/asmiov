@@ -2868,10 +2868,6 @@ namespace test::x86 {
 
 		RunResult result = file.execute("memfd-elf-1", &status);
 
-		if (result == RunResult::EXEC_ERROR) {
-			SKIP("Failed to start child process");
-		}
-
 		CHECK(result, RunResult::SUCCESS);
 		CHECK(status, 42);
 
@@ -2907,10 +2903,6 @@ namespace test::x86 {
 		int status;
 		RunResult result = file.execute("memfd-elf-1", &status);
 
-		if (result == RunResult::EXEC_ERROR) {
-			SKIP("Failed to start child process");
-		}
-
 		CHECK(result, RunResult::SUCCESS);
 		CHECK(status, 13);
 
@@ -2945,10 +2937,6 @@ namespace test::x86 {
 		ElfBuffer file = to_elf(segmented, "_start");
 		int status;
 		RunResult result = file.execute("memfd-elf-1", &status);
-
-		if (result == RunResult::EXEC_ERROR) {
-			SKIP("Failed to start child process");
-		}
 
 		CHECK(result, RunResult::SUCCESS);
 		CHECK(status, 20);

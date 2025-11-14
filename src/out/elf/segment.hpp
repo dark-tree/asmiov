@@ -21,14 +21,14 @@ namespace asmio {
 	};
 
 	struct __attribute__((__packed__)) ElfSegmentHeader {
-		ElfSegmentType type;       // Segment type
-		uint32_t flags;            // See SegmentFlags
-		uint64_t offset;           // Offset to the first byte of the segment
-		uint64_t virtual_address;  // Virtual address at which the segment should reside in memory
-		uint64_t physical_address; // On systems for which physical addressing is relevant, physical address at which the segment should reside in memory
-		uint64_t file_size;        // Number of bytes in the file image of the segment
-		uint64_t memory_size;      // Number of bytes in the memory image of the segment
-		uint64_t alignment;        // Alignment should be a positive, integral power of 2, and virtual_address should equal offset, modulo alignment
+		ElfSegmentType type; ///< Segment type
+		uint32_t flags;      ///< See SegmentFlags
+		uint64_t offset;     ///< Offset to the first byte of the segment
+		uint64_t vaddr;      ///< Virtual address at which the segment should reside in memory
+		uint64_t paddr;      ///< On systems for which physical addressing is relevant, physical address at which the segment should reside in memory
+		uint64_t filesz;     ///< Number of bytes in the file image of the segment
+		uint64_t memsz;      ///< Number of bytes in the memory image of the segment
+		uint64_t align;      ///< Alignment should be a positive, integral power of 2, and virtual_address should equal offset, modulo alignment
 	};
 
 }

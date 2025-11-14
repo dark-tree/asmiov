@@ -55,6 +55,7 @@ set(ASMIO_SOURCES
 		src/out/buffer/label.cpp
 
 		src/out/chunk/buffer.cpp
+		src/out/elf/buffer.cpp
 
 		src/asm/module.cpp
 

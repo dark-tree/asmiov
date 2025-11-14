@@ -365,6 +365,7 @@ namespace test::x86 {
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
 
+		writer.put_xor(RCX, RCX);
 		writer.put_jcxz("target");
 
 		for (int i = 0; i < 127; i ++) {

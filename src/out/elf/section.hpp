@@ -2,18 +2,18 @@
 
 #include "external.hpp"
 
-namespace asmio::elf {
+namespace asmio {
 
-	constexpr const uint32_t UNDEFINED_SECTION = 0;
+	constexpr uint32_t UNDEFINED_SECTION = 0;
 
 	struct SectionFlags {
-		static constexpr const uint32_t WRITE = 0b001;    // Writable section
-		static constexpr const uint32_t ALLOCATE = 0b010; // Readable section
-		static constexpr const uint32_t EXECUTE = 0b100;  // Executable section
+		static constexpr uint32_t WRITE = 0b001;    // Writable section
+		static constexpr uint32_t ALLOCATE = 0b010; // Readable section
+		static constexpr uint32_t EXECUTE = 0b100;  // Executable section
 	};
 
-	enum struct SectionType : uint32_t {
-		EMPTY    = 0,  // Inactive
+	enum struct ElfSectionType : uint32_t {
+		NONE     = 0,  // Inactive
 		PROGBITS = 1,  // Information defined by the program, whose format and meaning are determined solely by the program
 		SYMTAB   = 2,  // Symbol table
 		STRTAB   = 3,  // String table
@@ -27,9 +27,9 @@ namespace asmio::elf {
 		DYNSYM   = 11, // Minimal set of dynamic linking symbols
 	};
 
-	struct __attribute__((__packed__)) SectionHeader {
+	struct __attribute__((__packed__)) ElfSectionHeader {
 		uint32_t name;       // Offset into the string table
-		SectionType type;    // Section type
+		ElfSectionType type; // Section type
 		uint64_t flags;      // See SectionFlags
 		uint64_t address;    // Virtual address at which the section should reside in memory
 		uint64_t offset;     // Offset to the first byte of the section
@@ -40,19 +40,19 @@ namespace asmio::elf {
 		uint64_t entry_size; // Size of one entry for sections where the entries have a fixed size, 0 otherwise
 	};
 
-	struct __attribute__((__packed__)) RelocationInfo {
+	struct __attribute__((__packed__)) ElfRelocationInfo {
 		uint32_t sym;
 		uint32_t type;
 	};
 
-	struct __attribute__((__packed__)) ImplicitRelocation { // Elf32_Rel
+	struct __attribute__((__packed__)) ElfImplicitRelocation { // Elf32_Rel
 		uint64_t offset;
-		RelocationInfo info;
+		ElfRelocationInfo info;
 	};
 
-	struct __attribute__((__packed__)) ExplicitRelocation { // Elf32_Rela
+	struct __attribute__((__packed__)) ElfExplicitRelocation { // Elf32_Rela
 		uint64_t offset;
-		RelocationInfo info;
+		ElfRelocationInfo info;
 		int64_t addend;
 	};
 

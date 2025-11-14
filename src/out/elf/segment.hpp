@@ -2,16 +2,16 @@
 
 #include "external.hpp"
 
-namespace asmio::elf {
+namespace asmio {
 
-	struct SegmentFlags {
+	struct ElfSegmentFlags {
 		static constexpr uint32_t X = 0b001; // Executable segment
 		static constexpr uint32_t W = 0b010; // Writable segment
 		static constexpr uint32_t R = 0b100; // Readable segment
 	};
 
-	enum struct SegmentType : uint32_t {
-		EMPTY   = 0, // Inactive
+	enum struct ElfSegmentType : uint32_t {
+		NONE    = 0, // Inactive
 		LOAD    = 1, // Loadable segment
 		DYNAMIC = 2, // Dynamic linking information
 		INTERP  = 3, // Location and size of a null-terminated path name to invoke as an interpreter
@@ -20,8 +20,8 @@ namespace asmio::elf {
 		PHDR    = 6  // Specifies the location and size of the program header table itself
 	};
 
-	struct __attribute__((__packed__)) SegmentHeader {
-		SegmentType type;          // Segment type
+	struct __attribute__((__packed__)) ElfSegmentHeader {
+		ElfSegmentType type;       // Segment type
 		uint32_t flags;            // See SegmentFlags
 		uint64_t offset;           // Offset to the first byte of the segment
 		uint64_t virtual_address;  // Virtual address at which the segment should reside in memory

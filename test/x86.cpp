@@ -14,10 +14,11 @@
 #include <tasml/top.hpp>
 
 namespace test::x86 {
-using namespace asmio;
-using namespace asmio::x86;
 
-static_assert(vstl::string_appendable<elf::RunResult>);
+	using namespace asmio;
+	using namespace asmio::x86;
+
+	static_assert(vstl::string_appendable<RunResult>);
 
 	/*
 	 * region Static
@@ -2849,7 +2850,7 @@ static_assert(vstl::string_appendable<elf::RunResult>);
 
 	TEST (writer_elf_simple) {
 
-		using namespace asmio::elf;
+		using namespace asmio;
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
@@ -2860,10 +2861,11 @@ static_assert(vstl::string_appendable<elf::RunResult>);
 		writer.put_mov(RAX, 1); // sys_exit
 		writer.put_int(0x80); // 32 bit syscall
 
-		segmented.elf_machine = Machine::X86_64;
+		segmented.elf_machine = ElfMachine::X86_64;
 		ElfBuffer file = to_elf(segmented, "_start");
 
 		int status;
+
 		RunResult result = file.execute("memfd-elf-1", &status);
 
 		if (result == RunResult::EXEC_ERROR) {
@@ -2876,8 +2878,6 @@ static_assert(vstl::string_appendable<elf::RunResult>);
 	}
 
 	TEST (writer_elf_execve_int) {
-
-		using namespace asmio::elf;
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
@@ -2902,7 +2902,7 @@ static_assert(vstl::string_appendable<elf::RunResult>);
 		writer.put_int(0x80); // 32 bit syscall
 		writer.put_ret();
 
-		segmented.elf_machine = Machine::X86_64;
+		segmented.elf_machine = ElfMachine::X86_64;
 		ElfBuffer file = to_elf(segmented, "_start");
 		int status;
 		RunResult result = file.execute("memfd-elf-1", &status);
@@ -2917,8 +2917,6 @@ static_assert(vstl::string_appendable<elf::RunResult>);
 	}
 
 	TEST (writer_elf_execve_syscall) {
-
-		using namespace asmio::elf;
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
@@ -2943,7 +2941,7 @@ static_assert(vstl::string_appendable<elf::RunResult>);
 		writer.put_syscall();
 		writer.put_ret();
 
-		segmented.elf_machine = Machine::X86_64;
+		segmented.elf_machine = ElfMachine::X86_64;
 		ElfBuffer file = to_elf(segmented, "_start");
 		int status;
 		RunResult result = file.execute("memfd-elf-1", &status);

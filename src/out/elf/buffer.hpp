@@ -1,16 +1,18 @@
 #pragma once
 
+#include <ranges>
+
 #include "external.hpp"
 #include "util.hpp"
 #include "header.hpp"
 #include "section.hpp"
 #include "segment.hpp"
 #include "out/buffer/segmented.hpp"
-#include <sys/stat.h>
+#include "out/chunk/buffer.hpp"
 
 #define DEFAULT_ELF_MOUNT 0x08048000
 
-namespace asmio::elf {
+namespace asmio {
 
 	enum struct RunResult : uint8_t {
 		SUCCESS,     // elf file was executed
@@ -37,22 +39,142 @@ namespace asmio::elf {
 		}
 	}
 
-	class ElfBuffer {
+	/**
+	 * Based on Tool Interface Standard (TIS) Executable and Linking Format (ELF)
+	 * Specification (version 1.2), and the ELF man page.
+	 *
+	 * 1. https://refspecs.linuxfoundation.org/elf/elf.pdf
+	 * 2. https://www.man7.org/linux/man-pages/man5/elf.5.html
+	 */
+	class ElfFile {
+
+		protected:
+
+			static constexpr int ELF_VERSION = 1;
+
+			ChunkBuffer::Ptr root;
 
 		private:
 
-			std::vector<uint8_t> buffer;
-			size_t data_length;
+			bool has_sections = false;
+			bool has_segments = false;
 
-			size_t file_header_offset;
-			size_t segment_header_offset;
-			size_t segment_data_offset;
+			ChunkBuffer::Ptr section_headers;
+			ChunkBuffer::Ptr segment_headers;
+			ChunkBuffer::Ptr segments;
+			ChunkBuffer::Ptr sections;
+			ChunkBuffer::Ptr section_string_table;
+
+			void define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, uint32_t link, uint32_t info) {
+
+				auto header = section_headers->chunk();
+
+				header->put<uint32_t>(section_string_table->bytes()); // sh_name
+				header->put<uint32_t>(type); // sh_type
+				header->put<uint64_t>(0); // sh_flags
+				header->put<uint64_t>(0); // sh_addr
+
+				if (section) {
+					header->link<uint64_t>([=] { return section->offset(); }); // sh_offset
+					header->link<uint64_t>([=] { return section->size(); }); // sh_size
+				} else {
+					header->put<uint64_t>(0);
+					header->put<uint64_t>(0);
+				}
+
+				header->put<uint32_t>(link); // sh_link
+				header->put<uint32_t>(info); // sh_info
+				header->put<uint64_t>(0); // sh_addralign
+				header->put<uint64_t>(0); // sh_entsize
+
+				section_string_table->write(name);
+
+			}
+
+			void define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t null_tail, uint64_t align) {
+				auto header = segment_headers->chunk();
+
+				header->put<uint32_t>(type); // p_type
+				header->put<uint32_t>(flags); // p_flags
+				header->link<uint64_t>([=] { return segment == nullptr ? 0 : segment->offset(); }); // p_offset
+				header->put<uint64_t>(address); // p_vaddr
+				header->put<uint64_t>(0); // p_paddr (unused)
+				header->link<uint64_t>([=] { return segment == nullptr ? 0 : segment->size(); }); // p_filesz
+				header->link<uint64_t>([=] { return (segment == nullptr ? 0 : segment->size()) + null_tail; }); // p_memsz
+				header->put<uint64_t>(align); // p_align
+			}
+
+		public:
+
+			ElfFile(ElfMachine machine, uint64_t mount, uint64_t entrypoint) {
+				root = std::make_shared<ChunkBuffer>();
+
+				auto header = root->chunk();
+
+				section_headers = root->chunk();
+				segment_headers = root->chunk();
+				segments = root->chunk();
+				sections = root->chunk();
+				section_string_table = segments->chunk();
+
+				// ELF magic number
+				header->put<uint8_t>(0x7f, 'E', 'L', 'F');
+
+				// rest of the ELF identifier
+				header->put<uint8_t>(ElfClass::BIT_64);
+				header->put<uint8_t>(ElfData::LSB);
+				header->put<uint8_t>(ELF_VERSION);
+				header->put<uint8_t>(0, 0); // ABI
+				header->align(16);
+
+				header->put<uint16_t>(ElfType::EXEC); // e_type
+				header->put<uint16_t>(machine); // e_machine
+				header->put<uint32_t>(ELF_VERSION); // e_version
+				header->put<uint64_t>(mount + entrypoint); // e_entry
+				header->link<uint64_t>([this] { return segment_headers->regions() == 0 ? 0 : segment_headers->offset(); });
+				header->link<uint64_t>([this] { return section_headers->regions() == 0 ? 0 : section_headers->offset(); });
+				header->put<uint32_t>(0); // e_flags
+				header->link<uint16_t>([=] { return header->size(); }); // e_ehsize
+				header->link<uint16_t>([this] { return has_segments ? 6*8 + 2*4 : 0; }); // e_phentsize
+				header->link<uint16_t>([this] { return segment_headers->regions(); }); // e_phnum
+				header->link<uint16_t>([this] { return has_sections ? 6*8 + 4*4 : 0; }); // e_shentsize
+				header->link<uint16_t>([this] { return section_headers->regions(); }); // e_shnum
+				header->put<uint16_t>(1); // e_shstrndx
+
+			}
+
+			ChunkBuffer::Ptr section(const std::string& name, ElfSectionType type, uint32_t link, uint32_t info, const ChunkBuffer::Ptr& segment = nullptr) {
+
+				if (!has_sections) {
+					define_section("", nullptr, ElfSectionType::NONE, 0, 0);
+					define_section(".shstrtab", section_string_table, ElfSectionType::STRTAB, 0, 0);
+					has_sections = true;
+				}
+
+				auto region = segment == nullptr ? segments->chunk() : segment->chunk();
+				define_section(name, region, type, link, info);
+				return region;
+			}
+
+			ChunkBuffer::Ptr segment(ElfSegmentType type, uint32_t flags, uint64_t address, uint64_t tail = 0) {
+				has_segments = true;
+				const int alignment = getpagesize();
+				auto region = segments->chunk(alignment);
+				define_segment(type, flags, region, address, tail, alignment);
+				return region;
+			}
+
+	};
+
+	class ElfBuffer : ElfFile {
+
+		private:
 
 			uint32_t translate_flags(const BufferSegment& segment) {
 				uint32_t flags = 0;
-				if (segment.flags & BufferSegment::R) flags |= SegmentFlags::R;
-				if (segment.flags & BufferSegment::W) flags |= SegmentFlags::W;
-				if (segment.flags & BufferSegment::X) flags |= SegmentFlags::X;
+				if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
+				if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
+				if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
 
 				return flags;
 			}
@@ -66,109 +188,31 @@ namespace asmio::elf {
 			 * @param entrypoint offset in bytes into the content where the execution will begin
 			 */
 			explicit ElfBuffer(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint)
-			: data_length(segmented.total()) {
-				file_header_offset = util::insert_struct<FileHeader>(buffer);
-				segment_header_offset = util::insert_struct<SegmentHeader>(buffer, segmented.count());
+				: ElfFile(segmented.elf_machine, mount, entrypoint) {
 
-				// calculate number of bytes to the next page boundry
-				const size_t page = getpagesize();
-				const size_t size = buffer.size();
-				const size_t tail = ALIGN_UP(size, page) - size;
-
-				// align to page boundary
-				util::insert_struct<uint8_t>(buffer, tail);
-
-				// page aligned data buffer
-				segment_data_offset = util::insert_struct<uint8_t>(buffer, data_length);
-
-				FileHeader& header = *util::buffer_view<FileHeader>(buffer, file_header_offset);
-				Identification& identifier = header.identifier;
-
-				// ELF magic number
-				identifier.magic[0] = 0x7f;
-				identifier.magic[1] = 'E';
-				identifier.magic[2] = 'L';
-				identifier.magic[3] = 'F';
-
-				// rest of the ELF identifier
-				identifier.capacity = Capacity::BIT_64;
-				identifier.encoding = Encoding::LSB;
-				identifier.version = VERSION;
-				memset(identifier.pad, 0, 9);
-
-				// fill the file header
-				header.type = FileType::EXEC;
-				header.machine = segmented.elf_machine;
-				header.version = VERSION;
-				header.entrypoint = mount + entrypoint;
-				header.flags = 0;
-				header.header_size = sizeof(FileHeader);
-				header.section_string_offset = UNDEFINED_SECTION;
-
-				// ... segments
-				header.program_table_offset = segment_header_offset;
-				header.program_entry_size = sizeof(SegmentHeader);
-				header.program_entry_count = 0;
-
-				// ... sections
-				header.section_table_offset = 0;
-				header.section_entry_size = 0;
-				header.section_entry_count = 0;
-
-				uint64_t header_offset = segment_header_offset;
-				uint64_t data_offset = segment_data_offset;
 				uint64_t address = mount;
 
 				for (const BufferSegment& bs : segmented.segments()) {
-					SegmentHeader& segment = *util::buffer_view<SegmentHeader>(buffer, header_offset);
 
 					if (bs.empty()) {
 						continue;
 					}
 
-					// fill the segment header
-					segment.type = SegmentType::LOAD;
-					segment.virtual_address = address;
-					segment.physical_address = address;
-					segment.alignment = 0x1000;
-					segment.file_size = bs.size();
-					segment.memory_size = bs.size();
-					segment.offset = data_offset;
-					segment.flags = translate_flags(bs);
+					auto chunk = segment(ElfSegmentType::LOAD, translate_flags(bs), address, bs.tail);
 
-					// store the data
-					memcpy(util::buffer_view<uint8_t>(buffer, data_offset), bs.buffer.data(), bs.buffer.size());
-					// TODO the trailing tail padding is ignored here and left unset
+					chunk->write(bs.buffer);
+					chunk->push(bs.tail);
 
-					// move the window forward
-					data_offset += segment.file_size;
-					header_offset += sizeof(SegmentHeader);
-					address += segment.file_size;
-					header.program_entry_count ++;
+					address += bs.size();
+
 				}
 
-				// we can invalidate the struct pointers here safely
-				buffer.shrink_to_fit();
 			}
 
 		public:
 
-			/// returns a pointer to a buffer that contains the file
-			uint8_t* data() {
-				return buffer.data();
-			}
-
-			/// returns the file size in bytes
-			size_t size() const {
-				return buffer.size();
-			}
-
-			/// returns the offset from the mount address to the fist byte of content
-			size_t offset() const {
-				return segment_data_offset;
-			}
-
 			bool save(const char* path) const {
+				auto buffer = root->bake();
 				FILE* file = fopen(path, "wb");
 
 				if (file == nullptr) {
@@ -206,7 +250,8 @@ namespace asmio::elf {
 				}
 
 				// copy buffer into memfd
-				write(memfd, buffer.data(), size());
+				auto buffer = root->bake();
+				write(memfd, buffer.data(), buffer.size());
 
 				// we use this to check if the child really run or did execve just fail
 				*flag = 0;

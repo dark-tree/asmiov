@@ -132,8 +132,8 @@ namespace asmio {
 
 	}
 
-	elf::Machine Module::machine() const {
-		return elf::Machine::NONE;
+	ElfMachine Module::machine() const {
+		return ElfMachine::NONE;
 	}
 
 }

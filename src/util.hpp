@@ -2,16 +2,49 @@
 
 #include <external.hpp>
 
+template <typename T>
+concept trivially_copyable = std::is_trivially_copyable_v<T>;
+
+template <typename T, typename A>
+concept castable = requires (const A& arg) { static_cast<T>(arg); };
+
 #define EXIT_OK 0
 #define EXIT_ERROR 1
 
 #define ASMIOV_VERSION "1.0.0"
 #define ASMIOV_SOURCE "https://github.com/dark-tree/asmiov"
 
+/// Unsigned divide (round up)
 #define UDIV_UP(a, b) (((a) + (b) - 1) / (b))
+
+/// Align 'a' to a multiple of 'b'
 #define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
 
 namespace asmio::util {
+
+	/// Unsigned divide (round up)
+	template <std::integral T>
+	constexpr auto divide_up(T a, T b) {
+		return (a + b - 1) / b;
+	}
+
+	/// Align 'a' to a multiple of 'alignment'
+	template <std::integral T>
+	constexpr auto align_up(T a, T alignment) {
+		return divide_up(a, alignment) * alignment;
+	}
+
+	/// Compute the number that needs to be added to 'a' so that it is a multiple of 'alignment'
+	template <std::integral T>
+	constexpr auto align_padding(T a, T alignment) {
+		return align_up(a, alignment) - a;
+	}
+
+	/// Convert value to the given endian from the native system alignment
+	template <std::integral T>
+	constexpr auto native_to_endian(T value, std::endian endian) {
+		return std::endian::native == endian ? value : std::byteswap(value);
+	}
 
 	template<typename T>
 	auto get_int_or(T value) {
@@ -139,7 +172,7 @@ namespace asmio::util {
 		return x ^ (x >> 31);
 	}
 
-	inline int digit_value(char c) {
+	constexpr int digit_value(char c) {
 		if (c >= '0' && c <= '9') {
 			return c - '0';
 		}
@@ -155,7 +188,7 @@ namespace asmio::util {
 		throw std::runtime_error {"Invalid digit '" + std::string(1, c) + "'"};
 	}
 
-	inline int64_t parse_int(const char* str) {
+	constexpr int64_t parse_int(const char* str) {
 
 		int base = 10;
 		size_t length = strlen(str);

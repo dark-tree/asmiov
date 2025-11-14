@@ -57,7 +57,7 @@ namespace asmio {
 		 * if ELF output is not supported of the architecture can't be easily deduced for
 		 * the module Machine::NONE should be used.
 		 */
-		virtual elf::Machine machine() const;
+		virtual ElfMachine machine() const;
 
 	};
 

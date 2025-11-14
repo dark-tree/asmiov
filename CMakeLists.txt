@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.31)
 project(ASMIOV C CXX)
 include(FetchContent)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Python3 COMPONENTS Interpreter)
@@ -53,6 +53,9 @@ set(ASMIO_SOURCES
 		src/out/buffer/executable.cpp
 		src/out/buffer/writer.cpp
 		src/out/buffer/label.cpp
+
+		src/out/chunk/buffer.cpp
+		src/out/elf/buffer.cpp
 
 		src/asm/module.cpp
 

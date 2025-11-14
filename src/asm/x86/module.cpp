@@ -292,8 +292,8 @@ namespace asmio::x86 {
 		Module::parse(reporter, stream, buffer);
 	}
 
-	elf::Machine LanguageModule::machine() const {
-		return elf::Machine::X86_64;
+	ElfMachine LanguageModule::machine() const {
+		return ElfMachine::X86_64;
 	}
 
 }

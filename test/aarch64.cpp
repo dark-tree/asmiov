@@ -940,7 +940,7 @@ namespace test::arm {
 		tasml::ErrorHandler reporter {vstl_self.name, true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
-		asmio::elf::ElfBuffer elf = asmio::elf::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
+		asmio::ElfBuffer elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
 			reporter.link(link.target, what);
 		});
 
@@ -950,9 +950,9 @@ namespace test::arm {
 		}
 
 		int rc = 0;
-		asmio::elf::RunResult result = elf.execute("memfd", &rc);
+		asmio::RunResult result = elf.execute("memfd", &rc);
 
-		CHECK(result, asmio::elf::RunResult::SUCCESS);
+		CHECK(result, asmio::RunResult::SUCCESS);
 		CHECK(rc, 100);
 
 	};

@@ -78,7 +78,7 @@ namespace asmio {
 
 			// is there some cleaner way to do this?
 			// we at least need to make it target file agnostic in the future
-			elf::Machine elf_machine = elf::Machine::NONE;
+			ElfMachine elf_machine = ElfMachine::NONE;
 
 		public:
 

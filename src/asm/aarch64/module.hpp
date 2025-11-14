@@ -9,7 +9,7 @@ namespace asmio::arm {
 		const char* name() const override;
 		FeatureSet features() const override;
 		void parse(tasml::ErrorHandler& reporter, tasml::TokenStream stream, SegmentedBuffer& buffer) const override;
-		elf::Machine machine() const override;
+		ElfMachine machine() const override;
 
 	};
 

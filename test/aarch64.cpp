@@ -113,6 +113,37 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_check_pattern_mov) {
+
+		{
+			SegmentedBuffer segmented;
+			BufferWriter writer {segmented};
+
+			writer.put_mov(X0, 0xFF00'FF00'FF00'FF00);
+
+			CHECK(segmented.segments()[0].size(), 4);
+		}
+
+		{
+			SegmentedBuffer segmented;
+			BufferWriter writer {segmented};
+
+			writer.put_mov(X0, 0xFFFF'0000'FFFF'0000);
+
+			CHECK(segmented.segments()[0].size(), 4);
+		}
+
+		{
+			SegmentedBuffer segmented;
+			BufferWriter writer {segmented};
+
+			writer.put_mov(X0, 0x1111'1111'1111'1111);
+
+			CHECK(segmented.segments()[0].size(), 4);
+		}
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM
@@ -125,7 +156,25 @@ namespace test::arm {
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
 
+		writer.put_hint(0); // nop
 		writer.put_nop();
+		writer.put_ret();
+
+		to_executable(segmented).call_u64();
+
+	};
+
+	TEST (writer_exec_hint) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// none of those should cause problems
+		writer.put_yield();
+		writer.put_wfi();
+		writer.put_wfe();
+		writer.put_sev();
+		writer.put_sevl();
 		writer.put_ret();
 
 		to_executable(segmented).call_u64();
@@ -888,7 +937,7 @@ namespace test::arm {
 				svc 0
 		)";
 
-		tasml::ErrorHandler reporter {"tasml_tokenize", true};
+		tasml::ErrorHandler reporter {vstl_self.name, true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		asmio::elf::ElfBuffer elf = asmio::elf::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
@@ -905,6 +954,391 @@ namespace test::arm {
 
 		CHECK(result, asmio::elf::RunResult::SUCCESS);
 		CHECK(rc, 100);
+
+	};
+
+	TEST (tasml_exec_mul_madd_maddl) {
+
+		std::string code = R"(
+			lang aarch64
+
+			section rx
+			l_madd_1007:
+				mov x1, 5
+				mov x2, 200
+				mov x3, 7
+				madd x0, x1, x2, x3
+				ret
+
+			l_mul_500:
+				mov x1, 5
+				mov x2, 100
+				mov x3, 7
+				mul x0, x1, x2
+				ret
+
+			l_umaddl:
+				mov w1, 0xFEB00000
+				mov w2, 16
+				mov x3, 7
+				umaddl x0, w1, w2, x3
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer;
+
+		try {
+			buffer = tasml::assemble(reporter, code);
+		} catch (std::runtime_error& e) {
+			reporter.dump();
+			FAIL("Failed to assemble - " + std::string(e.what()));
+		}
+
+		uint64_t r0 = to_executable(buffer).call_i64("l_madd_1007");
+		CHECK(r0, 1007);
+
+		r0 = to_executable(buffer).call_i64("l_mul_500");
+		CHECK(r0, 500);
+
+		r0 = to_executable(buffer).call_i64("l_umaddl");
+		CHECK(r0, 0xF'EB000007);
+
+	};
+
+	TEST (tasml_exec_umulh) {
+
+		std::string code = R"(
+			lang aarch64
+
+			section rx
+			l_mul_low:
+				mov x1, 0xFAFFFFFFFBFFFFFE
+				mov x2, 0x0000000100000000
+				mul x0, x1, x2
+				ret
+
+			l_mul_high:
+				mov x1, 0xFAFFFFFFFBFFFFFE
+				mov x2, 0x0000000100000000
+				umulh x0, x1, x2
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+
+		uint64_t r0 = to_executable(buffer).call_i64("l_mul_low");
+		CHECK(r0, 0xFBFFFFFE00000000);
+
+		r0 = to_executable(buffer).call_i64("l_mul_high");
+		CHECK(r0, 0xFAFFFFFF);
+
+	};
+
+	TEST (tasml_exec_udiv) {
+
+		std::string code = R"(
+			lang aarch64
+
+			section rx
+			l_div:
+				mov x1, 507
+				mov x2, 12
+				udiv x0, x1, x2
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+
+		uint64_t r0 = to_executable(buffer).call_i64("l_div");
+		CHECK(r0, 42);
+
+	};
+
+	TEST (tasml_exec_sdiv) {
+
+		std::string code = R"(
+			lang aarch64
+
+			section rx
+			l_div:
+				mov x1, 507
+				mov x2, -12
+				sdiv x0, x1, x2
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+
+		uint64_t r0 = to_executable(buffer).call_i64("l_div");
+		CHECK(r0, -42);
+
+	};
+
+	TEST (exec_scall_simple_add) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("simple_add");
+		writer.put_ldr(X1, X0, 0, Sizing::UX);
+		writer.put_ldr(X2, X0, 8, Sizing::UX);
+		writer.put_add(X0, X1, X2);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.scall<int64_t>("simple_add", (int64_t) 11, (int64_t) 133), 144);
+		CHECK(buffer.scall<int64_t>("simple_add", (int64_t) 100, (int64_t) 1), 101);
+		CHECK(buffer.scall<int64_t>("simple_add", 0x1000'0000'0000'0000, 0x1000'0000'0000'0000), 0x2000'0000'0000'0000);
+
+	}
+
+	TEST (writer_exec_rev16) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD11CC22);
+		writer.put_rev16(X0, X1);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0x00FF00EE'11DD22CC);
+
+	}
+
+	TEST (writer_exec_rev32) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD11CC22);
+		writer.put_rev32(X0, X1);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0x00EE00FF'22CC11DD);
+
+	}
+
+	TEST (writer_exec_rev64) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD11CC22);
+		writer.put_rev64(X0, X1);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0x22CC11DD'00EE00FF);
+
+	};
+
+	TEST (writer_exec_ror_reg) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD11CC22);
+		writer.put_mov(X2, 16);
+		writer.put_ror(X0, X1, X2);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0xCC22FF00EE00'DD11);
+
+	};
+
+	TEST (writer_exec_lsl_reg) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD11CC22);
+		writer.put_mov(X2, 16);
+		writer.put_lsl(X0, X1, X2);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0xEE00'DD11CC220000);
+
+	};
+
+	TEST (writer_exec_lsr_reg) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD11CC22);
+		writer.put_mov(X2, 16);
+		writer.put_lsr(X0, X1, X2);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0x0000FF00EE00'DD11);
+
+	};
+
+	TEST (writer_exec_ror_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFF00EE00'DD22CC33);
+		writer.put_ror(X0, X1, 16);
+		writer.put_ret();
+
+		uint64_t r0 = to_executable(segmented).call_i64();
+		CHECK(r0, 0xCC33FF00EE00'DD22);
+
+	};
+
+	TEST (writer_exec_csel) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("first");
+		writer.put_mov(X0, 0);
+		writer.put_mov(X1, 32);
+		writer.put_mov(X2, 21);
+		writer.put_b("tail");
+
+		writer.label("second");
+		writer.put_mov(X0, 0);
+		writer.put_mov(X1, 11);
+		writer.put_mov(X2, 37);
+		writer.put_b("tail");
+
+		writer.put_ret();
+
+		writer.label("tail");
+		writer.put_mov(X0, 0);
+		writer.put_cmp(X1, X2);
+		writer.put_csel(Condition::GT, X0, X1, X2);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+
+		CHECK(exec.call_i64("first"), 32);
+		CHECK(exec.call_i64("second"), 37);
+
+	};
+
+	TEST (writer_exec_cinc) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("first");
+		writer.put_mov(X0, 7);
+		writer.put_mov(X1, 100);
+		writer.put_mov(X2, 200);
+		writer.put_b("tail");
+
+		writer.label("second");
+		writer.put_mov(X0, 7);
+		writer.put_mov(X1, 200);
+		writer.put_mov(X2, 100);
+		writer.put_b("tail");
+
+		writer.label("tail");
+		writer.put_cmp(X1, X2);
+		writer.put_cinc(Condition::GT, X0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+
+		CHECK(exec.call_i64("first"), 7);
+		CHECK(exec.call_i64("second"), 8);
+
+	};
+
+	TEST (writer_exec_cset) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("first");
+		writer.put_mov(X0, 7);
+		writer.put_mov(X1, 100);
+		writer.put_mov(X2, 200);
+		writer.put_b("tail");
+
+		writer.label("second");
+		writer.put_mov(X0, 7);
+		writer.put_mov(X1, 200);
+		writer.put_mov(X2, 100);
+		writer.put_b("tail");
+
+		writer.label("tail");
+		writer.put_cmp(X1, X2);
+		writer.put_cset(Condition::GT, X0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+
+		CHECK(exec.call_i64("first"), 0);
+		CHECK(exec.call_i64("second"), 1);
+
+	};
+
+	TEST (writer_exec_mov_to_from_sp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, SP);
+		writer.put_mov(X2, 42);
+		writer.put_mov(SP, X2);
+		writer.put_mov(X0, SP);
+		writer.put_mov(SP, X1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 42);
+
+	};
+
+	TEST (writer_exec_tbnz) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 0);
+		writer.put_mov(X1, 0xFF00'FF00'FF00'FF00);
+		writer.put_tbnz(X1, 60, "bit_set");
+		writer.put_ret();
+
+		writer.label("bit_set");
+		writer.put_mov(X0, 11);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 11);
+
+	};
+
+	TEST (writer_exec_tbz) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 12);
+		writer.put_mov(X1, 0xFF00'FF00'FF00'FF00);
+		writer.put_tbz(X1, 60, "bit_set");
+		writer.put_ret();
+
+		writer.label("bit_set");
+		writer.put_mov(X0, 0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 12);
 
 	};
 

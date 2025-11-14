@@ -86,11 +86,19 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_mov(Registry dst, Registry src) {
-		put_inst_orr(dst, src, dst.wide() ? XZR : WZR);
-	}
 
-	void BufferWriter::put_nop() {
-		put_dword(0b1101010100'0'00'011'0010'0000'000'11111);
+		if (src.is(Registry::STACK) || dst.is(Registry::STACK)) {
+
+			// when dealing with SP zero can't be used
+			if (src.is(Registry::ZERO) || dst.is(Registry::ZERO)) {
+				throw std::runtime_error {"Invalid operands, zero registry can't be used int this context"};
+			}
+
+			put_add(dst, src, XZR);
+			return;
+		}
+
+		put_inst_orr(dst, src, dst.wide() ? XZR : WZR);
 	}
 
 	void BufferWriter::put_ret() {
@@ -188,6 +196,178 @@ namespace asmio::arm {
 
 	void BufferWriter::put_cmn(Registry a, Registry b, Sizing size, uint8_t lsl3) {
 		put_adds(a.wide() ? XZR : WZR, a, b, size, lsl3);
+	}
+
+	void BufferWriter::put_madd(Registry dst, Registry a, Registry b, Registry addend) {
+		assert_register_triplet(a, b, dst);
+
+		// we have four register so the last one needs to be checked manually
+		if (dst.wide() != addend.wide()) {
+			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
+		}
+
+		uint32_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b0011011000 << 21 | b.reg << 16 | addend.reg << 10 | a.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_smaddl(Registry dst, Registry a, Registry b, Registry addend) {
+		put_inst_maddl(dst, a, b, addend, false);
+	}
+
+	void BufferWriter::put_umaddl(Registry dst, Registry a, Registry b, Registry addend) {
+		put_inst_maddl(dst, a, b, addend, true);
+	}
+
+	void BufferWriter::put_mul(Registry dst, Registry a, Registry b) {
+		put_madd(dst, a, b, dst.wide() ? XZR : WZR);
+	}
+
+	void BufferWriter::put_smul(Registry dst, Registry a, Registry b) {
+		put_smaddl(dst, a, b, XZR);
+	}
+
+	void BufferWriter::put_umul(Registry dst, Registry a, Registry b) {
+		put_umaddl(dst, a, b, XZR);
+	}
+
+	void BufferWriter::put_smulh(Registry dst, Registry a, Registry b) {
+		put_inst_mulh(dst, a, b, false);
+	}
+
+	void BufferWriter::put_umulh(Registry dst, Registry a, Registry b) {
+		put_inst_mulh(dst, a, b, true);
+	}
+
+	void BufferWriter::put_sdiv(Registry dst, Registry a, Registry b) {
+		put_inst_div(dst, a, b, false);
+	}
+
+	void BufferWriter::put_udiv(Registry dst, Registry a, Registry b) {
+		put_inst_div(dst, a, b, true);
+	}
+
+	void BufferWriter::put_rev16(Registry dst, Registry src) {
+		put_inst_rev(dst, src, 0b01);
+	}
+
+	void BufferWriter::put_rev32(Registry dst, Registry src) {
+		put_inst_rev(dst, src, 0b10);
+	}
+
+	void BufferWriter::put_rev64(Registry dst, Registry src) {
+		put_inst_rev(dst, src, 0b11);
+	}
+
+	void BufferWriter::put_ror(Registry dst, Registry src, Registry bits) {
+		put_inst_shift_v(dst, src, bits, ShiftType::ROR);
+	}
+
+	void BufferWriter::put_lsr(Registry dst, Registry src, Registry bits) {
+		put_inst_shift_v(dst, src, bits, ShiftType::LSR);
+	}
+
+	void BufferWriter::put_lsl(Registry dst, Registry src, Registry bits) {
+		put_inst_shift_v(dst, src, bits, ShiftType::LSL);
+	}
+
+	void BufferWriter::put_asr(Registry dst, Registry src, Registry bits) {
+		put_inst_shift_v(dst, src, bits, ShiftType::ASR);
+	}
+
+	void BufferWriter::put_asl(Registry dst, Registry src, Registry bits) {
+		put_lsl(dst, src, bits);
+	}
+
+	void BufferWriter::put_ror(Registry dst, Registry src, uint8_t imm5) {
+		put_extr(dst, src, src, imm5);
+	}
+
+	void BufferWriter::put_extr(Registry dst, Registry low, Registry high, uint8_t imm5) {
+		assert_register_triplet(dst, low, high);
+		const uint8_t max_shift = dst.wide() ? 63 : 31;
+
+		if (imm5 > max_shift) {
+			throw std::runtime_error {"Invalid operands, shift value too large for this context"};
+		}
+
+		const uint16_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b00100111 << 23 | sf << 22 | low.reg << 16 | imm5 << 10 | high.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_csel(Condition condition, Registry dst, Registry truthy, Registry falsy) {
+		put_inst_csinc(condition, dst, truthy, falsy, false);
+	}
+
+	void BufferWriter::put_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy) {
+		put_inst_csinc(condition, dst, truthy, falsy, true);
+	}
+
+	void BufferWriter::put_cinc(Condition condition, Registry dst, Registry src) {
+		put_csinc(invert(condition), dst, src, src);
+	}
+
+	void BufferWriter::put_cinc(Condition condition, Registry dst) {
+		put_csinc(invert(condition), dst, dst, dst);
+	}
+
+	void BufferWriter::put_cset(Condition condition, Registry dst) {
+		put_cinc(condition, dst, dst.wide() ? XZR : WZR);
+	}
+
+	void BufferWriter::put_hint(uint8_t imm7) {
+		put_dword(0b1101010100'0'00'011'0010 << 12 | (0b1111'111 & imm7) << 5 | 0b11111);
+	}
+
+	void BufferWriter::put_hlt(uint16_t imm16) {
+		put_dword(0b11010100'010 << 21 | imm16 << 5 | 0b000'00);
+	}
+
+	void BufferWriter::put_hvc(uint16_t imm16) {
+		put_dword(0b11010100'000 << 21 | imm16 << 5 | 0b000'10);
+	}
+
+	void BufferWriter::put_smc(uint16_t imm16) {
+		put_dword(0b11010100'000 << 21 | imm16 << 5 | 0b000'11);
+	}
+
+	void BufferWriter::put_brk(uint16_t imm) {
+		put_dword(0b11010100'001 << 21 | imm << 5 | 0b00000);
+	}
+
+	void BufferWriter::put_isb() {
+		put_dword(0b1101010100'0'00'011'0011 << 12 | 0b1111 << 8 | 0b1'10'11111);
+	}
+
+	void BufferWriter::put_nop() {
+		put_hint(0b0000'000);
+	}
+
+	void BufferWriter::put_yield() {
+		put_hint(0b0000'001);
+	}
+
+	void BufferWriter::put_wfe() {
+		put_hint(0b0000'010);
+	}
+
+	void BufferWriter::put_wfi() {
+		put_hint(0b0000'011);
+	}
+
+	void BufferWriter::put_sev() {
+		put_hint(0b0000'100);
+	}
+
+	void BufferWriter::put_sevl() {
+		put_hint(0b0000'101);
+	}
+
+	void BufferWriter::put_esb() {
+		put_hint(0b0010'000);
+	}
+
+	void BufferWriter::put_psb() {
+		put_hint(0b0010'001);
 	}
 
 }

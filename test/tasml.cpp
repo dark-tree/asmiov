@@ -12,6 +12,18 @@
 namespace test::tas {
 	using namespace asmio;
 
+	TEST (util_parse_int) {
+
+		CHECK(util::parse_int("0"), 0);
+		CHECK(util::parse_int("+1000"), 1000);
+		CHECK(util::parse_int("-1000"), -1000);
+		CHECK(util::parse_int("0xFEB00000"), 0xFEB00000);
+		CHECK(util::parse_int("0xFAFFFFFFFBFFFFFE"), 0xFAFFFFFFFBFFFFFE);
+		CHECK(util::parse_int("0b1010101"), 0b1010101);
+		CHECK(util::parse_int("-0b1010101"), -0b1010101);
+
+	}
+
 	TEST (tasml_check_basic_error) {
 
 		std::string code = R"(

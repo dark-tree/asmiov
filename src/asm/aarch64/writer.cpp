@@ -165,6 +165,10 @@ namespace asmio::arm {
 		encode_shifted_aligned_link(buffer, linkage, 19, 5);
 	}
 
+	void BufferWriter::link_14_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+		encode_shifted_aligned_link(buffer, linkage, 14, 5);
+	}
+
 	void BufferWriter::link_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
 		BufferMarker src = buffer->get_label(linkage.label);
 		BufferMarker dst = linkage.target;
@@ -331,12 +335,100 @@ namespace asmio::arm {
 		put_dword(size << 30 | 0b11100 << 25 | use_imm12 | (uint64_t(dir) & sign) << 22 | (mask & offset) << imm_lsl | uint64_t(op) << 10 | base.reg << 5 | dst.reg);
 	}
 
+	void BufferWriter::put_inst_maddl(Registry dst, Registry a, Registry b, Registry addend, bool is_unsigned) {
+		if (!dst.wide() ) {
+			throw std::runtime_error {"Invalid operands, expected qword destination register"};
+		}
+
+		if (!addend.wide() ) {
+			throw std::runtime_error {"Invalid operands, expected qword addend register"};
+		}
+
+		if (a.wide() || b.wide()) {
+			throw std::runtime_error {"Invalid operands, expected dword multiplication registers"};
+		}
+
+		if (!dst.is(Registry::GENERAL) || !a.is(Registry::GENERAL) || !b.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
+		uint64_t uf = is_unsigned ? 1 : 0;
+		put_dword(0b10011011 << 24 | uf << 23 | 0b01 << 21 | b.reg << 16 | addend.reg << 10 | a.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_inst_mulh(Registry dst, Registry a, Registry b, bool is_unsigned) {
+		if (!dst.wide() || !a.wide() || !b.wide()) {
+			throw std::runtime_error {"Invalid operands, expected qword registers"};
+		}
+
+		if (!dst.is(Registry::GENERAL) || !a.is(Registry::GENERAL) || !b.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
+		uint64_t uf = is_unsigned ? 1 : 0;
+		put_dword(0b10011011 << 24 | uf << 23 | 0b10 << 21 | a.reg << 16 | 0b11111 << 10 | b.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_inst_div(Registry dst, Registry a, Registry b, bool is_unsigned) {
+		assert_register_triplet(a, b, dst);
+
+		if (!dst.is(Registry::GENERAL) || !a.is(Registry::GENERAL) || !b.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
+		uint32_t sf = dst.wide() ? 1 : 0;
+		uint64_t uf = is_unsigned ? 0 : 1;
+		put_dword(sf << 31 | 0b0011010110 << 21 | b.reg << 16 | 0b00001 << 11 | uf << 10 | a.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_inst_rev(Registry dst, Registry src, uint16_t size_opc_10) {
+
+		if (!dst.is(Registry::GENERAL) || !src.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
+		if (size_opc_10 == 0b01) {
+			if (dst.wide() != src.wide()) {
+				throw std::runtime_error {"Invalid operands, input and output registers needs to be of the same size"};
+			}
+		} else {
+			if (!dst.wide() || !src.wide()) {
+				throw std::runtime_error {"Invalid operands, expected QWORD registers"};
+			}
+		}
+
+		uint32_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b1011010110 << 21 | size_opc_10 << 10 | src.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_inst_shift_v(Registry dst, Registry src, Registry bits, ShiftType shift) {
+		assert_register_triplet(dst, src, bits);
+
+		if (!dst.is(Registry::GENERAL) || !src.is(Registry::GENERAL) || !bits.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
+		uint16_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b0011010110 << 21 | bits.reg << 16 | 0b0010 << 12 | uint32_t(shift) << 10 | src.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_inst_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy, bool increment_truth) {
+		assert_register_triplet(dst, truthy, falsy);
+
+		if (!dst.is(Registry::GENERAL) || !truthy.is(Registry::GENERAL) || !falsy.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
+		const uint16_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | 0b00'11010100 << 21 | falsy.reg << 16 | uint32_t(condition) << 12 | increment_truth << 10 | truthy.reg << 5 | dst.reg);
+	}
+
 	void BufferWriter::put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		assert_register_triplet(a, b, destination);
 
 		// if any one of them is a stack register abort
 		if (!a.is(Registry::GENERAL) || !b.is(Registry::GENERAL) || !destination.is(Registry::GENERAL)) {
-			throw std::runtime_error {"Invalid operands, expected general purpose registers."};
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
 		}
 
 		uint16_t sf = destination.wide() ? 1 : 0;
@@ -347,7 +439,7 @@ namespace asmio::arm {
 		const auto bitmask = compute_immediate_bitmask(pattern, destination.wide());
 
 		if (!bitmask.has_value()) {
-			throw std::runtime_error {"Invalid operands, the given constant is not encodable."};
+			throw std::runtime_error {"Invalid operands, the given constant is not encodable"};
 		}
 
 		put_inst_orr_bitmask(destination, source, bitmask.value());
@@ -356,11 +448,11 @@ namespace asmio::arm {
 	void BufferWriter::put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12, bool set_flags) {
 
 		if (source.is(Registry::ZERO) || destination.is(Registry::ZERO)) {
-			throw std::runtime_error {"Invalid operands, zero register can't be used here."};
+			throw std::runtime_error {"Invalid operands, zero register can't be used here"};
 		}
 
 		if (destination.wide() != source.wide()) {
-			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
+			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width"};
 		}
 
 		uint16_t sf = destination.wide() ? 1 : 0;
@@ -372,7 +464,7 @@ namespace asmio::arm {
 		assert_register_triplet(a, b, destination);
 
 		if (shift == ShiftType::ROR) {
-			throw std::runtime_error {"Invalid shift type, ROR shift type is not allowed here."};
+			throw std::runtime_error {"Invalid shift type, ROR shift type is not allowed here"};
 		}
 
 		uint32_t sf = destination.wide() ? 1 : 0;

@@ -32,6 +32,9 @@ namespace asmio::x86 {
 			Location(T offset = 0) // can the same thing be archived with some smart overload?
 			: Location(UNSET, UNSET, 1, util::get_int_or(offset), util::get_ptr_or(offset), VOID, false) {}
 
+			Location(const Label& label)
+			: Location(UNSET, UNSET, 1, 0, label, VOID, false) {}
+
 			Location(Registry registry)
 			: Location(registry, UNSET, 1, 0, {}, registry.size, false) {}
 

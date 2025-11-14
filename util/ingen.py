@@ -12,6 +12,7 @@ for arg in sys.argv[1:]:
 	output = "src/generated/" + arch + ".hpp"
 
 	instructions = {}
+	prefixes = []
 
 	print(f'Generating "{output}" from "{arg}"...')
 
@@ -20,48 +21,60 @@ for arg in sys.argv[1:]:
 		os.makedirs(os.path.dirname(output), exist_ok=True)
 
 		for line in inf:
-			if not 'INST ' in line:
-				continue
-
-			try:
-				start = line.index('INST ') + 5 + 4
+			if 'PREFIX ' in line:
+				start = line.index('PREFIX ') + 7 + 4
 				end = line.rindex('///')
-
 				inst = line[start:end].rstrip()[:-1]
+
 				open_idx = inst.index('(')
 				close_idx = inst.index(')')
 
-				args = []
 				mnemonic = inst[:open_idx]
+				prefixes.append(mnemonic)
 
-				target_array = instructions.setdefault(mnemonic, [])
+				continue
 
-				for arg in inst[open_idx+1:close_idx].split(','):
+			if 'INST ' in line:
+				try:
+					start = line.index('INST ') + 5 + 4
+					end = line.rindex('///')
+					inst = line[start:end].rstrip()[:-1]
 
-					real = arg.strip()
+					open_idx = inst.index('(')
+					close_idx = inst.index(')')
 
-					if len(real) == 0:
-						continue
+					args = []
+					mnemonic = inst[:open_idx]
 
-					definition = real
-					value = ""
+					target_array = instructions.setdefault(mnemonic, [])
 
-					if "=" in definition:
-						parts = definition.split('=')
-						definition = parts[0].strip()
-						value = parts[1].strip()
+					for arg in inst[open_idx+1:close_idx].split(','):
 
-					parts = definition.split(" ")
-					type = parts[0].strip()
-					name = parts[1].strip()
+						real = arg.strip()
 
-					args.append({'type': type, 'name': name, 'value': value})
+						if len(real) == 0:
+							continue
 
-				target_array.append(args)
+						definition = real
+						value = ""
 
-			except Exception as e:
-				print(f'Exception occurred while processing line: "{line.strip()}"')
-				raise
+						if "=" in definition:
+							parts = definition.split('=')
+							definition = parts[0].strip()
+							value = parts[1].strip()
+
+						definition = definition.removeprefix("const").strip()
+						parts = definition.split(" ")
+						type = parts[0].removesuffix("&").strip()
+						name = parts[1].strip()
+
+						args.append({'type': type, 'name': name, 'value': value})
+
+					target_array.append(args)
+
+				except Exception as e:
+					print(f'Exception occurred while processing line: "{line.strip()}"')
+					raise
 
 		for mnemonic in instructions:
 			arg_sets = instructions[mnemonic]
@@ -153,6 +166,14 @@ for arg in sys.argv[1:]:
 					ouf.write("\n")
 
 			ouf.write(f'\t\tthrow std::runtime_error {{"Invalid argument count"}};\n')
+			ouf.write(f'\t}}\n\n')
+
+		for mnemonic in prefixes:
+			ouf.write(f'\tif (statement.accept("{mnemonic}")) {{\n')
+			ouf.write(f'\t\twriter.put_{mnemonic}();\n')
+
+			ouf.write(f'\t\tTokenStream suffix = statement.statement();\n')
+			ouf.write(f'\t\treturn try_parse_instruction(suffix, writer);\n')
 			ouf.write(f'\t}}\n\n')
 
 		ouf.write(f'\treturn false;\n')

@@ -29,7 +29,7 @@ namespace tasml {
 
 	static Token::Type categorize(const std::string& raw) {
 		static const std::regex floating_re {R"(^\d+\.\d+$)"};
-		static const std::regex integer_re {R"(^([0-9]+)|(0x[0-9a-fA-F]+)|(0b[01]+)|(0o[0-7]+)$)"};
+		static const std::regex integer_re {R"(^[-+]?(([0-9]+)|(0x[0-9a-fA-F]+)|(0b[01]+)|(0o[0-7]+))$)"};
 		static const std::regex string_re {R"(^".*"$)"};
 		static const std::regex name_re {R"(^[A-Za-z_.$](\w|[.$])*$)"};
 		static const std::regex label_re {R"(^[A-Za-z_.$](\w|[.$])*:$)"};
@@ -167,6 +167,12 @@ namespace tasml {
 				if (!is_space(c)) {
 					start = column;
 					offset = i;
+
+					if ((c == '-' || c == '+') && !is_space(n)) {
+						token += c;
+						continue;
+					}
+
 					submit({c});
 				}
 

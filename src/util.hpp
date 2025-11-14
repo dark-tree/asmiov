@@ -55,7 +55,7 @@ namespace asmio::util {
 	}
 
 	inline std::string to_lower(std::string s) {
-		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
+		std::ranges::transform(s, s.begin(), [] (const int c) noexcept -> int { return std::tolower(c); });
 		return s;
 	}
 
@@ -71,7 +71,7 @@ namespace asmio::util {
 	 * Check how many bits can be truncated from a signed number before
 	 * it changed its value, assuming one bit is needed for the sign.
 	 */
-	constexpr int count_redundant_sign_bits(int64_t value) {
+	constexpr int count_redundant_sign_bits(const int64_t value) {
 		return __builtin_clzll(value >= 0 ? value : ~value) - 1;
 	}
 
@@ -97,7 +97,7 @@ namespace asmio::util {
 			return std::numeric_limits<T>::max();
 		}
 
-		return (1 << count) - 1;
+		return (1UL << count) - 1UL;
 	}
 
 	constexpr int min_sign_extended_bytes(int64_t value) {
@@ -123,11 +123,11 @@ namespace asmio::util {
 		return stream.str();
 	}
 
-	constexpr uint64_t hash_djb2(const char *str) {
+	constexpr uint64_t hash_djb2(const char* str, size_t bytes) {
 		uint64_t hash = 5381;
 
-		for (int c; (c = *str) != 0; str++) {
-			hash = (hash << 5) + hash * 33 + c;
+		for (size_t i = 0; i < bytes; i ++) {
+			hash = (hash << 5) + hash * 33 + str[i];
 		}
 
 		return hash;
@@ -139,32 +139,62 @@ namespace asmio::util {
 		return x ^ (x >> 31);
 	}
 
+	inline int digit_value(char c) {
+		if (c >= '0' && c <= '9') {
+			return c - '0';
+		}
+
+		if (c >= 'a' && c <= 'f') {
+			return c - 'a' + 10;
+		}
+
+		if (c >= 'A' && c <= 'F') {
+			return c - 'A' + 10;
+		}
+
+		throw std::runtime_error {"Invalid digit '" + std::string(1, c) + "'"};
+	}
+
 	inline int64_t parse_int(const char* str) {
 
 		int base = 10;
 		size_t length = strlen(str);
-		const char* digits = str;
+		int64_t sign = 1;
+
+		if (str[0] == '+') {
+			str ++;
+		} else if (str[0] == '-') {
+			str ++;
+			sign = -1;
+		}
 
 		if (length > 2 && str[0] == '0') {
-			if (str[1] == 'x') { digits = str + 2; base = 16; }
-			if (str[1] == 'o') { digits = str + 2; base = 8;  }
-			if (str[1] == 'b') { digits = str + 2; base = 2;  }
+			if (str[1] == 'x') { str += 2; base = 16; }
+			else if (str[1] == 'o') { str += 2; base = 8;  }
+			else if (str[1] == 'b') { str += 2; base = 2;  }
 		}
 
-		size_t offset;
-		int64_t value;
+		// update length as we could have changed starting point
+		length = strlen(str);
+		int64_t value = 0;
 
-		try {
-			value = std::stoll(digits, &offset, base);
-		} catch(...) {
-			throw std::runtime_error {"exception thrown"};
+		for (size_t i = 0; i < length; i ++) {
+			char c = str[i];
+
+			if (c == '\'' || c == '_') {
+				continue;
+			}
+
+			int next = digit_value(c);
+
+			if (next >= base) {
+				throw std::runtime_error {"invalid number format"};
+			}
+
+			value = (value * base) + next;
 		}
 
-		if (offset != length - (base != 10 ? 2 : 0)) {
-			throw std::runtime_error {"some input ignored"};
-		}
-
-		return value;
+		return value * sign;
 
 	}
 

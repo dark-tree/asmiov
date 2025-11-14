@@ -70,4 +70,16 @@ namespace tasml {
 
 	}
 
+	asmio::SegmentedBuffer assemble(const char* unit, const std::string& source) {
+
+		ErrorHandler reporter {unit, true};
+
+		try {
+			return assemble(reporter, source);
+		} catch (std::runtime_error&) {
+			reporter.dump();
+			throw;
+		}
+	}
+
 }

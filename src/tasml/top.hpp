@@ -11,4 +11,7 @@ namespace tasml {
 
 	asmio::SegmentedBuffer assemble(ErrorHandler& reporter, const std::string& source);
 
+	/// This is used as a helper by the tests, assemble and print errors
+	asmio::SegmentedBuffer assemble(const char* unit, const std::string& source);
+
 }

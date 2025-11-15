@@ -96,11 +96,7 @@ int main(int argc, char** argv) {
 			return EXIT_ERROR;
 		}
 
-		// load file contents into string
-		file.seekg(0, std::ios::end);
-		assembly.reserve(file.tellg());
-		file.seekg(0, std::ios::beg);
-		assembly.assign(std::istreambuf_iterator<char> {file}, std::istreambuf_iterator<char> {});
+		asmio::util::load_file_into(file, assembly);
 	}
 
 	tasml::ErrorHandler handler {input, !args.has("--xansi")};

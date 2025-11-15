@@ -2856,6 +2856,22 @@ namespace test::x86 {
 
 	}
 
+	TEST (writer_exec_bsf_64) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// bytes              1        2        3        4        5        6        7        8
+		writer.put_mov(RCX, 0b00000000'00000001'00000000'00000000'00000000'00000000'00000000'00000000);
+
+		writer.put_bsf(RAX, RCX);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 48);
+
+	}
+
 	TEST (writer_exec_cqo) {
 
 		SegmentedBuffer segmented;

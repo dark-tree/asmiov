@@ -76,6 +76,11 @@ namespace asmio::x86 {
 			return reg & REG_LOW;
 		}
 
+		/// Retrieve the REX high bit of the registry number
+		constexpr uint8_t high() const {
+			return reg & REG_HIGH;
+		}
+
 		/// Check if the register has ESP-like encoding quirks
 		constexpr bool is_esp_like() const {
 			return low() == 0b100;

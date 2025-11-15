@@ -9,7 +9,6 @@
 
 // private libs
 #include <fstream>
-#include <asm/x86/module.hpp>
 #include <out/buffer/executable.hpp>
 #include <tasml/top.hpp>
 
@@ -353,6 +352,86 @@ namespace test::x86 {
 
 	}
 
+	TEST (writer_fail_small_push) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// 8 bit
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_push(AL);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_push(AH);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_push(SIL);
+		};
+
+		// 32 bit
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_push(EAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_push(R15D);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_push(ESI);
+		};
+
+		// fine
+
+		writer.put_push(R15);
+		writer.put_push(R15W);
+
+	}
+
+	TEST (writer_fail_small_pop) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// 8 bit
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_pop(AL);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_pop(AH);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_pop(SIL);
+		};
+
+		// 32 bit
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_pop(EAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_pop(R15D);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_pop(ESI);
+		};
+
+		// fine
+
+		writer.put_pop(R15);
+		writer.put_pop(R15W);
+
+	}
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for x86
@@ -394,6 +473,71 @@ namespace test::x86 {
 		uint32_t eax = buffer.call_u32();
 
 		CHECK(eax, 5);
+
+	}
+
+	TEST (writer_exec_push_pop_extended) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_push(R15);
+		writer.put_mov(R15, 11);
+
+		writer.put_push(R15);
+		writer.put_mov(R15, 3);
+		writer.put_pop(R15);
+
+		writer.put_mov(RAX, R15);
+		writer.put_pop(R15);
+
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		uint32_t eax = buffer.call_u32();
+
+		CHECK(eax, 11);
+
+	}
+
+	TEST (writer_exec_push_pop_16bit_reg) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_push(R12);
+		writer.put_mov(R12, 0xFFFF'FFFF'FFFF'AAAA);
+
+		writer.put_push(R12W);
+		writer.put_mov(R12, 0);
+		writer.put_pop(R12W);
+
+		writer.put_mov(RAX, R12);
+		writer.put_pop(R12);
+
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		uint32_t eax = buffer.call_u32();
+
+		CHECK(eax, 0xAAAA);
+
+	}
+
+	TEST (writer_exec_pusha_popa_basic) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_pusha();
+
+		writer.put_mov(RBP, 0);
+
+		writer.put_popa();
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		buffer.call();
 
 	}
 

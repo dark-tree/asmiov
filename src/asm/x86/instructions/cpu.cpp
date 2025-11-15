@@ -266,7 +266,11 @@ namespace asmio::x86 {
 				put_16bit_operand_prefix();
 			}
 
-			put_byte((0b01010 << 3) | src.base.reg);
+			if (src.base.is(Registry::REX)) {
+				put_inst_rex(false, false, false, src.base.high());
+			}
+
+			put_byte((0b01010 << 3) | src.base.low());
 			return;
 		}
 
@@ -287,6 +291,12 @@ namespace asmio::x86 {
 			throw std::runtime_error {"Invalid operands, byte register can't be used here"};
 		}
 
+		// for some reason push & pop don't handle the wide flag,
+		// so we can only accept wide registers
+		if (src.size != WORD && src.size != QWORD) {
+			throw std::runtime_error {"Invalid operand, byte/dword can't be used here"};
+		}
+
 		// short-form
 		if (src.is_simple()) {
 
@@ -294,7 +304,11 @@ namespace asmio::x86 {
 				put_16bit_operand_prefix();
 			}
 
-			put_byte((0b01011 << 3) | src.base.reg);
+			if (src.base.is(Registry::REX)) {
+				put_inst_rex(false, false, false, src.base.reg & 0b1000);
+			}
+
+			put_byte((0b01011 << 3) | (src.base.reg & 0b111));
 			return;
 		}
 
@@ -946,12 +960,22 @@ namespace asmio::x86 {
 
 	/// Push All
 	void BufferWriter::put_pusha() {
-		put_byte(0b01100000);
+		put_push(RBP);
+		put_push(RBX);
+		put_push(R12);
+		put_push(R13);
+		put_push(R14);
+		put_push(R15);
 	}
 
 	/// Pop All
 	void BufferWriter::put_popa() {
-		put_byte(0b01100001);
+		put_pop(R15);
+		put_pop(R14);
+		put_pop(R13);
+		put_pop(R12);
+		put_pop(RBX);
+		put_pop(RBP);
 	}
 
 	/// Push Flags

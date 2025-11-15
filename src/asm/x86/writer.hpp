@@ -232,8 +232,8 @@ namespace asmio::x86 {
 			INST put_ud2();                             ///< Undefined Instruction
 			INST put_enter(Location alc, Location nst); ///< Enter Procedure
 			INST put_leave();                           ///< Leave Procedure
-			INST put_pusha();                           ///< Push All
-			INST put_popa();                            ///< Pop All
+			INST put_pusha();                           ///< Push RBX, RBP, R12-R15
+			INST put_popa();                            ///< Pop RBX, RBP, R12-R15
 			INST put_pushfd();                          ///< Push EFLAGS
 			INST put_popfd();                           ///< Pop EFLAGS
 			INST put_pushf();                           ///< Push Flags

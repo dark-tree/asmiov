@@ -555,12 +555,16 @@ namespace test::x86 {
 		writer.put_dword(17); // +20
 
 		writer.label("code");
+		writer.put_push(R12);
+		writer.put_push(R15);
 		writer.put_mov(R8D, 0);
 		writer.put_mov(R12, 5);
 		writer.put_mov(R15, "data");
 
 		writer.put_mov(R8D, ref(R12 + R15 + 3)); // ref(5 + data + 3) = ref(data + 8)
 		writer.put_mov(EAX, R8D);
+		writer.put_pop(R15);
+		writer.put_pop(R12);
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
@@ -611,6 +615,7 @@ namespace test::x86 {
 		writer.put_qword(9);
 
 		writer.label("start");
+		writer.put_pusha();
 		writer.put_mov(RAX, "L1");
 		writer.put_mov(R13, 42);
 		writer.put_mov(R12, 11);
@@ -621,6 +626,7 @@ namespace test::x86 {
 		writer.put_add(R13, ref(RAX + R15 * 8));
 
 		writer.put_mov(RAX, R13);
+		writer.put_popa();
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
@@ -829,7 +835,7 @@ namespace test::x86 {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_u64(), 42);
+		CHECK(buffer.call_u64("code"), 42);
 
 	}
 
@@ -2146,10 +2152,12 @@ namespace test::x86 {
 		writer.label("bar").put_byte(100);
 
 		writer.label("main");
+		writer.put_push(RBX);
 		writer.put_mov(EAX, 33);
 		writer.put_mov(BL, 99);
 		writer.put_xchg(EAX, ref("foo"));
 		writer.put_xchg(ref("bar"), BL);
+		writer.put_pop(RBX);
 		writer.put_ret();
 
 		writer.label("get_foo");
@@ -2182,6 +2190,7 @@ namespace test::x86 {
 		writer.put_byte(0);
 
 		writer.label("main");
+		writer.put_push(RBX);
 		writer.put_xor(RBX, RBX);
 		writer.put_mov(RAX, 0);
 		writer.put_push(666);
@@ -2194,6 +2203,7 @@ namespace test::x86 {
 		writer.put_mov(RSI, "car");
 		writer.put_pop(ref<QWORD>(RSI));
 		writer.put_add(RAX, RBX);
+		writer.put_pop(RBX);
 		writer.put_ret();
 
 		writer.label("get_car");
@@ -2877,6 +2887,8 @@ namespace test::x86 {
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
 
+		writer.put_push(RBX);
+
 		writer.put_mov(RAX, 0);
 		writer.put_mov(RBX, 70000);
 		writer.put_mov(RCX, 30000);
@@ -2890,6 +2902,7 @@ namespace test::x86 {
 		writer.put_mov(RAX, RBX);
 
 		writer.label("end");
+		writer.put_pop(RBX);
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
@@ -2906,6 +2919,7 @@ namespace test::x86 {
 		writer.put_qword(0x1111);
 
 		writer.label("start");
+		writer.put_pusha();
 		writer.put_mov(RAX, 0);
 		writer.put_mov(R15, 0x2222);
 
@@ -2919,6 +2933,7 @@ namespace test::x86 {
 		writer.put_mov(RAX, R15);
 
 		writer.label("end");
+		writer.put_popa();
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
@@ -3231,9 +3246,11 @@ namespace test::x86 {
 		BufferWriter writer {segmented};
 
 		writer.label("simple_add");
+		writer.put_push(RBX);
 		writer.put_mov(RBX, ref(RAX));
 		writer.put_add(RBX, ref(RAX + 8));
 		writer.put_mov(RAX, RBX);
+		writer.put_pop(RBX);
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
@@ -3249,8 +3266,8 @@ namespace test::x86 {
 		BufferWriter writer {segmented};
 
 		writer.label("main");
-		writer.put_mov(RBX, ref<QWORD>(RAX));
-		writer.put_mov(ref<QWORD>(RBX), 42);
+		writer.put_mov(RCX, ref<QWORD>(RAX));
+		writer.put_mov(ref<QWORD>(RCX), 42);
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);

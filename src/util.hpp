@@ -1,6 +1,7 @@
 #pragma once
 
 #include <external.hpp>
+#include <fstream>
 
 template <typename T>
 concept trivially_copyable = std::is_trivially_copyable_v<T>;
@@ -21,6 +22,13 @@ concept castable = requires (const A& arg) { static_cast<T>(arg); };
 #define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
 
 namespace asmio::util {
+
+	inline void load_file_into(std::ifstream& file, std::string& string) {
+		file.seekg(0, std::ios::end);
+		string.reserve(file.tellg());
+		file.seekg(0, std::ios::beg);
+		string.assign(std::istreambuf_iterator {file}, std::istreambuf_iterator<char> {});
+	}
 
 	/// Unsigned divide (round up)
 	template <std::integral T>

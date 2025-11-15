@@ -4,6 +4,9 @@
 #define VSTL_PRINT_SKIP_REASON true
 #define VSTL_SUBMODULE true
 
+#include <filesystem>
+#include <fstream>
+#include <regex>
 #include <tasml/top.hpp>
 
 #include "vstl.hpp"
@@ -102,6 +105,47 @@ namespace test::tas {
 		if (!reporter.ok()) {
 			reporter.dump();
 			FAIL("Errors generated");
+		}
+
+	};
+
+	TEST (tasml_check_readme) {
+
+		std::vector<std::string> files {
+			"README.md"
+		};
+
+		std::regex pattern {"```asm((.|\n)*?)```"};
+		std::smatch res;
+
+		for (const auto& file : files) {
+
+			std::ifstream ifs {file};
+
+			if (!ifs.is_open()) {
+				FAIL("Failed to read file " + file + ", current working directory is " + std::filesystem::current_path().string());
+			}
+
+			std::string content;
+			util::load_file_into(ifs, content);
+
+			int suffix = 0;
+			auto it = content.cbegin();
+
+			while (std::regex_search(it, content.cend(), res, pattern)) {
+
+				tasml::ErrorHandler reporter {std::string(vstl_self.name) + "-" + file + "-" + std::to_string(suffix++), true};
+
+				try {
+					tasml::assemble(reporter, res.str(1));
+				} catch (const std::exception&) {
+					reporter.dump();
+					throw;
+				}
+
+				it = res.suffix().first;
+			}
+
 		}
 
 	};

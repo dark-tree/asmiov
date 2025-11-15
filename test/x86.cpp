@@ -467,7 +467,7 @@ namespace test::x86 {
 
 		writer.put_mov(EAX, 5);
 		writer.put_nop();
-		writer.put_ret();
+		writer.put_ret(0);
 
 		ExecutableBuffer buffer = to_executable(segmented);
 		uint32_t eax = buffer.call_u32();

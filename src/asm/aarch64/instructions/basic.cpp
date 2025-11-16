@@ -166,6 +166,10 @@ namespace asmio::arm {
 		put_inst_ldst(dst, base, std::bit_cast<int64_t>(offset), sizing, OFFSET, STORE);
 	}
 
+	void BufferWriter::put_ands(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
+		put_inst_shifted_register(0b1101010, dst, a, b, imm6, shift);
+	}
+
 	void BufferWriter::put_and(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		put_inst_shifted_register(0b0001010, dst, a, b, imm6, shift);
 	}
@@ -312,6 +316,10 @@ namespace asmio::arm {
 
 	void BufferWriter::put_cset(Condition condition, Registry dst) {
 		put_cinc(condition, dst, dst.wide() ? XZR : WZR);
+	}
+
+	void BufferWriter::put_tst(Registry a, Registry b, ShiftType shift, uint8_t lsl6) {
+		put_ands(a.wide() ? XZR : WZR, a, b, shift, lsl6);
 	}
 
 	void BufferWriter::put_hint(uint8_t imm7) {

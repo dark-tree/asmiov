@@ -71,6 +71,16 @@ namespace test::unit {
 
 	};
 
+	TEST (util_is_sign_encodable) {
+
+		CHECK(util::is_signed_encodable(-100, 8), true);
+		CHECK(util::is_signed_encodable(-128, 8), true);
+		CHECK(util::is_signed_encodable(-129, 8), false);
+		CHECK(util::is_signed_encodable(127, 8), true);
+		CHECK(util::is_signed_encodable(128, 8), false);
+
+	};
+
 	TEST (util_chunk_buffer_simple) {
 
 		ChunkBuffer buffer;

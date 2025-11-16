@@ -432,6 +432,17 @@ namespace test::x86 {
 
 	}
 
+	TEST (writer_check_int3) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_int(3);
+
+		CHECK(segmented.segments()[0].size(), 1);
+
+	}
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for x86
@@ -1409,6 +1420,201 @@ namespace test::x86 {
 
 		ExecutableBuffer buffer = to_executable(segmented);
 		CHECK(buffer.call_u32("main"), 42);
+
+	}
+
+	TEST (writer_exec_call_register) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("add");
+		writer.put_add(RAX, RCX);
+		writer.put_ret();
+
+		writer.label("main");
+		writer.put_push(R15);
+		writer.put_mov(RAX, 69);
+		writer.put_mov(RCX, 2);
+		writer.put_lea(R15, "add");
+
+		writer.put_call(R15);
+		writer.put_pop(R15);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32("main"), 71);
+
+	}
+
+	TEST (wrtier_exec_ror) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0xFA);
+		writer.put_ror(AL, 4);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 0xAF);
+
+	}
+
+	TEST (wrtier_exec_rcl) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_scf(1);
+		writer.put_mov(RAX, 0);
+		writer.put_rcl(AL, 1);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1);
+
+	}
+
+	TEST (wrtier_exec_rcr) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_scf(1);
+		writer.put_mov(RAX, 0);
+		writer.put_rcr(AX, 1);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1UL << 15);
+
+	}
+
+	TEST (wrtier_exec_shr) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 11);
+		writer.put_shr(AX, 1);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 5);
+
+	}
+
+	TEST (writer_exec_loope_zf1) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_add(RAX, RAX); // zet ZF to 0
+		writer.put_loope("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 2);
+
+	}
+
+	TEST (writer_exec_loope_zf0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_loope("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1); // exits at first LOOPE as ZF=0
+
+	}
+
+	TEST (writer_exec_loope_zf1) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+		writer.put_mov(RSI, 0);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_add(RSI, RSI); // zet ZF to 0
+		writer.put_loope("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 10);
+
+	}
+
+	TEST (writer_exec_loope_zf0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_loope("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1); // exits at first LOOPE as ZF=0
+
+	}
+
+	TEST (writer_exec_loopne_zf1) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 11);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_loopne("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 11);
+
+	}
+
+	TEST (writer_exec_loopne_zf0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+		writer.put_mov(RSI, 0);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_add(RSI, RSI); // zet ZF to 0
+		writer.put_loopne("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1);
 
 	}
 

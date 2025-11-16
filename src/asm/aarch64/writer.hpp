@@ -159,6 +159,7 @@ namespace asmio::arm {
 			INST put_istr(Registry dst, Registry base, int64_t offset, Sizing size); ///< Increment base and store value to memory
 			INST put_stri(Registry dst, Registry base, int64_t offset, Sizing size); ///< Store value to memory and increment base
 			INST put_str(Registry registry, Registry base, uint64_t offset, Sizing size); ///< Store value to memory
+			INST put_ands(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one, set flags
 			INST put_and(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one
 			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise XOR between two register, shifting the second one
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise OR between two register, shifting the second one
@@ -191,6 +192,7 @@ namespace asmio::arm {
 			INST put_cinc(Condition condition, Registry dst, Registry src);///< Conditional Increment if true
 			INST put_cinc(Condition condition, Registry dst);              ///< Conditional Increment if true
 			INST put_cset(Condition condition, Registry dst);              ///< Conditional Set if true
+			INST put_tst(Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Test shifted register
 
 			// control
 			INST put_svc(uint16_t imm16);                                  ///< Supervisor call

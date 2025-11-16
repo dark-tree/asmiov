@@ -948,7 +948,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error {"Invalid operands"};
+		throw std::runtime_error {"Invalid operands, immediate value expected"};
 	}
 
 	/// Leave Procedure

@@ -30,42 +30,40 @@ namespace asmio::x86 {
 			void put_inst_label_imm(Location imm, uint8_t size);
 
 			/// Encode a 'standard' ModRM/SIB instruction with REX/size prefixes
-			void put_inst_std(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool longer = false);
-			void put_inst_std_ri(uint8_t opcode, Location dst, uint8_t inst);
-			void put_inst_std_as(uint8_t opcode, Location dst, RegInfo packed, bool longer = false);
-			void put_inst_std_dw(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool direction, bool wide, bool longer = false);
+			void put_inst_std(uint8_t opcode, const Location& dst, RegInfo packed, uint8_t size, bool longer = false);
+			void put_inst_std_ri(uint8_t opcode, const Location& dst, uint8_t inst);
+			void put_inst_std_as(uint8_t opcode, const Location& dst, RegInfo packed, bool longer = false);
+			void put_inst_std_dw(uint8_t opcode, const Location& dst, RegInfo packed, uint8_t size, bool direction, bool wide, bool longer = false);
 
 			/// Encode a directional instruction and deduce the 'wide' flag
-			void put_inst_std_ds(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool direction, bool longer = false);
+			void put_inst_std_ds(uint8_t opcode, const Location& dst, RegInfo packed, uint8_t size, bool direction, bool longer = false);
 
 			/// Encode many simple FPU instructions
 			void put_inst_fpu(uint8_t opcode, uint8_t base, uint8_t sti = 0);
 
 			/// Used for constructing the MOV instruction
-			void put_inst_mov(Location dst, Location src, bool direction);
+			void put_inst_mov(const Location& dst, const Location& src, bool direction);
 
 			/// Used for constructing the MOVSX and MOVZX instructions
-			void put_inst_movx(uint8_t opcode, Location dst, Location src);
+			void put_inst_movx(uint8_t opcode, const Location& dst, const Location& src);
 
 			/// Used to for constructing the shift instructions
-			void put_inst_shift(Location dst, Location src, uint8_t inst);
+			void put_inst_shift(const Location& dst, const Location& src, uint8_t inst);
 
 			/// Used to for constructing the double shift instructions
-			void put_inst_double_shift(uint8_t opcode, Location dst, Location src, Location cnt);
+			void put_inst_double_shift(uint8_t opcode, const Location& dst, const Location& src, const Location& cnt);
 
 			/// Used for constructing a range of two argument instructions
-			void put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_reg);
+			void put_inst_tuple(const Location& dst, const Location& src, uint8_t opcode_rmr, uint8_t opcode_reg);
 
 			/// Used for constructing the Bit Test family of instructions
-			void put_inst_btx(Location dst, Location src, uint8_t opcode, uint8_t inst);
+			void put_inst_btx(const Location& dst, const Location& src, uint8_t opcode, uint8_t inst);
 
 			/// Used for constructing the conditional jump family of instructions
-			void put_inst_jx(Location label, uint8_t sopcode, uint8_t lopcode);
+			void put_inst_jx(const Location& label, uint8_t sopcode, uint8_t lopcode);
 
 			/// Used for constructing the 'set byte' family of instructions
-			void put_inst_setx(Location dst, uint8_t lopcode);
-
-			void put_inst_rex(uint8_t wrxb);
+			void put_inst_setx(const Location& dst, uint8_t lopcode);
 
 			/// Add the REX.W prefix
 			void put_rex_w();
@@ -188,11 +186,11 @@ namespace asmio::x86 {
 			INST put_jg(Location label);                ///< Alias to JNLE, Jump on Greater
 			INST put_jcxz(Location label);              ///< Jump on CX Zero
 			INST put_jecxz(Location label);             ///< Jump on ECX Zero
-			INST put_loop(Location label);              ///< Loop Times
-			INST put_loope(Location label);             ///< Loop if equal
-			INST put_loopz(Location label);             ///< Loop if zero
-			INST put_loopne(Location label);            ///< Loop if not equal
-			INST put_loopnz(Location label);            ///< Loop if not zero
+			INST put_loop(Location label);              ///< Loop RCX Times
+			INST put_loope(Location label);             ///< Loop RCX Times, if equal
+			INST put_loopz(Location label);             ///< Loop RCX Times, if zero
+			INST put_loopne(Location label);            ///< Loop RCX Times, if not equal
+			INST put_loopnz(Location label);            ///< Loop RCX Times, if not zero
 			INST put_seto(Location dst);                ///< Set Byte on Overflow
 			INST put_setno(Location dst);               ///< Set Byte on Not Overflow
 			INST put_setb(Location dst);                ///< Set Byte on Below

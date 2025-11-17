@@ -62,10 +62,14 @@ namespace asmio::arm {
 			return;
 		}
 
-		const auto nrs = compute_immediate_bitmask(imm, dst.wide());
+		const auto nrs = BitPattern::try_pack(imm);
 
-		if (nrs.has_value()) {
-			put_inst_orr_bitmask(dst, dst.wide() ? XZR : WZR, nrs.value());
+		if (nrs.ok()) {
+			if (nrs.wide() && !dst.wide()) {
+				throw std::runtime_error {"Invalid operand, can't use QWORD pattern in DWORD context"};
+			}
+
+			put_inst_orr_bitmask(dst, dst.wide() ? XZR : WZR, nrs.bitmask());
 			return;
 		}
 

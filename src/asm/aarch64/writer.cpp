@@ -10,9 +10,18 @@ namespace asmio::arm {
 		: BasicBufferWriter(buffer) {
 	}
 
-	void BufferWriter::put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms) {
+	void BufferWriter::put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, BitPattern pattern) {
+
+		if (!pattern.ok()) {
+			throw std::runtime_error {"Invalid operand, not a valid bit pattern"};
+		}
+
+		if (!destination.wide() && pattern.wide()) {
+			throw std::runtime_error {"Invalid operand, can't use wide pattern in this context"};
+		}
+
 		uint16_t sf = destination.wide() ? 1 : 0;
-		put_dword(sf << 31 | opc_from_23 << 23 | n_immr_imms << 10 | source.reg << 5 | destination.reg);
+		put_dword(sf << 31 | opc_from_23 << 23 | pattern.bitmask() << 10 | source.reg << 5 | destination.reg);
 	}
 
 	void BufferWriter::put_inst_shifted_register(uint32_t opc_from_24, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift) {
@@ -309,22 +318,6 @@ namespace asmio::arm {
 
 		const uint16_t sf = dst.wide() ? 1 : 0;
 		put_dword(sf << 31 | 0b00'11010100 << 21 | falsy.reg << 16 | uint32_t(condition) << 12 | increment_truth << 10 | truthy.reg << 5 | dst.reg);
-	}
-
-	void BufferWriter::put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
-		assert_register_triplet(a, b, destination);
-
-		// if any one of them is a stack register abort
-		if (!a.is(Registry::GENERAL) || !b.is(Registry::GENERAL) || !destination.is(Registry::GENERAL)) {
-			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
-		}
-
-		uint16_t sf = destination.wide() ? 1 : 0;
-		put_dword(sf << 31 | 0b0101010 << 24 | uint8_t(shift) << 22 | a.reg << 16 | imm6 << 10 | b.reg << 5 | destination.reg);
-	}
-
-	void BufferWriter::put_inst_orr(Registry destination, Registry source, BitPattern pattern) {
-		put_inst_orr_bitmask(destination, source, pattern.bitmask());
 	}
 
 	void BufferWriter::put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12, bool set_flags) {

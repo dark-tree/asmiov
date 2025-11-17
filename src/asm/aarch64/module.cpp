@@ -111,6 +111,16 @@ namespace asmio::arm {
 		throw std::runtime_error {"Invalid argument format, expected condition specifier"};
 	}
 
+	template <>
+	BitPattern parse_argument(TokenStream stream) {
+		if (const Token* token = stream.accept(Token::INT)) {
+			return BitPattern::try_pack(token->as_int());
+		}
+
+		// TODO triplet-style bit patters and tiled integers
+		throw std::runtime_error {"Invalid argument format, expected 64 bit pattern"};
+	}
+
 #	include "generated/aarch64.hpp"
 
 	/*

@@ -65,12 +65,7 @@ namespace asmio::arm {
 		const auto nrs = BitPattern::try_pack(imm);
 
 		if (nrs.ok()) {
-			if (nrs.wide() && !dst.wide()) {
-				throw std::runtime_error {"Invalid operand, can't use QWORD pattern in DWORD context"};
-			}
-
-			put_inst_orr_bitmask(dst, dst.wide() ? XZR : WZR, nrs.bitmask());
-			return;
+			return put_orr(dst, dst.wide() ? XZR : WZR, nrs);
 		}
 
 		const size_t length = dst.wide() ? 64 : 32;
@@ -102,7 +97,7 @@ namespace asmio::arm {
 			return;
 		}
 
-		put_inst_orr(dst, src, dst.wide() ? XZR : WZR);
+		put_orr(dst, src, dst.wide() ? XZR : WZR);
 	}
 
 	void BufferWriter::put_ret() {
@@ -180,6 +175,20 @@ namespace asmio::arm {
 
 	void BufferWriter::put_eor(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		put_inst_shifted_register(0b1001010, dst, a, b, imm6, shift);
+	}
+
+	void BufferWriter::put_orr(Registry destination, Registry source, BitPattern pattern) {
+
+		// destination can be SP
+		if (!source.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected source to be a general purpose register"};
+		}
+
+		if (destination.wide() != source.wide()) {
+			throw std::runtime_error {"Invalid operands, all registers need to be of the same width"};
+		}
+
+		put_inst_bitmask_immediate(0b01100100, destination, source, pattern);
 	}
 
 	void BufferWriter::put_orr(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {

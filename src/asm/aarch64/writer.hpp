@@ -28,7 +28,7 @@ namespace asmio::arm {
 			 * Writes a standard 'bitmask immediate' instruction into the buffer,
 			 * with 'sf' derived from destination size.
 			 */
-			void put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms);
+			void put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, BitPattern pattern);
 
 			/**
 			 * Writes the standard 'shifted register' instruction into the buffer,
@@ -52,7 +52,7 @@ namespace asmio::arm {
 			static void link_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
 			static void link_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
 
-		private:
+		protected:
 
 			static uint8_t pack_shift(uint8_t shift, bool wide);
 			static uint64_t get_size(Size size);
@@ -93,8 +93,6 @@ namespace asmio::arm {
 
 		public:
 
-			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
-			void put_inst_orr(Registry destination, Registry source, BitPattern pattern);
 			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12 = false, bool set_flags = false);
 			void put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags = false);
 
@@ -129,6 +127,7 @@ namespace asmio::arm {
 			INST put_ands(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one, set flags
 			INST put_and(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one
 			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise XOR between two register, shifting the second one
+			INST put_orr(Registry destination, Registry source, BitPattern pattern); ///< Bitwise OR between register and bit pattern
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise OR between two register, shifting the second one
 			INST put_sub(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, potentially extending one of them
 			INST put_subs(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, set the flags, potentially extending one of them

@@ -47,7 +47,7 @@ namespace test::arm {
 		BufferWriter writer {segmented};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(W(0), W(0), X(0));
+			writer.put_orr(W(0), W(0), X(0));
 		};
 
 	};
@@ -58,19 +58,19 @@ namespace test::arm {
 		BufferWriter writer {segmented};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(W(0), W(1), 0x000000FF'FFFFFFFF);
+			writer.put_orr(W(0), W(1), 0x000000FF'FFFFFFFF);
 		};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(X(0), X(1), 0b00100000'00110000);
+			writer.put_orr(X(0), X(1), 0b00100000'00110000);
 		};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(X(0), X(1), 0);
+			writer.put_orr(X(0), X(1), 0);
 		};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(X(0), X(1), std::numeric_limits<uint64_t>::max());
+			writer.put_orr(X(0), X(1), std::numeric_limits<uint64_t>::max());
 		};
 
 	};
@@ -229,8 +229,8 @@ namespace test::arm {
 
 		writer.put_movz(X(4), 0x0021);
 		writer.put_movz(X(3), 0x4300);
-		writer.put_inst_orr(X(2), X(3), X(4));
-		writer.put_inst_orr(X(0), XZR, X(2));
+		writer.put_orr(X(2), X(3), X(4));
+		writer.put_orr(X(0), XZR, X(2));
 		writer.put_ret();
 
 		uint64_t r0 = to_executable(segmented).call_u64();
@@ -244,7 +244,7 @@ namespace test::arm {
 		BufferWriter writer {segmented};
 
 		writer.put_movz(X(1), 0b00000101);
-		writer.put_inst_orr(X(0), X(1), 0b1001100110011001100110011001100110011001100110011001100110011001);
+		writer.put_orr(X(0), X(1), 0b1001100110011001100110011001100110011001100110011001100110011001);
 		writer.put_ret();
 
 		uint64_t r0 = to_executable(segmented).call_u64();

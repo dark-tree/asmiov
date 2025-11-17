@@ -5,6 +5,7 @@
 #include "argument/registry.hpp"
 #include "argument/shift.hpp"
 #include "argument/condition.hpp"
+#include "argument/pattern.hpp"
 
 namespace asmio::arm {
 
@@ -22,40 +23,6 @@ namespace asmio::arm {
 				LOAD = 0b11,
 				STORE = 0b00,
 			};
-
-			/**
-			 * Try to compute the ARM immediate bitmask based on a target value, this is a multi-step process
-			 * that tries to guess the correct coefficients, if that fails it returns a std::nullopt.
-			 *
-			 * @param value The value to encode
-			 * @param wide If the bitmask is expected to be used in a "wide" (64 bit) context
-			 *
-			 * @return Combined 'N:immr:imms' bit pattern, or nullopt.
-			 */
-			std::optional<uint16_t> compute_immediate_bitmask(uint64_t value, bool wide);
-
-			/**
-			 * Try to compute the ARM immediate bitmask based on a target value, this is a multi-step process
-			 * that tries to guess the correct coefficients, if that fails it returns a std::nullopt.
-			 *
-			 * @param value The bit pattern to try encoding
-			 * @param size Size of one repeating element within the pattern
-			 *
-			 * @return Combined 'N:immr:imms' bit pattern, or nullopt.
-			 */
-			std::optional<uint16_t> compute_element_bitmask(uint64_t value, size_t size);
-
-			/**
-			 * Constructs the N:immr:imms value for bitmask immediate instructions,
-			 * the correctness of provided arguments IS NOT CHECKED.
-			 *
-			 * @param size size of one element in bits (2,4,8,16,32,64)
-			 * @param ones number of ones in the element (1 <= ones <= size)
-			 * @param roll right-roll of the elements within one pattern element (roll < size)
-			 *
-			 * @return Combined 'N:immr:imms' bit pattern
-			 */
-			uint16_t pack_bitmask(uint32_t size, uint32_t ones, uint32_t roll);
 
 			/**
 			 * Writes a standard 'bitmask immediate' instruction into the buffer,
@@ -127,7 +94,7 @@ namespace asmio::arm {
 		public:
 
 			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
-			void put_inst_orr(Registry destination, Registry source, uint64_t pattern);
+			void put_inst_orr(Registry destination, Registry source, BitPattern pattern);
 			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12 = false, bool set_flags = false);
 			void put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags = false);
 

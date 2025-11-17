@@ -58,7 +58,7 @@ namespace test::arm {
 		BufferWriter writer {segmented};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(W(0), W(1), 0xFF00FF00'FF00FF00);
+			writer.put_inst_orr(W(0), W(1), 0x000000FF'FFFFFFFF);
 		};
 
 		EXPECT_THROW(std::runtime_error) {

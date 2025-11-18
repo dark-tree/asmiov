@@ -165,12 +165,39 @@ namespace asmio::arm {
 		put_inst_ldst(dst, base, std::bit_cast<int64_t>(offset), sizing, OFFSET, STORE);
 	}
 
+	void BufferWriter::put_ands(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b11'100100, dst, src, pattern);
+	}
+
+	void BufferWriter::put_and(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b11'100100, dst, src, pattern);
+	}
+
 	void BufferWriter::put_ands(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		put_inst_shifted_register(0b1101010, dst, a, b, imm6, shift);
 	}
 
 	void BufferWriter::put_and(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		put_inst_shifted_register(0b0001010, dst, a, b, imm6, shift);
+	}
+
+	void BufferWriter::put_eor(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b10'100100, dst, src, pattern);
 	}
 
 	void BufferWriter::put_eor(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
@@ -182,10 +209,6 @@ namespace asmio::arm {
 		// destination can be SP
 		if (!source.is(Registry::GENERAL)) {
 			throw std::runtime_error {"Invalid operand, expected source to be a general purpose register"};
-		}
-
-		if (destination.wide() != source.wide()) {
-			throw std::runtime_error {"Invalid operands, all registers need to be of the same width"};
 		}
 
 		put_inst_bitmask_immediate(0b01100100, destination, source, pattern);

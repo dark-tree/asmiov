@@ -124,8 +124,11 @@ namespace asmio::arm {
 			INST put_istr(Registry dst, Registry base, int64_t offset, Sizing size); ///< Increment base and store value to memory
 			INST put_stri(Registry dst, Registry base, int64_t offset, Sizing size); ///< Store value to memory and increment base
 			INST put_str(Registry registry, Registry base, uint64_t offset, Sizing size); ///< Store value to memory
+			INST put_ands(Registry dst, Registry src, BitPattern pattern); ///< Bitwise AND between register and bit pattern
+			INST put_and(Registry dst, Registry src, BitPattern pattern);  ///< Bitwise AND between register and bit pattern, set flags
 			INST put_ands(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one, set flags
 			INST put_and(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one
+			INST put_eor(Registry destination, Registry source, BitPattern pattern); ///< Bitwise XOR between register and bit pattern
 			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise XOR between two register, shifting the second one
 			INST put_orr(Registry destination, Registry source, BitPattern pattern); ///< Bitwise OR between register and bit pattern
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise OR between two register, shifting the second one

@@ -12,6 +12,10 @@ namespace asmio::arm {
 
 	void BufferWriter::put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, BitPattern pattern) {
 
+		if (destination.wide() != source.wide()) {
+			throw std::runtime_error {"Invalid operands, all registers need to be of the same width"};
+		}
+
 		if (!pattern.ok()) {
 			throw std::runtime_error {"Invalid operand, not a valid bit pattern"};
 		}

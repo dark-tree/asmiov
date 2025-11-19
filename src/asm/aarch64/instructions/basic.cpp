@@ -222,6 +222,14 @@ namespace asmio::arm {
 		put_dword(0b11010100000 << 21 | imm16 << 5 | 0b00001);
 	}
 
+	void BufferWriter::put_sbc(Registry dst, Registry a, Registry b) {
+		put_inst_sbc(dst, a, b, false);
+	}
+
+	void BufferWriter::put_sbcs(Registry dst, Registry a, Registry b) {
+		put_inst_sbc(dst, a, b, true);
+	}
+
 	void BufferWriter::put_sub(Registry dst, Registry a, Registry b, Sizing size, uint8_t lsl3) {
 		put_inst_extended_register(0b1'0'01011001, dst, a, b, size, lsl3, false);
 	}
@@ -243,7 +251,7 @@ namespace asmio::arm {
 
 		// we have four register so the last one needs to be checked manually
 		if (dst.wide() != addend.wide()) {
-			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
+			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width"};
 		}
 
 		uint32_t sf = dst.wide() ? 1 : 0;

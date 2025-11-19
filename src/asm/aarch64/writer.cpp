@@ -164,12 +164,24 @@ namespace asmio::arm {
 		assert_register_triplet(a, b, destination);
 
 		if (!destination.is(Registry::GENERAL) || !a.is(Registry::GENERAL) || !b.is(Registry::GENERAL)) {
-			throw std::runtime_error {"Invalid operands, destination register must be general purpose register"};
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
 		}
 
 		uint32_t sf = destination.wide() ? 1 : 0;
 		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
 		put_dword(sf << 31 | 0b0'0'11010000 << 21 | fb | b.reg << 16 | 0b000000 << 10 | a.reg << 5 | destination.reg);
+	}
+
+	void BufferWriter::put_inst_sbc(Registry destination, Registry a, Registry b, bool set_flags) {
+		assert_register_triplet(a, b, destination);
+
+		if (!destination.is(Registry::GENERAL) || !a.is(Registry::GENERAL) || !b.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
+
+		uint32_t sf = destination.wide() ? 1 : 0;
+		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
+		put_dword(sf << 31 | 0b1'0'11010000 << 21 | fb | b.reg << 16 | 0b000000 << 10 | a.reg << 5 | destination.reg);
 	}
 
 	void BufferWriter::put_inst_count(Registry destination, Registry source, uint8_t imm1) {

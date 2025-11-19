@@ -1403,13 +1403,35 @@ namespace test::arm {
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
 
-		writer.label("x0");
 		writer.put_mov(X1, 0xABCD);
 		writer.put_sbfm(X0, X1, 0b11111);
 		writer.put_ret();
 
 		auto exec = to_executable(segmented);
-		CHECK(exec.call_i64("x0"), 0x000D);
+		CHECK(exec.call_i64(), 0x000D);
+
+	};
+
+	TEST (writer_exec_sbc) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 3);
+		writer.put_mov(X2, 2);
+		writer.put_mov(X3, 7);
+		writer.put_subs(X0, X2, X1); // C=0
+		writer.put_mov(X4, X0);
+		writer.put_sbc(X0, X3, XZR); // X0 = X3 - XZR - ~C
+		writer.put_b(Condition::CS, "carry_set");
+		writer.put_ret();
+
+		writer.label("carry_set");
+		writer.put_mov(X0, 0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 6);
 
 	};
 

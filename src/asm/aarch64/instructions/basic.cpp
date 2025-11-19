@@ -358,6 +358,15 @@ namespace asmio::arm {
 		put_ands(a.wide() ? XZR : WZR, a, b, shift, lsl6);
 	}
 
+	void BufferWriter::put_sbfm(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b00'100110, dst, src, pattern);
+	}
+
 	void BufferWriter::put_hint(uint8_t imm7) {
 		put_dword(0b1101010100'0'00'011'0010 << 12 | (0b1111'111 & imm7) << 5 | 0b11111);
 	}

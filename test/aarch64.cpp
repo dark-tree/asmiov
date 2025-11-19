@@ -1435,6 +1435,34 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_uxtb) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xABCDEF);
+		writer.put_uxtb(X0, X1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0xEF);
+
+	};
+
+	TEST (writer_exec_uxth) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xABCDEF);
+		writer.put_uxth(X0, X1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0xCDEF);
+
+	};
+
 #endif
 
 }

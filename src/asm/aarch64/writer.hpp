@@ -171,6 +171,8 @@ namespace asmio::arm {
 			INST put_ubfm(Registry dst, Registry src, BitPattern pattern); ///< Unsigned Bitfield Insert in Zero
 			INST put_uxtb(Registry dst, Registry src);                     ///< Extract Byte
 			INST put_uxth(Registry dst, Registry src);                     ///< Extract Two Bytes
+			INST put_bfm(Registry dst, Registry src, BitPattern pattern);  ///< Bitfield Move
+			INST put_bfc(Registry dst, BitPattern pattern);                ///< Bitfield Clear
 
 			// control
 			INST put_svc(uint16_t imm16);                                  ///< Supervisor call

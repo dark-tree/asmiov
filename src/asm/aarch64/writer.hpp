@@ -67,6 +67,9 @@ namespace asmio::arm {
 			/// Encode "ADC/ADCS (extended register)" operation
 			void put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags);
 
+			/// Encode "SBC/SBCS" operation
+			void put_inst_sbc(Registry destination, Registry a, Registry b, bool set_flags);
+
 			/// Encode "CLS/CLZ" operation
 			void put_inst_count(Registry destination, Registry source, uint8_t imm1);
 
@@ -132,6 +135,8 @@ namespace asmio::arm {
 			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise XOR between two register, shifting the second one
 			INST put_orr(Registry destination, Registry source, BitPattern pattern); ///< Bitwise OR between register and bit pattern
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise OR between two register, shifting the second one
+			INST put_sbc(Registry dst, Registry a, Registry b);            ///< Subtract with Carry
+			INST put_sbcs(Registry dst, Registry a, Registry b);           ///< Subtract with Carry and set flags
 			INST put_sub(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, potentially extending one of them
 			INST put_subs(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, set the flags, potentially extending one of them
 			INST put_cmp(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Compare

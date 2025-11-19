@@ -162,6 +162,7 @@ namespace asmio::arm {
 			INST put_cinc(Condition condition, Registry dst);              ///< Conditional Increment if true
 			INST put_cset(Condition condition, Registry dst);              ///< Conditional Set if true
 			INST put_tst(Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Test shifted register
+			INST put_sbfm(Registry dst, Registry src, BitPattern pattern); ///< Signed Bitfield Insert in Zero
 
 			// control
 			INST put_svc(uint16_t imm16);                                  ///< Supervisor call

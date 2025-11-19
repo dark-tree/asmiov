@@ -1398,6 +1398,21 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_sbfm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("x0");
+		writer.put_mov(X1, 0xABCD);
+		writer.put_sbfm(X0, X1, 0b11111);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64("x0"), 0x000D);
+
+	};
+
 #endif
 
 }

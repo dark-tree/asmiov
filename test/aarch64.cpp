@@ -1553,6 +1553,77 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_lsr_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0b111001010111);
+		writer.put_lsr(X0, X1, 2);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0b1110010101);
+
+	};
+
+	TEST (writer_exec_and_imm_large) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFFFF'AAAA'BBBB'CCCC);
+		writer.put_and(X1, X1, 0xF000'F000'F000'F000);
+		writer.put_and(X0, X1, 0xFFFF'FFFF'FFFF'F000);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64(), 0xF000'A000'B000'C000);
+
+	};
+
+	TEST (writer_exec_lsl_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xAFCD'1111'2222'333F);
+		writer.put_lsl(X0, X1, 4);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64(), 0xFCD'1111'2222'333F'0);
+
+	};
+
+	TEST (writer_exec_lsl_0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0x8BCD'1111'2222'3331);
+		writer.put_lsl(X0, X1, 0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64(), 0x8BCD'1111'2222'3331);
+
+	};
+
+	TEST (writer_exec_lsr_0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0x8BCD'1111'2222'3331);
+		writer.put_lsr(X0, X1, 0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64(), 0x8BCD'1111'2222'3331);
+
+	};
+
 #endif
 
 }

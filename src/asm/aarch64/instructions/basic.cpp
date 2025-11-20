@@ -330,8 +330,48 @@ namespace asmio::arm {
 		put_inst_shift_v(dst, src, bits, ShiftType::LSR);
 	}
 
+	void BufferWriter::put_lsr(Registry dst, Registry src, uint16_t shift) {
+		const uint32_t width = dst.size * 8;
+		const uint32_t ones = width - 1; // one bit gets discarded anyway
+
+		if (shift > ones) {
+			throw std::runtime_error {"Invalid operand, can't shift by more than register width"};
+		}
+
+		// the ISA doesn't mention us needing to that but for shift=0
+		// the top bit would be cut of without any shifting to cover that,
+		// there were similar issues in LSL (immediate).
+		if (shift == 0) {
+			put_mov(dst, src);
+			return;
+		}
+
+		put_ubfm(dst, src, {width, ones, shift});
+	}
+
 	void BufferWriter::put_lsl(Registry dst, Registry src, Registry bits) {
 		put_inst_shift_v(dst, src, bits, ShiftType::LSL);
+	}
+
+	void BufferWriter::put_lsl(Registry dst, Registry src, uint16_t shift) {
+		const uint32_t width = dst.size * 8;
+		const uint32_t ones = width - 1; // one bit gets discarded anyway
+
+		if (shift > ones) {
+			throw std::runtime_error {"Invalid operand, can't shift by more than register width"};
+		}
+
+		if (shift == 0) {
+			put_mov(dst, src);
+			return;
+		}
+
+		// TODO we do (width - shift) here while the ISA says to use (ones - shift)
+		//      but that causes the top one bit to not be copied, is that a mistake in the
+		//      specification? As with length set to 64 (for shift 0) the BitPattern would be invalid
+		//      we also need to check for shift=0 and encode this using a normal mov.
+		//      The debugger sees this as the intended LSL alias.
+		put_ubfm(dst, src, {width, width - shift, -shift % width});
 	}
 
 	void BufferWriter::put_asr(Registry dst, Registry src, Registry bits) {

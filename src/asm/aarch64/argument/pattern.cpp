@@ -127,15 +127,15 @@ namespace asmio::arm {
 
 	BitPattern::BitPattern(uint32_t size, uint32_t length, uint32_t roll) {
 		if NOT (size >= 1 && size <= 64 && std::popcount(size) == 1) {
-			throw std::runtime_error {"Invalid bit pattern, size must be one of 2, 4, 8, 16, 32, 64"};
+			throw std::runtime_error {"Invalid bit pattern, size (" + std::to_string(size) + ") is not one of 2, 4, 8, 16, 32, 64"};
 		}
 
 		if NOT (1 <= length && length < size) {
-			throw std::runtime_error {"Invalid bit pattern, length must be between 1 and " + std::to_string(size - 1)};
+			throw std::runtime_error {"Invalid bit pattern, length (" + std::to_string(length) + ") must be between 1 and " + std::to_string(size - 1)};
 		}
 
 		if NOT (roll < size) {
-			throw std::runtime_error {"Invalid bit pattern, roll must be between 0 and " + std::to_string(size - 1)};
+			throw std::runtime_error {"Invalid bit pattern, roll (" + std::to_string(roll) + ") must be between 0 and " + std::to_string(size - 1)};
 		}
 
 		m_bitmask = pack_bitmask(size, length, roll);

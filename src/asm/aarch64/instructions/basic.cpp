@@ -259,11 +259,27 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_smaddl(Registry dst, Registry a, Registry b, Registry addend) {
-		put_inst_maddl(dst, a, b, addend, false);
+		put_inst_mulopl(dst, a, b, addend, false, false);
 	}
 
 	void BufferWriter::put_umaddl(Registry dst, Registry a, Registry b, Registry addend) {
-		put_inst_maddl(dst, a, b, addend, true);
+		put_inst_mulopl(dst, a, b, addend, true, false);
+	}
+
+	void BufferWriter::put_smsubl(Registry dst, Registry a, Registry b, Registry addend) {
+		put_inst_mulopl(dst, a, b, addend, false, true);
+	}
+
+	void BufferWriter::put_umsubl(Registry dst, Registry a, Registry b, Registry addend) {
+		put_inst_mulopl(dst, a, b, addend, true, true);
+	}
+
+	void BufferWriter::put_smnegl(Registry dst, Registry a, Registry b) {
+		put_smsubl(dst, a, b, XZR);
+	}
+
+	void BufferWriter::put_umnegl(Registry dst, Registry a, Registry b) {
+		put_umsubl(dst, a, b, XZR);
 	}
 
 	void BufferWriter::put_mul(Registry dst, Registry a, Registry b) {

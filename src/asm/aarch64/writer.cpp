@@ -252,12 +252,12 @@ namespace asmio::arm {
 		put_dword(size << 30 | 0b11100 << 25 | use_imm12 | (uint64_t(dir) & sign) << 22 | (mask & offset) << imm_lsl | uint64_t(op) << 10 | base.reg << 5 | dst.reg);
 	}
 
-	void BufferWriter::put_inst_maddl(Registry dst, Registry a, Registry b, Registry addend, bool is_unsigned) {
-		if (!dst.wide() ) {
+	void BufferWriter::put_inst_mulopl(Registry dst, Registry a, Registry b, Registry addend, bool is_unsigned, bool is_subtract) {
+		if (!dst.wide()) {
 			throw std::runtime_error {"Invalid operands, expected qword destination register"};
 		}
 
-		if (!addend.wide() ) {
+		if (!addend.wide()) {
 			throw std::runtime_error {"Invalid operands, expected qword addend register"};
 		}
 
@@ -270,7 +270,8 @@ namespace asmio::arm {
 		}
 
 		uint64_t uf = is_unsigned ? 1 : 0;
-		put_dword(0b10011011 << 24 | uf << 23 | 0b01 << 21 | b.reg << 16 | addend.reg << 10 | a.reg << 5 | dst.reg);
+		uint16_t of = is_subtract ? 1 : 0;
+		put_dword(0b10011011 << 24 | uf << 23 | 0b01 << 21 | b.reg << 16 | of << 15 | addend.reg << 10 | a.reg << 5 | dst.reg);
 	}
 
 	void BufferWriter::put_inst_mulh(Registry dst, Registry a, Registry b, bool is_unsigned) {

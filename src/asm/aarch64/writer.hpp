@@ -149,8 +149,8 @@ namespace asmio::arm {
 			INST put_umaddl(Registry dst, Registry a, Registry b, Registry addend); ///< Unsigned multiply two 32 bit registers and add 64 bit register
 			INST put_smsubl(Registry dst, Registry a, Registry b, Registry addend); ///< Signed multiply two 32 bit registers and subtract 64 bit register
 			INST put_umsubl(Registry dst, Registry a, Registry b, Registry addend); ///< Unsigned multiply two 32 bit registers and subtract 64 bit register
-			INST put_smnegl(Registry dst, Registry a, Registry b);         ///< Signed multiply two 32 bit registers and subtract 64 bit register
-			INST put_umnegl(Registry dst, Registry a, Registry b);         ///< Unsigned multiply two 32 bit registers and subtract 64 bit register
+			INST put_smnegl(Registry dst, Registry a, Registry b);         ///< Signed multiply two 32 bit registers and negate result
+			INST put_umnegl(Registry dst, Registry a, Registry b);         ///< Unsigned multiply two 32 bit registers and negate result
 			INST put_mul(Registry dst, Registry a, Registry b);            ///< Multiply 64 bit registers
 			INST put_smul(Registry dst, Registry a, Registry b);           ///< Signed multiply 32 bit registers
 			INST put_umul(Registry dst, Registry a, Registry b);           ///< Unsigned multiply 32 bit registers
@@ -163,7 +163,9 @@ namespace asmio::arm {
 			INST put_rev64(Registry dst, Registry src);                    ///< Reverse bytes in 64-bit qwords
 			INST put_ror(Registry dst, Registry src, Registry bits);       ///< Rotate Right by register
 			INST put_lsr(Registry dst, Registry src, Registry bits);       ///< Logical Shift Right by register
+			INST put_lsr(Registry dst, Registry src, uint16_t bits);       ///< Logical Shift Right by immediate
 			INST put_lsl(Registry dst, Registry src, Registry bits);       ///< Logical Shift Left by register
+			INST put_lsl(Registry dst, Registry src, uint16_t bits);       ///< Logical Shift Left by immediate
 			INST put_asr(Registry dst, Registry src, Registry bits);       ///< Arithmetic Shift Right by register
 			INST put_asl(Registry dst, Registry src, Registry bits);       ///< Arithmetic Shift Left by register
 			INST put_ror(Registry dst, Registry src, uint8_t imm);         ///< Rotate Right by immediate

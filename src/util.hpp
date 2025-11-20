@@ -129,7 +129,7 @@ namespace asmio::util {
 	 * significant) side of a number.
 	 */
 	constexpr int count_trailing_ones(uint64_t value) {
-		return __builtin_ctz(~value); // ctz(~x) == cto(x)
+		return __builtin_ctzll(~value); // ctz(~x) == cto(x)
 	}
 
 	template <std::integral T>

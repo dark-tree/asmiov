@@ -184,11 +184,11 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_ands(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
-		put_inst_shifted_register(0b1101010, dst, a, b, imm6, shift);
+		put_inst_shifted_register(0b1101010, 0, dst, a, b, imm6, shift);
 	}
 
 	void BufferWriter::put_and(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
-		put_inst_shifted_register(0b0001010, dst, a, b, imm6, shift);
+		put_inst_shifted_register(0b0001010, 0, dst, a, b, imm6, shift);
 	}
 
 	void BufferWriter::put_eor(Registry dst, Registry src, BitPattern pattern) {
@@ -201,7 +201,7 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_eor(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
-		put_inst_shifted_register(0b1001010, dst, a, b, imm6, shift);
+		put_inst_shifted_register(0b1001010, 0, dst, a, b, imm6, shift);
 	}
 
 	void BufferWriter::put_orr(Registry destination, Registry source, BitPattern pattern) {
@@ -215,7 +215,7 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_orr(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
-		put_inst_shifted_register(0b0101010, dst, a, b, imm6, shift);
+		put_inst_shifted_register(0b0101010, 0, dst, a, b, imm6, shift);
 	}
 
 	void BufferWriter::put_svc(uint16_t imm16) {
@@ -403,6 +403,14 @@ namespace asmio::arm {
 
 	void BufferWriter::put_bfc(Registry dst, BitPattern pattern) {
 		put_bfm(dst, dst.wide() ? XZR : WZR, pattern);
+	}
+
+	void BufferWriter::put_bic(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t lsl6) {
+		put_inst_bic(dst, a, b, shift, lsl6, false);
+	}
+
+	void BufferWriter::put_bics(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t lsl6) {
+		put_inst_bic(dst, a, b, shift, lsl6, true);
 	}
 
 	void BufferWriter::put_hint(uint8_t imm7) {

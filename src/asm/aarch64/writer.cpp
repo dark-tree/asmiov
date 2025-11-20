@@ -28,7 +28,7 @@ namespace asmio::arm {
 		put_dword(sf << 31 | opc_from_23 << 23 | pattern.bitmask() << 10 | source.reg << 5 | destination.reg);
 	}
 
-	void BufferWriter::put_inst_shifted_register(uint32_t opc_from_24, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift) {
+	void BufferWriter::put_inst_shifted_register(uint32_t opc_from_24, uint32_t bit_21, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift) {
 		assert_register_triplet(dst, n, m);
 
 		if (!dst.is(Registry::GENERAL) || !n.is(Registry::GENERAL) || !m.is(Registry::GENERAL)) {
@@ -36,7 +36,7 @@ namespace asmio::arm {
 		}
 
 		uint16_t sf = dst.wide() ? 1 : 0;
-		put_dword(sf << 31 | opc_from_24 << 24 | uint32_t(shift) << 22 | m.reg << 16 | imm6 << 10 | n.reg << 5 | dst.reg);
+		put_dword(sf << 31 | opc_from_24 << 24 | uint32_t(shift) << 22 | bit_21 << 21 | m.reg << 16 | imm6 << 10 | n.reg << 5 | dst.reg);
 	}
 
 	void BufferWriter::encode_shifted_aligned_link(SegmentedBuffer* buffer, const Linkage& linkage, int bits, int left_shift) {
@@ -182,6 +182,10 @@ namespace asmio::arm {
 		uint32_t sf = destination.wide() ? 1 : 0;
 		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
 		put_dword(sf << 31 | 0b1'0'11010000 << 21 | fb | b.reg << 16 | 0b000000 << 10 | a.reg << 5 | destination.reg);
+	}
+
+	void BufferWriter::put_inst_bic(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t lsl6, bool set_flags) {
+		put_inst_shifted_register(set_flags ? 0b1101010 : 0b0001010, 1, dst, a, b, lsl6, shift);
 	}
 
 	void BufferWriter::put_inst_count(Registry destination, Registry source, uint8_t imm1) {

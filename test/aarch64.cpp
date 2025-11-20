@@ -1492,6 +1492,21 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_bic) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 0b10001110);
+		writer.put_mov(X1,   0b01010100);
+		writer.put_bic(X0, X0, X1, ShiftType::LSR, 2);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0b1000'1010);
+
+	};
+
 #endif
 
 }

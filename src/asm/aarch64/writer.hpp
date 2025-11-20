@@ -34,7 +34,7 @@ namespace asmio::arm {
 			 * Writes the standard 'shifted register' instruction into the buffer,
 			 * with 'sf' derived from destination size.
 			 */
-			void put_inst_shifted_register(uint32_t opc_from_24, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift);
+			void put_inst_shifted_register(uint32_t opc_from_24, uint32_t bit_21, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift);
 
 			/**
 			 * Writes the standard 'extended register' instruction into the buffer,
@@ -69,6 +69,9 @@ namespace asmio::arm {
 
 			/// Encode "SBC/SBCS" operation
 			void put_inst_sbc(Registry destination, Registry a, Registry b, bool set_flags);
+
+			/// Encode "BIC/BICS" operation
+			void put_inst_bic(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t lsl6, bool set_flags);
 
 			/// Encode "CLS/CLZ" operation
 			void put_inst_count(Registry destination, Registry source, uint8_t imm1);
@@ -173,6 +176,8 @@ namespace asmio::arm {
 			INST put_uxth(Registry dst, Registry src);                     ///< Extract Two Bytes
 			INST put_bfm(Registry dst, Registry src, BitPattern pattern);  ///< Bitfield Move
 			INST put_bfc(Registry dst, BitPattern pattern);                ///< Bitfield Clear
+			INST put_bic(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise Bit Clear
+			INST put_bics(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise Bit Clear and set flags
 
 			// control
 			INST put_svc(uint16_t imm16);                                  ///< Supervisor call

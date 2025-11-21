@@ -940,7 +940,7 @@ namespace test::arm {
 		tasml::ErrorHandler reporter {vstl_self.name, true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
-		asmio::ElfBuffer elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
+		asmio::ElfFile elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
 			reporter.link(link.target, what);
 		});
 
@@ -949,11 +949,10 @@ namespace test::arm {
 			FAIL("Failed to link executable");
 		}
 
-		int rc = 0;
-		asmio::RunResult result = elf.execute("memfd", &rc);
+		RunResult result = elf.execute("memfd");
 
-		CHECK(result, asmio::RunResult::SUCCESS);
-		CHECK(rc, 100);
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 100);
 
 	};
 

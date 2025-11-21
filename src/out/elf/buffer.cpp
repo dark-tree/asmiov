@@ -1,11 +1,39 @@
 
 #include "buffer.hpp"
 
+#include <filesystem>
+
 namespace asmio {
+
+	std::ostream& operator<<(std::ostream& os, RunStatus c) {
+		switch (c) {
+			case RunStatus::SUCCESS: return os << "SUCCESS";
+			case RunStatus::ARGS_ERROR: return os << "ARGS_ERROR";
+			case RunStatus::MEMFD_ERROR: return os << "MEMFD_ERROR";
+			case RunStatus::SEAL_ERROR: return os << "SEAL_ERROR";
+			case RunStatus::FORK_ERROR: return os << "FORK_ERROR";
+			case RunStatus::EXEC_ERROR: return os << "EXEC_ERROR";
+			case RunStatus::WAIT_ERROR: return os << "WAIT_ERROR";
+			default: return os << "UNKNOWN";
+		}
+	}
+
+	std::ostream& operator<<(std::ostream& os, const RunResult& result) {
+		return os << "RunResult{status=" << result.type << ", return=" << result.status << "}";
+	}
 
 	/*
 	 * class ElfFile
 	 */
+
+	uint32_t ElfFile::to_elf_flags(const BufferSegment& segment) {
+		uint32_t flags = 0;
+		if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
+		if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
+		if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
+
+		return flags;
+	}
 
 	void ElfFile::define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, uint32_t link, uint32_t info) {
 
@@ -103,6 +131,25 @@ namespace asmio {
 
 	}
 
+	ElfFile::ElfFile(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint)
+		: ElfFile(segmented.elf_machine, mount, entrypoint) {
+
+		uint64_t address = mount;
+
+		for (const BufferSegment& bs : segmented.segments()) {
+			if (bs.empty()) {
+				continue;
+			}
+
+			auto chunk = segment(ElfSegmentType::LOAD, to_elf_flags(bs), address, bs.tail);
+
+			chunk->write(bs.buffer);
+			chunk->push(bs.tail);
+
+			address += bs.size();
+		}
+	}
+
 	ChunkBuffer::Ptr ElfFile::section(const std::string& name, ElfSectionType type, uint32_t link, uint32_t info, const ChunkBuffer::Ptr& segment) {
 
 		if (!has_sections) {
@@ -124,65 +171,59 @@ namespace asmio {
 		return region;
 	}
 
-	/*
-	 * class ElfBuffer
-	 */
+	bool ElfFile::save(const std::string& path) const {
 
-	ElfBuffer::ElfBuffer(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint)
-		: ElfFile(segmented.elf_machine, mount, entrypoint) {
+		using std::filesystem::perms;
 
-		uint64_t address = mount;
+		// if file creation fails return false
+		try {
+			auto buffer = bytes();
+			std::ofstream output {path};
 
-		for (const BufferSegment& bs : segmented.segments()) {
-			if (bs.empty()) {
-				continue;
+			if (output.bad()) {
+				return false;
 			}
 
-			auto chunk = segment(ElfSegmentType::LOAD, to_elf_flags(bs), address, bs.tail);
-
-			chunk->write(bs.buffer);
-			chunk->push(bs.tail);
-
-			address += bs.size();
-		}
-	}
-
-	bool ElfBuffer::save(const char* path) const {
-		auto buffer = root->bake();
-		FILE* file = fopen(path, "wb");
-
-		if (file == nullptr) {
+			output.write(reinterpret_cast<char*>(buffer.data()), buffer.size());
+			output.close();
+		} catch (const std::exception&) {
 			return false;
 		}
 
-		if (fwrite(buffer.data(), 1, buffer.size(), file) != buffer.size()) {
-			return false;
-		}
+		// this part is best-effort only
+		try {
+			const perms flags = perms::owner_exec | perms::group_exec | perms::others_exec;
+			std::filesystem::permissions(path, flags, std::filesystem::perm_options::add);
+		} catch (const std::exception&) {}
 
-		fclose(file);
+		// file was created
 		return true;
 	}
 
-	RunResult ElfBuffer::execute(const char* name, int* status) const {
-		const char* argv[] = {name, nullptr};
-		return execute(argv, (const char**) environ, status);
+	std::vector<uint8_t> ElfFile::bytes() const {
+		return root->bake();
 	}
 
-	RunResult ElfBuffer::execute(const char** argv, const char** envp, int* status) const {
+	RunResult ElfFile::execute(const char* name) const {
+		const char* argv[] = {name, nullptr};
+		return execute(argv, (const char**) environ);
+	}
+
+	RunResult ElfFile::execute(const char** argv, const char** envp) const {
 		// verify arguments, status can be a nullptr
 		if (argv == nullptr || envp == nullptr) {
-			return RunResult::ARGS_ERROR;
+			return RunStatus::ARGS_ERROR;
 		}
 
 		// create in-memory file descriptor
 		const int memfd = memfd_create("buffer", MFD_ALLOW_SEALING | MFD_CLOEXEC);
 		if (memfd == -1) {
-			return RunResult::MEMFD_ERROR;
+			return RunStatus::MEMFD_ERROR;
 		}
 
 		int* flag = (int*) mmap(nullptr, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 		if (flag == nullptr) {
-			return RunResult::MMAP_ERROR;
+			return RunStatus::MMAP_ERROR;
 		}
 
 		// copy buffer into memfd
@@ -194,12 +235,12 @@ namespace asmio {
 
 		// add seals to memfd
 		if (fcntl(memfd, F_ADD_SEALS, F_SEAL_WRITE | F_SEAL_GROW | F_SEAL_SHRINK | F_SEAL_SEAL) != 0) {
-			return RunResult::SEAL_ERROR;
+			return RunStatus::SEAL_ERROR;
 		}
 
 		const pid_t pid = fork();
 		if (pid == -1) {
-			return RunResult::FORK_ERROR;
+			return RunStatus::FORK_ERROR;
 		}
 
 		// replace child with memfd elf file
@@ -211,20 +252,21 @@ namespace asmio {
 			exit(1);
 		}
 
+		int status = 0;
+
 		// wait for child and get status code
-		if (waitpid(pid, status, 0) == -1) {
-			return RunResult::WAIT_ERROR;
+		if (waitpid(pid, &status, 0) == -1) {
+			return RunStatus::WAIT_ERROR;
 		}
 
 		if (*flag) {
-			return RunResult::EXEC_ERROR;
+			return RunStatus::EXEC_ERROR;
 		}
 
 		munmap(flag, sizeof(int));
 
 		// obtain return code from child status
-		*status = WEXITSTATUS(*status);
-		return RunResult::SUCCESS;
+		return WEXITSTATUS(status);
 	}
 
 }

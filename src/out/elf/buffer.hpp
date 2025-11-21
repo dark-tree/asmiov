@@ -11,39 +11,33 @@
 
 namespace asmio {
 
-	enum struct RunResult : uint8_t {
-		SUCCESS,     // elf file was executed
-		ARGS_ERROR,  // the given arguments are invalid
-		MEMFD_ERROR, // memfd failed
-		MMAP_ERROR,  // mmap failed
-		SEAL_ERROR,  // fcntl failed
-		STAT_ERROR,  // fstat failed
-		FORK_ERROR,  // fork failed
-		EXEC_ERROR,  // file not executable
-		WAIT_ERROR,  // waitpid failed
+	enum struct RunStatus {
+		SUCCESS,     ///< elf file was executed
+		ARGS_ERROR,  ///< the given arguments are invalid
+		MEMFD_ERROR, ///< memfd failed
+		MMAP_ERROR,  ///< mmap failed
+		SEAL_ERROR,  ///< fcntl failed
+		STAT_ERROR,  ///< fstat failed
+		FORK_ERROR,  ///< fork failed
+		EXEC_ERROR,  ///< file not executable
+		WAIT_ERROR,  ///< waitpid failed
 	};
 
-	inline std::ostream& operator<<(std::ostream& os, RunResult c) {
-		switch(c) {
-			case RunResult::SUCCESS: return os << "SUCCESS";
-			case RunResult::ARGS_ERROR: return os << "ARGS_ERROR";
-			case RunResult::MEMFD_ERROR: return os << "MEMFD_ERROR";
-			case RunResult::SEAL_ERROR: return os << "SEAL_ERROR";
-			case RunResult::FORK_ERROR: return os << "FORK_ERROR";
-			case RunResult::EXEC_ERROR: return os << "EXEC_ERROR";
-			case RunResult::WAIT_ERROR: return os << "WAIT_ERROR";
-			default: return os << "UNKNOWN";
+	struct RunResult {
+		RunResult(RunStatus type)
+			: type(type), status(0) {
 		}
-	}
 
-	inline uint32_t to_elf_flags(const BufferSegment& segment) {
-		uint32_t flags = 0;
-		if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
-		if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
-		if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
+		RunResult(int status)
+			: type(RunStatus::SUCCESS), status(status) {
+		}
 
-		return flags;
-	}
+		const RunStatus type;
+		const int status;
+	};
+
+	std::ostream& operator<<(std::ostream& os, RunStatus c);
+	std::ostream& operator<<(std::ostream& os, const RunResult& result);
 
 	/**
 	 * Based on Tool Interface Standard (TIS) Executable and Linking Format (ELF)
@@ -62,6 +56,9 @@ namespace asmio {
 
 		private:
 
+			/// Convert segment flags to ELF segment flags
+			static uint32_t to_elf_flags(const BufferSegment& segment);
+
 			bool has_sections = false;
 			bool has_segments = false;
 
@@ -77,6 +74,7 @@ namespace asmio {
 		public:
 
 			ElfFile(ElfMachine machine, uint64_t mount, uint64_t entrypoint);
+			ElfFile(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint);
 
 			/**
 			 * Create a new ELF section in the given segment, if no segment is provided the
@@ -90,34 +88,35 @@ namespace asmio {
 			 */
 			ChunkBuffer::Ptr segment(ElfSegmentType type, uint32_t flags, uint64_t address, uint64_t tail = 0);
 
-	};
-
-	class ElfBuffer : public ElfFile {
-
 		public:
 
 			/**
-			 * creates a new ELF buffer
-			 * @param segmented content
-			 * @param mount page aligned virtual mounting address
-			 * @param entrypoint offset in bytes into the content where the execution will begin
+			 * Save the ELF to an executable file,
+			 * if that is possible the file is given the execute permission.
 			 */
-			explicit ElfBuffer(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint);
+			bool save(const std::string& path) const;
 
-		public:
+			/**
+			 * Serialize the ELF file to a byte buffer,
+			 * if you wish to save the file use save() instead.
+			 */
+			std::vector<uint8_t> bytes() const;
 
-			/// Save buffer as a ELF file
-			bool save(const char* path) const;
+			/**
+			 * Fork into the in-memory view of the file,
+			 * environ is inherited from the calling process.
+			 */
+			RunResult execute(const char* name) const;
 
-			/// Fork into the in-memory view of the file
-			RunResult execute(const char* name, int* status) const;
-
-			/// Fork into the in-memory view of the file, with arguments
-			RunResult execute(const char** argv, const char** envp, int* status) const;
+			/**
+			 * Fork into the in-memory view of the file, with arguments
+			 * to inherit environ pass it as the second argument.
+			 */
+			RunResult execute(const char** argv, const char** envp) const;
 
 	};
 
-	inline ElfBuffer to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const Linkage::Handler& handler = nullptr) {
+	inline ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const Linkage::Handler& handler = nullptr) {
 
 		// after alignment we will know how big the buffer needs to be
 		const size_t page = getpagesize();
@@ -131,7 +130,7 @@ namespace asmio {
 		BufferMarker entrymark = segmented.get_label(entry);
 		uint64_t entrypoint = segmented.get_offset(entrymark);
 
-		return ElfBuffer {segmented, address, entrypoint};
+		return {segmented, address, entrypoint};
 	}
 
 }

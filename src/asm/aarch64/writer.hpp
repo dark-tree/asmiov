@@ -167,7 +167,9 @@ namespace asmio::arm {
 			INST put_lsl(Registry dst, Registry src, Registry bits);       ///< Logical Shift Left by register
 			INST put_lsl(Registry dst, Registry src, uint16_t bits);       ///< Logical Shift Left by immediate
 			INST put_asr(Registry dst, Registry src, Registry bits);       ///< Arithmetic Shift Right by register
+			INST put_asr(Registry dst, Registry src, uint16_t bits);       ///< Arithmetic Shift Right by immediate
 			INST put_asl(Registry dst, Registry src, Registry bits);       ///< Arithmetic Shift Left by register
+			INST put_asl(Registry dst, Registry src, uint16_t bits);       ///< Arithmetic Shift Left by immediate
 			INST put_ror(Registry dst, Registry src, uint8_t imm);         ///< Rotate Right by immediate
 			INST put_extr(Registry dst, Registry left, Registry right, uint8_t imm5); ///< Extract register
 			INST put_csel(Condition condition, Registry dst, Registry truthy, Registry falsy); ///< Conditional Select

@@ -1624,6 +1624,20 @@ namespace test::arm {
 
 	};
 
+	TEST (writer_exec_asr_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, -64);
+		writer.put_asr(X0, X1, 4);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), -4);
+
+	};
+
 #endif
 
 }

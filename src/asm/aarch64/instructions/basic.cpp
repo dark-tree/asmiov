@@ -378,7 +378,30 @@ namespace asmio::arm {
 		put_inst_shift_v(dst, src, bits, ShiftType::ASR);
 	}
 
+	void BufferWriter::put_asr(Registry dst, Registry src, uint16_t shift) {
+		const uint32_t width = dst.size * 8;
+		const uint32_t ones = width - 1; // one bit gets discarded anyway
+
+		if (shift > ones) {
+			throw std::runtime_error {"Invalid operand, can't shift by more than register width"};
+		}
+
+		// the ISA doesn't mention us needing to that but for shift=0
+		// the top bit would be cut of without any shifting to cover that,
+		// there were similar issues in LSL (immediate).
+		if (shift == 0) {
+			put_mov(dst, src);
+			return;
+		}
+
+		put_sbfm(dst, src, {width, ones, shift});
+	}
+
 	void BufferWriter::put_asl(Registry dst, Registry src, Registry bits) {
+		put_lsl(dst, src, bits);
+	}
+
+	void BufferWriter::put_asl(Registry dst, Registry src, uint16_t bits) {
 		put_lsl(dst, src, bits);
 	}
 

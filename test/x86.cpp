@@ -17,6 +17,7 @@ namespace test::x86 {
 	using namespace asmio;
 	using namespace asmio::x86;
 
+	static_assert(vstl::string_appendable<RunStatus>);
 	static_assert(vstl::string_appendable<RunResult>);
 
 	/*
@@ -3244,14 +3245,12 @@ namespace test::x86 {
 		writer.put_int(0x80); // 32 bit syscall
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfBuffer file = to_elf(segmented, "_start");
+		ElfFile file = to_elf(segmented, "_start");
 
-		int status;
+		RunResult result = file.execute("memfd-elf-1");
 
-		RunResult result = file.execute("memfd-elf-1", &status);
-
-		CHECK(result, RunResult::SUCCESS);
-		CHECK(status, 42);
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 42);
 
 	}
 
@@ -3281,12 +3280,11 @@ namespace test::x86 {
 		writer.put_ret();
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfBuffer file = to_elf(segmented, "_start");
-		int status;
-		RunResult result = file.execute("memfd-elf-1", &status);
+		ElfFile file = to_elf(segmented, "_start");
+		RunResult result = file.execute("memfd-elf-1");
 
-		CHECK(result, RunResult::SUCCESS);
-		CHECK(status, 13);
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 13);
 
 	}
 
@@ -3316,12 +3314,11 @@ namespace test::x86 {
 		writer.put_ret();
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfBuffer file = to_elf(segmented, "_start");
-		int status;
-		RunResult result = file.execute("memfd-elf-1", &status);
+		ElfFile file = to_elf(segmented, "_start");
+		RunResult result = file.execute("memfd-elf-1");
 
-		CHECK(result, RunResult::SUCCESS);
-		CHECK(status, 20);
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 20);
 
 	}
 

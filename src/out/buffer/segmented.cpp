@@ -30,7 +30,7 @@ namespace asmio {
 
 		// extra bytes to pad to page boundary
 		this->tail = aligned - bytes;
-		return aligned;
+		return start + aligned;
 	}
 
 	int BufferSegment::get_mprot_flags() const {

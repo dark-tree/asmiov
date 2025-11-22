@@ -23,14 +23,14 @@ namespace asmio {
 		return {index, static_cast<uint32_t>(buffer.size())};
 	}
 
-	size_t BufferSegment::align(size_t start, size_t page) {
-		this->start = start;
-		const int64_t bytes = buffer.size();
-		const int64_t aligned = ALIGN_UP(bytes, page);
+	size_t BufferSegment::align(size_t offset, size_t page) {
+		this->start = offset;
+		const size_t bytes = buffer.size();
+		const size_t aligned = util::align_up(bytes, page);
 
 		// extra bytes to pad to page boundary
 		this->tail = aligned - bytes;
-		return start + aligned;
+		return offset + aligned;
 	}
 
 	int BufferSegment::get_mprot_flags() const {

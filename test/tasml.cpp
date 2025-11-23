@@ -31,7 +31,7 @@ namespace test::tas {
 			b 7, @test
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 
 		EXPECT_THROW(std::runtime_error) {
 			tasml::assemble(reporter, code);
@@ -49,7 +49,7 @@ namespace test::tas {
 			mov x2, x1
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		tasml::assemble(reporter, code);
 
 		ASSERT(reporter.ok());
@@ -71,7 +71,7 @@ namespace test::tas {
 			nop
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -96,7 +96,7 @@ namespace test::tas {
 			ret x8
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {

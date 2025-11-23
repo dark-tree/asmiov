@@ -937,7 +937,7 @@ namespace test::arm {
 				svc 0
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		asmio::ElfBuffer elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
@@ -985,7 +985,7 @@ namespace test::arm {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer;
 
 		try {
@@ -1025,8 +1025,8 @@ namespace test::arm {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
-		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name(), code);
 
 		uint64_t r0 = to_executable(buffer).call_i64("l_mul_low");
 		CHECK(r0, 0xFBFFFFFE00000000);
@@ -1049,8 +1049,8 @@ namespace test::arm {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
-		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name(), code);
 
 		uint64_t r0 = to_executable(buffer).call_i64("l_div");
 		CHECK(r0, 42);
@@ -1070,8 +1070,8 @@ namespace test::arm {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
-		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name(), code);
 
 		uint64_t r0 = to_executable(buffer).call_i64("l_div");
 		CHECK(r0, -42);

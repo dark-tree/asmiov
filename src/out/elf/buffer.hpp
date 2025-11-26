@@ -56,9 +56,6 @@ namespace asmio {
 
 		private:
 
-			/// Convert segment flags to ELF segment flags
-			static uint32_t to_elf_flags(const BufferSegment& segment);
-
 			bool has_sections = false;
 			bool has_segments = false;
 
@@ -74,7 +71,7 @@ namespace asmio {
 		public:
 
 			ElfFile(ElfMachine machine, uint64_t mount, uint64_t entrypoint);
-			ElfFile(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint);
+			// ElfFile(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint);
 
 			/**
 			 * Create a new ELF section in the given segment, if no segment is provided the
@@ -118,6 +115,15 @@ namespace asmio {
 
 	inline ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const Linkage::Handler& handler = nullptr) {
 
+		static auto to_elf_flags = [] (const BufferSegment& segment) -> uint32_t {
+			uint32_t flags = 0;
+			if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
+			if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
+			if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
+
+			return flags;
+		};
+
 		// after alignment we will know how big the buffer needs to be
 		const size_t page = getpagesize();
 		segmented.align(page);
@@ -130,7 +136,22 @@ namespace asmio {
 		BufferMarker entrymark = segmented.get_label(entry);
 		uint64_t entrypoint = segmented.get_offset(entrymark);
 
-		return {segmented, address, entrypoint};
+		ElfFile elf {segmented.elf_machine, address, entrypoint};
+
+		for (const BufferSegment& segment : segmented.segments()) {
+			if (segment.empty()) {
+				continue;
+			}
+
+			auto chunk = elf.segment(ElfSegmentType::LOAD, to_elf_flags(segment), address, segment.tail);
+
+			chunk->write(segment.buffer);
+			chunk->push(segment.tail);
+
+			address += segment.size();
+		}
+
+		return elf;
 	}
 
 }

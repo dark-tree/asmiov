@@ -26,15 +26,6 @@ namespace asmio {
 	 * class ElfFile
 	 */
 
-	uint32_t ElfFile::to_elf_flags(const BufferSegment& segment) {
-		uint32_t flags = 0;
-		if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
-		if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
-		if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
-
-		return flags;
-	}
-
 	void ElfFile::define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, uint32_t link, uint32_t info) {
 
 		auto chunk = section_headers->chunk();
@@ -129,25 +120,6 @@ namespace asmio {
 
 		});
 
-	}
-
-	ElfFile::ElfFile(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint)
-		: ElfFile(segmented.elf_machine, mount, entrypoint) {
-
-		uint64_t address = mount;
-
-		for (const BufferSegment& bs : segmented.segments()) {
-			if (bs.empty()) {
-				continue;
-			}
-
-			auto chunk = segment(ElfSegmentType::LOAD, to_elf_flags(bs), address, bs.tail);
-
-			chunk->write(bs.buffer);
-			chunk->push(bs.tail);
-
-			address += bs.size();
-		}
 	}
 
 	ChunkBuffer::Ptr ElfFile::section(const std::string& name, ElfSectionType type, uint32_t link, uint32_t info, const ChunkBuffer::Ptr& segment) {

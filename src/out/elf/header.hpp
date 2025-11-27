@@ -1,6 +1,7 @@
 #pragma once
 
 #include "external.hpp"
+#include "macro.hpp"
 
 namespace asmio {
 
@@ -38,7 +39,7 @@ namespace asmio {
 		MSB  = 2,   // Two's complement, big-endian.
 	};
 
-	struct __attribute__((__packed__)) ElfIdentification {
+	struct PACKED ElfIdentification {
 		uint8_t magic[4];    ///< Magic number identifying the file as an ELF object file
 		ElfClass clazz;      ///< Size of basic data types
 		ElfData data;        ///< Endianness
@@ -48,7 +49,7 @@ namespace asmio {
 		uint8_t pad[7];      ///< Must all be 0
 	};
 
-	struct __attribute__((__packed__)) ElfFileHeader {
+	struct PACKED ElfFileHeader {
 		ElfIdentification identification; ///< The initial bytes mark the file
 		ElfType type;        ///< Specifies the file type
 		ElfMachine machine;  ///< Specifies the required architecture

@@ -60,6 +60,7 @@ add_executable(test
 		test/tasml.cpp
 		test/x86.cpp
 		test/aarch64.cpp
+		test/elf.cpp
 )
 target_link_libraries(test PRIVATE asmiov)
 

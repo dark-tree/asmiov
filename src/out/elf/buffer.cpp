@@ -26,13 +26,14 @@ namespace asmio {
 	 * class ElfFile
 	 */
 
-	void ElfFile::define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, uint32_t link, uint32_t info) {
+	int ElfFile::define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, const std::function<uint32_t()>& link, const std::function<uint32_t()>& info, uint32_t entry) {
 
-		auto chunk = section_headers->chunk();
+		auto chunk = section_headers->chunk("shdr");
+		int string = section_string_table->bytes();
 
-		chunk->link<ElfSectionHeader>([=, this] (auto& header) {
+		chunk->link<ElfSectionHeader>([=] (auto& header) {
 
-			header.name = section_string_table->bytes();
+			header.name = string;
 			header.type = type;
 			header.flags = 0;
 			header.addr = 0;
@@ -45,19 +46,19 @@ namespace asmio {
 				header.size = 0;
 			}
 
-			header.link = link;
-			header.info = info;
+			header.link = link();
+			header.info = info();
 			header.addralign = 0;
-			header.entsize = 0;
+			header.entsize = entry;
 
 		});
 
 		section_string_table->write(name);
-
+		return chunk->index();
 	}
 
-	void ElfFile::define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t tail, uint64_t align) {
-		auto chunk = segment_headers->chunk();
+	int ElfFile::define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t tail, uint64_t align) {
+		auto chunk = segment_headers->chunk("phdr");
 
 		chunk->link<ElfSegmentHeader>([=] (auto& header) {
 
@@ -73,18 +74,20 @@ namespace asmio {
 			header.align = align;
 
 		});
+
+		return chunk->index();
 	}
 
 	ElfFile::ElfFile(ElfMachine machine, uint64_t mount, uint64_t entrypoint) {
 		root = std::make_shared<ChunkBuffer>();
 
-		auto chunk = root->chunk();
+		auto chunk = root->chunk("ehdr");
 
-		section_headers = root->chunk();
-		segment_headers = root->chunk();
-		segments = root->chunk();
-		sections = root->chunk();
-		section_string_table = segments->chunk();
+		section_headers = root->chunk("shdrs");
+		segment_headers = root->chunk("phdrs");
+		segments = root->chunk("segments");
+		sections = root->chunk("sections");
+		section_string_table = sections->chunk("shstrtab");
 
 		chunk->link<ElfFileHeader>([=, this] (auto& header) {
 
@@ -112,35 +115,74 @@ namespace asmio {
 			header.shoff = has_sections ? section_headers->offset() : 0;
 			header.flags = 0;
 			header.ehsize = sizeof(header);
-			header.phentsize = sizeof(ElfSegmentHeader);
+			header.phentsize = has_segments ? sizeof(ElfSegmentHeader) : 0;
 			header.phnum = segment_headers->regions();
-			header.shentsize = sizeof(ElfSectionHeader);
+			header.shentsize = has_sections ? sizeof(ElfSectionHeader) : 0;
 			header.shnum = section_headers->regions();
-			header.shentsize = has_sections ? 1 : 0;
+			header.shstrndx = has_sections ? 1 : 0;
 
 		});
-
 	}
 
-	ChunkBuffer::Ptr ElfFile::section(const std::string& name, ElfSectionType type, uint32_t link, uint32_t info, const ChunkBuffer::Ptr& segment) {
+	ElfFile::IndexedChunk ElfFile::section(const std::string& name, ElfSectionType type, const ChunkBuffer::Ptr& segment, const std::function<uint32_t()>& link, const std::function<uint32_t()>& info, uint32_t entry) {
+
+		auto it = section_map.find(name);
+
+		if (it != section_map.end()) {
+			return it->second;
+		}
 
 		if (!has_sections) {
-			define_section("", nullptr, ElfSectionType::NONE, 0, 0);
-			define_section(".shstrtab", section_string_table, ElfSectionType::STRTAB, 0, 0);
+			define_section("", nullptr, ElfSectionType::NONE, [] noexcept { return 0; }, [] noexcept { return 0; }, 0);
+			define_section(".shstrtab", section_string_table, ElfSectionType::STRTAB, [] noexcept { return 0; }, [] noexcept { return 0; }, 0);
 			has_sections = true;
 		}
 
 		auto region = segment == nullptr ? segments->chunk() : segment->chunk();
-		define_section(name, region, type, link, info);
-		return region;
+		int index = define_section(name, region, type, link, info, entry);
+		section_map[name] = {region, index};
+
+		return {region, index};
 	}
 
-	ChunkBuffer::Ptr ElfFile::segment(ElfSegmentType type, uint32_t flags, uint64_t address, uint64_t tail) {
+	ElfFile::IndexedChunk ElfFile::segment(ElfSegmentType type, uint32_t flags, uint64_t address, uint64_t tail) {
 		has_segments = true;
 		const int alignment = getpagesize();
-		auto region = segments->chunk(alignment);
-		define_segment(type, flags, region, address, tail, alignment);
-		return region;
+		auto region = segments->chunk(alignment, "segment");
+		int index = define_segment(type, flags, region, address, tail, alignment);
+		return {region, index};
+	}
+
+	void ElfFile::symbol(const std::string& name, ElfSymbolType type, ElfSymbolBinding binding, ElfSymbolVisibility visibility, const IndexedChunk& target, size_t offset, size_t size) {
+
+		if (!has_symbols) {
+			auto strings = section(".strtab", ElfSectionType::STRTAB, nullptr, [] noexcept { return 0; }, [] noexcept { return 0; });
+			auto symbols = section(".symtab", ElfSectionType::SYMTAB, nullptr, [i = strings.index] noexcept { return i; }, [this] noexcept { return local_symbols->regions(); }, sizeof(ElfSymbol));
+
+			symbol_strings = strings.data;
+			local_symbols = symbols.data->chunk();
+			other_symbols = symbols.data->chunk();
+			has_symbols = true;
+		}
+
+		ElfSymbol symbol {};
+		symbol.name = symbol_strings->bytes();
+		symbol.type = type;
+		symbol.binding = binding;
+		symbol.visibility = visibility;
+		symbol.shndx = target.index;
+		symbol.value = offset;
+		symbol.ssize = size;
+
+		// local symbols must be first so we separate them here
+		if (binding == ElfSymbolBinding::LOCAL) {
+			local_symbols->put<ElfSymbol>(symbol);
+		} else {
+			other_symbols->put<ElfSymbol>(symbol);
+		}
+
+		symbol_strings->write(name);
+
 	}
 
 	bool ElfFile::save(const std::string& path) const {

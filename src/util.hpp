@@ -1,7 +1,9 @@
 #pragma once
 
 #include <external.hpp>
+#include <macro.hpp>
 #include <fstream>
+#include <random>
 
 template <typename T>
 concept trivially_copyable = std::is_trivially_copyable_v<T>;
@@ -22,6 +24,21 @@ concept castable = requires (const A& arg) { static_cast<T>(arg); };
 #define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
 
 namespace asmio::util {
+
+	inline std::string random_string(size_t length) {
+		static const std::string_view alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		static std::uniform_int_distribution dist(0, static_cast<int>(alphabet.size() - 1));
+		thread_local std::mt19937 rng {std::random_device{} ()};
+
+		std::string out;
+		out.reserve(length);
+
+		for (std::size_t i = 0; i < length; ++i) {
+			out.push_back(alphabet[dist(rng)]);
+		}
+
+		return out;
+	}
 
 	inline void load_file_into(std::ifstream& file, std::string& string) {
 		file.seekg(0, std::ios::end);

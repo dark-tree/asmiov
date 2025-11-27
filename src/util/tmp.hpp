@@ -17,6 +17,11 @@ namespace asmio::util {
 			void dump() const;
 			std::string path() const;
 
+			template <typename T>
+			TempFile(const T& savable) : TempFile() {
+				(void) savable.save(path());
+			}
+
 			TempFile();
 			~TempFile();
 

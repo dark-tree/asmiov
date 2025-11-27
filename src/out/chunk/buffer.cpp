@@ -60,6 +60,21 @@ namespace asmio {
 		return chunk;
 	}
 
+	void ChunkBuffer::begin_space(uint32_t bytes) {
+		if (last_region == ARRAY) {
+			push(bytes);
+			return;
+		}
+
+		if (last_region == SPACE) {
+			std::get<Space>(m_regions.back()).size += bytes;
+			return;
+		}
+
+		last_region = SPACE;
+		m_regions.emplace_back(Space {bytes});
+	}
+
 	void ChunkBuffer::freeze() {
 		this->state = CACHING;
 
@@ -84,9 +99,16 @@ namespace asmio {
 
 				auto begin = shared_bytes.begin() + info.offset;
 				output.insert(output.end(), begin, begin + info.size);
-			} else {
-				std::get<Ptr>(var)->bake(output);
+				continue;
 			}
+
+			if (std::holds_alternative<Space>(var)) {
+				uint32_t bytes = std::get<Space>(var).size;
+				output.resize(output.size() + bytes, 0);
+				continue;
+			}
+
+			std::get<Ptr>(var)->bake(output);
 		}
 	}
 
@@ -152,9 +174,15 @@ namespace asmio {
 			// we do it region-by-region so that alignment may be calculated
 			if (std::holds_alternative<Array>(var)) {
 				total += std::get<Array>(var).size;
-			} else {
-				total += std::get<Ptr>(var)->outer(offset + total);
+				continue;
 			}
+
+			if (std::holds_alternative<Space>(var)) {
+				total += std::get<Space>(var).size;
+				continue;
+			}
+
+			total += std::get<Ptr>(var)->outer(offset + total);
 		}
 
 		if (state == CACHING) {
@@ -206,9 +234,15 @@ namespace asmio {
 				}
 
 				offset += ptr->outer(offset);
-			} else {
-				offset += std::get<Array>(region).size;
+				continue;
 			}
+
+			if (std::holds_alternative<Space>(region)) {
+				offset += std::get<Space>(region).size;
+				continue;
+			}
+
+			offset += std::get<Array>(region).size;
 		}
 
 		throw std::runtime_error {"Unable to calculate offset of an out-of-tree chunk!"};

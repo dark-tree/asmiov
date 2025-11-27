@@ -52,8 +52,9 @@ namespace asmio {
 		return {shared_bytes, &std::get<Array>(m_regions.back()).size};
 	}
 
-	ChunkBuffer::Ptr ChunkBuffer::begin_chunk(uint32_t align, std::endian endian) {
+	ChunkBuffer::Ptr ChunkBuffer::begin_chunk(uint32_t align, std::endian endian, const char* name) {
 		auto chunk = std::make_shared<ChunkBuffer>(align, endian, m_root, this);
+		chunk->name = name;
 		last_region = CHUNK;
 		m_regions.emplace_back(chunk);
 		return chunk;
@@ -103,6 +104,34 @@ namespace asmio {
 		}
 	}
 
+	int ChunkBuffer::index(const ChunkBuffer* child) const {
+		int index = 0;
+
+		for (const auto& var : m_regions) {
+
+			// we do it region-by-region so that alignment may be calculated
+			if (std::holds_alternative<Ptr>(var)) {
+				auto& ptr = std::get<Ptr>(var);
+
+				if (ptr.get() == child) {
+					return index;
+				}
+			}
+
+			index ++;
+		}
+
+		throw std::runtime_error {"Unable to calculate index of an out-of-tree chunk!"};
+	}
+
+	int ChunkBuffer::index() const {
+		if (m_parent == nullptr) {
+			return 0;
+		}
+
+		return m_parent->index(this);
+	}
+
 	size_t ChunkBuffer::regions() const {
 		return m_regions.size();
 	}
@@ -116,7 +145,7 @@ namespace asmio {
 			return m_size;
 		}
 
-		size_t total = util::align_padding(offset, (size_t) alignment);
+		size_t total = 0;
 
 		for (const auto& var : m_regions) {
 
@@ -124,7 +153,7 @@ namespace asmio {
 			if (std::holds_alternative<Array>(var)) {
 				total += std::get<Array>(var).size;
 			} else {
-				total += std::get<Ptr>(var)->size(offset + total);
+				total += std::get<Ptr>(var)->outer(offset + total);
 			}
 		}
 
@@ -137,36 +166,48 @@ namespace asmio {
 		return total;
 	}
 
+	size_t ChunkBuffer::outer(size_t unaligned_offset) const {
+		size_t padding = util::align_padding(unaligned_offset, static_cast<size_t>(alignment));
+		return padding + size(unaligned_offset + padding);
+	}
+
 	size_t ChunkBuffer::size() const {
 		return size(offset());
 	}
 
-	size_t ChunkBuffer::offset(const ChunkBuffer* child) const {
-		size_t offset = 0;
-
-		if (m_parent != nullptr) {
-			offset = m_parent->offset(this);
+	size_t ChunkBuffer::offset() const {
+		if (state == PRESENT) {
+			return m_offset;
 		}
 
-		offset = util::align_up(offset, (size_t) alignment);
+		return m_parent == nullptr ? 0 : util::align_up(m_parent->offset(this), static_cast<size_t>(alignment));
+	}
+
+	size_t ChunkBuffer::offset(const ChunkBuffer* child) const {
+		size_t offset = this->offset();
 
 		if (child == nullptr) {
 			return offset;
 		}
 
-		for (const auto& var : m_regions) {
+		// if the child knows where it is, there is no need to search for it
+		if (child->state == PRESENT) {
+			return child->m_offset;
+		}
+
+		for (const auto& region : m_regions) {
 
 			// we do it region-by-region so that alignment may be calculated
-			if (std::holds_alternative<Ptr>(var)) {
-				auto& ptr = std::get<Ptr>(var);
+			if (std::holds_alternative<Ptr>(region)) {
+				auto& ptr = std::get<Ptr>(region);
 
 				if (ptr.get() == child) {
 					return offset;
 				}
 
-				offset += ptr->size(offset);
+				offset += ptr->outer(offset);
 			} else {
-				offset += std::get<Array>(var).size;
+				offset += std::get<Array>(region).size;
 			}
 		}
 
@@ -198,12 +239,16 @@ namespace asmio {
 		return *this;
 	}
 
-	ChunkBuffer::Ptr ChunkBuffer::chunk(uint32_t align) {
-		return begin_chunk(align, endianness);
+	ChunkBuffer::Ptr ChunkBuffer::chunk(const char* name) {
+		return begin_chunk(1, endianness, name);
 	}
 
-	ChunkBuffer::Ptr ChunkBuffer::chunk(std::endian endian, uint32_t align) {
-		return begin_chunk(align, endian);
+	ChunkBuffer::Ptr ChunkBuffer::chunk(uint32_t align, const char* name) {
+		return begin_chunk(align, endianness, name);
+	}
+
+	ChunkBuffer::Ptr ChunkBuffer::chunk(std::endian endian, uint32_t align, const char* name) {
+		return begin_chunk(align, endian, name);
 	}
 
 	std::vector<uint8_t> ChunkBuffer::bake() {

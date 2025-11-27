@@ -4,12 +4,16 @@
 #include "header.hpp"
 #include "section.hpp"
 #include "segment.hpp"
+#include "symbol.hpp"
 #include "out/buffer/segmented.hpp"
 #include "out/chunk/buffer.hpp"
 
 #define DEFAULT_ELF_MOUNT 0x08048000
 
 namespace asmio {
+
+	template <auto V>
+	constexpr static auto supply = [] noexcept { return V; };
 
 	enum struct RunStatus {
 		SUCCESS,     ///< elf file was executed
@@ -48,6 +52,13 @@ namespace asmio {
 	 */
 	class ElfFile {
 
+		public:
+
+			struct IndexedChunk {
+				ChunkBuffer::Ptr data;
+				int index;
+			};
+
 		protected:
 
 			static constexpr int ELF_VERSION = 1;
@@ -58,6 +69,7 @@ namespace asmio {
 
 			bool has_sections = false;
 			bool has_segments = false;
+			bool has_symbols = false;
 
 			ChunkBuffer::Ptr section_headers;
 			ChunkBuffer::Ptr segment_headers;
@@ -65,25 +77,36 @@ namespace asmio {
 			ChunkBuffer::Ptr sections;
 			ChunkBuffer::Ptr section_string_table;
 
-			void define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, uint32_t link, uint32_t info);
-			void define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t tail, uint64_t align);
+			ChunkBuffer::Ptr symbol_strings;
+			ChunkBuffer::Ptr local_symbols;
+			ChunkBuffer::Ptr other_symbols;
+
+			std::unordered_map<std::string, IndexedChunk> section_map;
+
+			int define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, const std::function<uint32_t()>& link, const std::function<uint32_t()>& info, uint32_t entry);
+			int define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t tail, uint64_t align);
 
 		public:
 
 			ElfFile(ElfMachine machine, uint64_t mount, uint64_t entrypoint);
-			// ElfFile(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint);
 
 			/**
 			 * Create a new ELF section in the given segment, if no segment is provided the
 			 * section will be created in a common off-segment chunk. The backing data buffer is returned.
 			 */
-			ChunkBuffer::Ptr section(const std::string& name, ElfSectionType type, uint32_t link, uint32_t info, const ChunkBuffer::Ptr& segment = nullptr);
+			IndexedChunk section(const std::string& name, ElfSectionType type, const ChunkBuffer::Ptr& segment = nullptr, const std::function<uint32_t()>& link = supply<0>, const std::function<uint32_t()>& info = supply<0>, uint32_t entry = 0);
 
 			/**
 			 * Create a new ELF segment,
 			 * this can then be used to create section in, or used directly as a data buffer.
 			 */
-			ChunkBuffer::Ptr segment(ElfSegmentType type, uint32_t flags, uint64_t address, uint64_t tail = 0);
+			IndexedChunk segment(ElfSegmentType type, uint32_t flags, uint64_t address, uint64_t tail = 0);
+
+			/**
+			 * Create a new ELF symbol,
+			 * local and global symbols can be defined in any order.
+			 */
+			void symbol(const std::string& name, ElfSymbolType type, ElfSymbolBinding binding, ElfSymbolVisibility visibility, const IndexedChunk& target, size_t offset, size_t size);
 
 		public:
 
@@ -144,9 +167,8 @@ namespace asmio {
 			}
 
 			auto chunk = elf.segment(ElfSegmentType::LOAD, to_elf_flags(segment), address, segment.tail);
-
-			chunk->write(segment.buffer);
-			chunk->push(segment.tail);
+			chunk.data->write(segment.buffer);
+			chunk.data->push(segment.tail);
 
 			address += segment.size();
 		}

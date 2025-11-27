@@ -7,27 +7,27 @@ namespace asmio {
 	constexpr uint32_t UNDEFINED_SECTION = 0;
 
 	struct SectionFlags {
-		static constexpr uint32_t WRITE = 0b001;    // Writable section
-		static constexpr uint32_t ALLOCATE = 0b010; // Readable section
-		static constexpr uint32_t EXECUTE = 0b100;  // Executable section
+		static constexpr uint32_t WRITE    = 0b001; ///< Writable section
+		static constexpr uint32_t ALLOCATE = 0b010; ///< Readable section
+		static constexpr uint32_t EXECUTE  = 0b100; ///< Executable section
 	};
 
 	enum struct ElfSectionType : uint32_t {
-		NONE     = 0,  // Inactive
-		PROGBITS = 1,  // Information defined by the program, whose format and meaning are determined solely by the program
-		SYMTAB   = 2,  // Symbol table
-		STRTAB   = 3,  // String table
-		RELA     = 4,  // Relocation entries with explicit addends
-		HASH     = 5,  // Symbol hash table. All objects participating in dynamic linking must contain a symbol hash table.
-		DYNAMIC  = 6,  // Information for dynamic linking
-		NOTE     = 7,  // Custom attached metadata
-		NOBITS   = 8,  // Occupies no space in the file but otherwise resembles SHT_PROGBITS.
-		REL      = 9,  // Relocation entries without explicit addends
-		SHLIB    = 10, // Reserved but has unspecified semantics
-		DYNSYM   = 11, // Minimal set of dynamic linking symbols
+		NONE     = 0,  ///< Inactive
+		PROGBITS = 1,  ///< Information defined by the program, whose format and meaning are determined solely by the program
+		SYMTAB   = 2,  ///< Symbol table
+		STRTAB   = 3,  ///< String table
+		RELA     = 4,  ///< Relocation entries with explicit addends
+		HASH     = 5,  ///< Symbol hash table. All objects participating in dynamic linking must contain a symbol hash table.
+		DYNAMIC  = 6,  ///< Information for dynamic linking
+		NOTE     = 7,  ///< Custom attached metadata
+		NOBITS   = 8,  ///< Occupies no space in the file but otherwise resembles SHT_PROGBITS.
+		REL      = 9,  ///< Relocation entries without explicit addends
+		SHLIB    = 10, ///< Reserved but has unspecified semantics
+		DYNSYM   = 11, ///< Minimal set of dynamic linking symbols
 	};
 
-	struct __attribute__((__packed__)) ElfSectionHeader {
+	struct PACKED ElfSectionHeader {
 		uint32_t name;       ///< Offset into the string table
 		ElfSectionType type; ///< Section type
 		uint64_t flags;      ///< See SectionFlags
@@ -40,17 +40,17 @@ namespace asmio {
 		uint64_t entsize;    ///< Size of one entry for sections where the entries have a fixed size, 0 otherwise
 	};
 
-	struct __attribute__((__packed__)) ElfRelocationInfo {
+	struct PACKED ElfRelocationInfo {
 		uint32_t sym;
 		uint32_t type;
 	};
 
-	struct __attribute__((__packed__)) ElfImplicitRelocation {
+	struct PACKED ElfImplicitRelocation {
 		uint64_t offset;
 		ElfRelocationInfo info;
 	};
 
-	struct __attribute__((__packed__)) ElfExplicitRelocation {
+	struct PACKED ElfExplicitRelocation {
 		uint64_t offset;
 		ElfRelocationInfo info;
 		int64_t addend;

@@ -28,6 +28,50 @@ namespace test::unit {
 		return out;
 	}
 
+	TEST(elf_segments) {
+
+		ElfFile file {ElfMachine::X86_64, 0, 0};
+
+		auto segment = file.segment(ElfSegmentType::LOAD, ElfSegmentFlags::R | ElfSegmentFlags::W, 0x42);
+		segment.data->write("1234"); // 5 bytes
+
+		util::TempFile temp {file};
+		std::string result = invoke("readelf -a " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		ASSERT(result.contains("LOAD           0x0000000000001000 0x0000000000000042 0x0000000000000000"));
+		ASSERT(result.contains("               0x0000000000000005 0x0000000000000005  RW     0x1000"));
+
+		ASSERT(result.contains("There are no section groups in this file."));
+		ASSERT(result.contains("There are no sections in this file."));
+
+	};
+
+	TEST(elf_sections) {
+
+		ElfFile file {ElfMachine::X86_64, 0, 0};
+
+		file.section(".text", ElfSectionType::PROGBITS);
+		file.section(".data", ElfSectionType::PROGBITS);
+
+		util::TempFile temp {file};
+		std::string result = invoke("readelf -a " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		ASSERT(result.contains("[ 0]                   NULL"))
+		ASSERT(result.contains("[ 1] .shstrtab         STRTAB"));
+		ASSERT(result.contains("[ 2] .text             PROGBITS"));
+		ASSERT(result.contains("[ 3] .data             PROGBITS"));
+
+		ASSERT(result.contains("There are no section groups in this file."));
+		ASSERT(result.contains("There are no program headers in this file."));
+
+	};
+
 	TEST(elf_symbols) {
 
 		ElfFile file {ElfMachine::X86_64, 0, 0};
@@ -39,9 +83,7 @@ namespace test::unit {
 		file.symbol("arda", ElfSymbolType::OBJECT, ElfSymbolBinding::LOCAL, ElfSymbolVisibility::DEFAULT, text, 0xdb, 1);
 		file.symbol("melkor", ElfSymbolType::OBJECT, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::HIDDEN, text, 0xec, 44);
 
-		util::TempFile temp;
-		(void) file.save(temp.path());
-
+		util::TempFile temp {file};
 		std::string result = invoke("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));

@@ -59,7 +59,8 @@ namespace asmio {
 			enum region_type : uint8_t {
 				UNSET = 1,
 				ARRAY = 2,
-				CHUNK = 4,
+				SPACE = 4,
+				CHUNK = 48
 			};
 
 			struct Array {
@@ -72,10 +73,21 @@ namespace asmio {
 				}
 			};
 
+			struct Space {
+				uint32_t size;
+
+				constexpr Space() = default;
+				constexpr Space(size_t size)
+					: size(size) {
+				}
+			};
+
 		private:
 
+			using Region = std::variant<Array, Space, Ptr>;
+
 			std::vector<uint8_t> shared_bytes;
-			std::vector<std::variant<Array, Ptr>> m_regions;
+			std::vector<Region> m_regions;
 			std::vector<Link> m_linkers; // only non-empty for root chunks
 			region_type last_region = UNSET;
 
@@ -86,6 +98,9 @@ namespace asmio {
 
 			/// Creates a new sub-chunk
 			Ptr begin_chunk(uint32_t align, std::endian endian, const char* name);
+
+			/// Insert (or expand) spacing region of specific size
+			void begin_space(uint32_t bytes);
 
 			/// Enable cache, any changes to the buffer lengths at this point will break the tree
 			void freeze();
@@ -263,12 +278,13 @@ namespace asmio {
 			 * a contiguous byte stream. This function respects endianness.
 			 */
 			template <typename T>
-			ChunkBuffer link(std::function<T()> getter) {
+			ChunkBuffer& link(std::function<T()> getter) {
 				add_link([getter, this] (void* target) {
 					*static_cast<T*>(target) = util::native_to_endian(getter(), endianness);
 				});
 
-				return push(sizeof(T));
+				begin_space(sizeof(T));
+				return *this;
 			}
 
 			/**
@@ -276,12 +292,13 @@ namespace asmio {
 			 * a contiguous byte stream. This function DOES NOT respects endianness, unless that is manually implemented by the user.
 			 */
 			template <typename T>
-			ChunkBuffer link(std::function<void(T&)> linker) {
+			ChunkBuffer& link(std::function<void(T&)> linker) {
 				add_link([linker] (void* target) {
 					linker(*static_cast<T*>(target));
 				});
 
-				return push(sizeof(T));
+				begin_space(sizeof(T));
+				return *this;
 			}
 
 			/**

@@ -13,6 +13,7 @@ namespace asmio {
 
 		public:
 
+			const char* name = "";
 			using Ptr = std::shared_ptr<ChunkBuffer>;
 
 		protected:
@@ -84,7 +85,7 @@ namespace asmio {
 			Appender begin_bytes();
 
 			/// Creates a new sub-chunk
-			Ptr begin_chunk(uint32_t align, std::endian endian);
+			Ptr begin_chunk(uint32_t align, std::endian endian, const char* name);
 
 			/// Enable cache, any changes to the buffer lengths at this point will break the tree
 			void freeze();
@@ -106,6 +107,18 @@ namespace asmio {
 			ChunkBuffer(uint32_t align, std::endian endian = std::endian::little) noexcept;
 
 			/**
+			 * Get the index of a child chunk
+			 * or throw if there is no such child.
+			 */
+			int index(const ChunkBuffer* child) const;
+
+			/**
+			 * Get the index of this chunk in it's parent,
+			 * or zero for root chunk.
+			 */
+			int index() const;
+
+			/**
 			 * Get a number of buffers and chunks
 			 * that are the children of this chunk.
 			 */
@@ -118,22 +131,34 @@ namespace asmio {
 			size_t bytes() const;
 
 			/**
-			 * Total accurate size of this chunk, padding resulting from alignment
-			 * and any data in sub-chunks (and their alignment paddings).
+			 * Total size of this chunk, excluding padding resulting from alignment
+			 * but including the padding og any data in sub-chunks (and their alignment paddings).
 			 */
 			size_t size(size_t offset) const;
 
 			/**
-			 * Total accurate size of this chunk, padding resulting from alignment
+			 * Same as size() but including padding required by alignment,
+			 * this is the real size required by this buffer when saved.
+			 */
+			size_t outer(size_t offset) const;
+
+			/**
+			 * Total size of this chunk, padding resulting from alignment
 			 * and any data in sub-chunks (and their alignment paddings).
 			 */
 			size_t size() const;
 
 			/**
-			 * Compute the offset of a particular child buffer from the start of the
-			 * chunk tree, or of itself, if nullptr is used.
+			 * Compute the offset of this chunk, the
+			 * resulting offsets point at the first byte of the content.
 			 */
-			size_t offset(const ChunkBuffer* child = nullptr) const;
+			size_t offset() const;
+
+			/**
+			 * Compute the offset of a particular child buffer from the start of the
+			 * chunk tree. The offsets point at the first byte of the chunk content.
+			 */
+			size_t offset(const ChunkBuffer* child) const;
 
 			/**
 			 * Get the root chunk of this tree,
@@ -269,13 +294,19 @@ namespace asmio {
 			 * Create a new chunk as the child of this one,
 			 * the endianness will be inherited.
 			 */
-			Ptr chunk(uint32_t align = 1);
+			Ptr chunk(const char* name);
+
+			/**
+			 * Create a new chunk as the child of this one,
+			 * the endianness will be inherited.
+			 */
+			Ptr chunk(uint32_t align = 1, const char* name = nullptr);
 
 			/**
 			 * Create a new chunk as the child of this one,
 			 * the inherited endianness will be overridden.
 			 */
-			Ptr chunk(std::endian endian, uint32_t align = 1);
+			Ptr chunk(std::endian endian, uint32_t align = 1, const char* name = nullptr);
 
 			/**
 			 * Bake this chunk tree into a contiguous byte buffer,

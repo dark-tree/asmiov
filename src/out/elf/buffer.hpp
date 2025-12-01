@@ -83,7 +83,7 @@ namespace asmio {
 
 			std::unordered_map<std::string, IndexedChunk> section_map;
 
-			int define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, const std::function<uint32_t()>& link, const std::function<uint32_t()>& info, uint32_t entry);
+			int define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, const ElfSectionCreateInfo& info);
 			int define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t tail, uint64_t align);
 
 		public:
@@ -94,7 +94,7 @@ namespace asmio {
 			 * Create a new ELF section in the given segment, if no segment is provided the
 			 * section will be created in a common off-segment chunk. The backing data buffer is returned.
 			 */
-			IndexedChunk section(const std::string& name, ElfSectionType type, const ChunkBuffer::Ptr& segment = nullptr, const std::function<uint32_t()>& link = supply<0>, const std::function<uint32_t()>& info = supply<0>, uint32_t entry = 0);
+			IndexedChunk section(const std::string& name, ElfSectionType type, const ElfSectionCreateInfo& info);
 
 			/**
 			 * Create a new ELF segment,
@@ -184,7 +184,12 @@ namespace asmio {
 
 			// create intermediate section between the segment and that data we want to save
 			if (create_sections) {
-				section_chunk = elf.section(segment.name, ElfSectionType::PROGBITS, segment_chunk.data);
+				ElfSectionCreateInfo info {};
+				info.address = address;
+				info.flags = to_section_flags(segment);
+				info.segment = segment_chunk.data;
+
+				section_chunk = elf.section(segment.name, ElfSectionType::PROGBITS, info);
 			}
 
 			section_chunk.data->write(segment.buffer);

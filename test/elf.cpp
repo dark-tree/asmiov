@@ -54,8 +54,8 @@ namespace test::unit {
 
 		ElfFile file {ElfMachine::X86_64, 0, 0};
 
-		file.section(".text", ElfSectionType::PROGBITS);
-		file.section(".data", ElfSectionType::PROGBITS);
+		file.section(".text", ElfSectionType::PROGBITS, {});
+		file.section(".data", ElfSectionType::PROGBITS, {});
 
 		util::TempFile temp {file};
 		std::string result = invoke("readelf -a " + temp.path());
@@ -78,7 +78,7 @@ namespace test::unit {
 		ElfFile file {ElfMachine::X86_64, 0, 0};
 
 		auto executable = file.segment(ElfSegmentType::LOAD, ElfSegmentFlags::R | ElfSegmentFlags::X, 0);
-		auto text = file.section(".text", ElfSectionType::PROGBITS, executable.data);
+		auto text = file.section(".text", ElfSectionType::PROGBITS, { .segment = executable.data });
 
 		file.symbol("iluvatar", ElfSymbolType::FUNC, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, text, 0xca, 0);
 		file.symbol("arda", ElfSymbolType::OBJECT, ElfSymbolBinding::LOCAL, ElfSymbolVisibility::DEFAULT, text, 0xdb, 1);

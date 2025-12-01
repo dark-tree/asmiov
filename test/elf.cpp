@@ -4,6 +4,7 @@
 #define VSTL_SUBMODULE true
 
 #include <vstl.hpp>
+#include <out/buffer/writer.hpp>
 
 #include "util/tmp.hpp"
 #include "out/elf/buffer.hpp"
@@ -92,6 +93,73 @@ namespace test::unit {
 		ASSERT(result.contains("0: 00000000000000db     1 OBJECT  LOCAL  DEFAULT    2 arda"));
 		ASSERT(result.contains("1: 00000000000000ca     0 FUNC    GLOBAL DEFAULT    2 iluvatar"));
 		ASSERT(result.contains("2: 00000000000000ec    44 OBJECT  GLOBAL HIDDEN     2 melkor"));
+	};
+
+	TEST(elf_exported_symbol) {
+
+		SegmentedBuffer buffer;
+		BasicBufferWriter writer {buffer};
+
+		writer.section(BufferSegment::R);
+		writer.export_symbol("aaaa");
+		writer.export_symbol("bbbb");
+		writer.export_symbol("cccc");
+		writer.export_symbol("dddd");
+
+		writer.label("aaaa");
+		writer.put_dword(0xAAAAAAAA);
+
+		writer.label("bbbb");
+		writer.put_dword(0xBBBBBBBB);
+
+		writer.label("cccc");
+		writer.put_dword(0xCCCCCCCC);
+
+		writer.label("dddd");
+		writer.put_dword(0xDDDDDDDD);
+
+		ElfFile file = to_elf(buffer, "dddd");
+		util::TempFile temp {file};
+
+		std::string result = invoke("readelf -a " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+	};
+
+	TEST(elf_auto_sections) {
+
+		SegmentedBuffer buffer;
+		BasicBufferWriter writer {buffer};
+
+		writer.label("abc");
+		writer.put_dword(0);
+		writer.section(BufferSegment::R);
+		writer.put_dword(0);
+		writer.section(BufferSegment::R | BufferSegment::X);
+		writer.put_dword(0);
+		writer.section(BufferSegment::R);
+		writer.put_dword(0);
+		writer.section(BufferSegment::R, ".custom");
+		writer.put_dword(0);
+		writer.section(BufferSegment::R | BufferSegment::W);
+		writer.put_dword(0);
+
+		ElfFile file = to_elf(buffer, "abc");
+		util::TempFile temp {file};
+
+		std::string result = invoke("readelf -a " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		ASSERT(result.contains("[ 2] .rwx              PROGBITS"));
+		ASSERT(result.contains("[ 3] .rodata           PROGBITS"));
+		ASSERT(result.contains("[ 4] .text             PROGBITS"));
+		ASSERT(result.contains("[ 5] .custom           PROGBITS"));
+		ASSERT(result.contains("[ 6] .data             PROGBITS"));
+
 	};
 
 }

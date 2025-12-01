@@ -1,14 +1,16 @@
 
 #include "segmented.hpp"
 
+#include <utility>
+
 namespace asmio {
 
 	/*
 	 * class BufferSegment
 	 */
 
-	BufferSegment::BufferSegment(uint32_t index, uint8_t flags) noexcept
-		: index(index), flags(flags) {
+	BufferSegment::BufferSegment(uint32_t index, uint8_t flags, std::string name) noexcept
+		: index(index), flags(flags), name(std::move(name)) {
 	}
 
 	size_t BufferSegment::size() const {
@@ -41,6 +43,23 @@ namespace asmio {
 		if (flags & W) protect |= PROT_WRITE;
 		if (flags & X) protect |= PROT_EXEC;
 		return protect;
+	}
+
+	const char* BufferSegment::default_name(uint64_t flags) {
+
+		// normal sections
+		if (flags == R) return ".rodata";
+		if (flags == (R | X)) return ".text";
+		if (flags == (R | W)) return ".data";
+
+		// weird sections
+		if (flags == W) return ".w";
+		if (flags == X) return ".x";
+		if (flags == (W | X)) return ".wx";
+		if (flags == (R | W | X)) return ".rwx";
+
+		// flags == 0
+		return ".nil";
 	}
 
 	/*
@@ -129,12 +148,16 @@ namespace asmio {
 		buffer.insert(buffer.end(), data, data + bytes);
 	}
 
-	void SegmentedBuffer::use_section(uint8_t flags) {
+	void SegmentedBuffer::use_section(uint8_t flags, const std::string& hint) {
 		int index = -1;
-		const int count = sections.size();
+		const int count = static_cast<int>(sections.size());
+		const std::string name = hint.empty() ? BufferSegment::default_name(flags) : hint;
 
-		for (int i = 0; i < count; ++i) {
-			if (sections[i].flags == flags) {
+		for (int i = 0; i < count; i ++) {
+			const BufferSegment& segment = sections[i];
+
+			// unless we specify a custom name matching by flags will be sufficient
+			if (segment.flags == flags && segment.name == name) {
 				index = i;
 			}
 		}
@@ -147,14 +170,14 @@ namespace asmio {
 
 		// create new section
 		selected = count;
-		sections.emplace_back(count, flags);
+		sections.emplace_back(count, flags, name);
 	}
 
 	size_t SegmentedBuffer::count() const {
 		return sections.size();
 	}
 
-	size_t SegmentedBuffer::total() {
+	size_t SegmentedBuffer::total() const {
 		auto last = sections.back();
 		return last.start + last.buffer.size() + last.tail;
 	}

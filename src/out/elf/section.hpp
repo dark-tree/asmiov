@@ -6,10 +6,10 @@ namespace asmio {
 
 	constexpr uint32_t UNDEFINED_SECTION = 0;
 
-	struct SectionFlags {
-		static constexpr uint32_t WRITE    = 0b001; ///< Writable section
-		static constexpr uint32_t ALLOCATE = 0b010; ///< Readable section
-		static constexpr uint32_t EXECUTE  = 0b100; ///< Executable section
+	struct ElfSectionFlags {
+		static constexpr uint32_t W = 0b001; ///< Writable section
+		static constexpr uint32_t R = 0b010; ///< Readable section
+		static constexpr uint32_t X = 0b100; ///< Executable section
 	};
 
 	enum struct ElfSectionType : uint32_t {
@@ -30,7 +30,7 @@ namespace asmio {
 	struct PACKED ElfSectionHeader {
 		uint32_t name;       ///< Offset into the string table
 		ElfSectionType type; ///< Section type
-		uint64_t flags;      ///< See SectionFlags
+		uint64_t flags;      ///< See ElfSectionFlags
 		uint64_t addr;       ///< Virtual address at which the section should reside in memory
 		uint64_t offset;     ///< Offset to the first byte of the section
 		uint64_t size;       ///< section's size in bytes

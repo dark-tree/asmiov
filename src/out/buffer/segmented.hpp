@@ -25,6 +25,21 @@ namespace asmio {
 
 	};
 
+	/// Single Label export symbol
+	struct ExportDefinition {
+
+		Label label;
+		size_t size;
+
+	};
+
+	struct ExportSymbol {
+
+		Label label;
+		size_t size;
+
+	};
+
 	/// One track in the SegmentedBuffer
 	struct BufferSegment {
 
@@ -39,12 +54,13 @@ namespace asmio {
 		uint8_t flags = 0;
 		uint8_t padder = 0; // byte used to pad the buffer tail
 		std::vector<uint8_t> buffer;
+		std::string name;
 
 		// set only once aligned, no data must be written after that point
 		int64_t start = 0;
 		int64_t tail = 0;
 
-		BufferSegment(uint32_t index, uint8_t flags) noexcept;
+		BufferSegment(uint32_t index, uint8_t flags, std::string name = "") noexcept;
 
 		/// Get size of this buffer, including padding
 		size_t size() const;
@@ -61,6 +77,9 @@ namespace asmio {
 		/// Convert internal flags to the mprotect() flags set
 		int get_mprot_flags() const;
 
+		/// Compute default name based on assigned flags
+		static const char* default_name(uint64_t flags);
+
 	};
 
 	/// Multi-track buffer, section and segment are used quite interchangeably here
@@ -73,6 +92,7 @@ namespace asmio {
 			std::vector<BufferSegment> sections;
 			LabelMap<BufferMarker> labels;
 			std::vector<Linkage> linkages;
+			std::vector<ExportSymbol> exports;
 
 		public:
 
@@ -121,13 +141,13 @@ namespace asmio {
 			void insert(uint8_t* data, size_t bytes);
 
 			/// Select the section to use
-			void use_section(uint8_t flags);
+			void use_section(uint8_t flags, const std::string& name = "");
 
 			/// Get section count
 			size_t count() const;
 
 			/// Get the total size in bytes of the whole segmented buffer, can be used only after linking
-			size_t total();
+			size_t total() const;
 
 			/// Print the contests of this buffer for debugging
 			void dump() const;
@@ -135,8 +155,16 @@ namespace asmio {
 			/// Get segment list
 			const std::vector<BufferSegment>& segments() const;
 
-			/// Get a copy of the label map
+			/// Get a copy of the label map with resolved linkages
 			LabelMap<size_t> resolved_labels() const;
+
+			std::vector<ExportSymbol> resolved_exports() const {
+				return exports;
+			}
+
+			void add_export(const Label& label) {
+				exports.emplace_back(label, 0);
+			}
 
 	};
 

@@ -138,11 +138,20 @@ namespace asmio {
 
 	inline ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const Linkage::Handler& handler = nullptr) {
 
-		static auto to_elf_flags = [] (const BufferSegment& segment) -> uint32_t {
+		static auto to_segment_flags = [] (const BufferSegment& segment) -> uint32_t {
 			uint32_t flags = 0;
 			if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
 			if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
 			if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
+
+			return flags;
+		};
+
+		static auto to_section_flags = [] (const BufferSegment& segment) -> uint32_t {
+			uint32_t flags = 0;
+			if (segment.flags & BufferSegment::R) flags |= ElfSectionFlags::R;
+			if (segment.flags & BufferSegment::W) flags |= ElfSectionFlags::W;
+			if (segment.flags & BufferSegment::X) flags |= ElfSectionFlags::X;
 
 			return flags;
 		};
@@ -160,15 +169,26 @@ namespace asmio {
 		uint64_t entrypoint = segmented.get_offset(entrymark);
 
 		ElfFile elf {segmented.elf_machine, address, entrypoint};
+		std::vector<ExportSymbol> symbols = segmented.resolved_exports();
+
+		bool create_sections = true;
+		std::unordered_map<int, int> section_map;
 
 		for (const BufferSegment& segment : segmented.segments()) {
 			if (segment.empty()) {
 				continue;
 			}
 
-			auto chunk = elf.segment(ElfSegmentType::LOAD, to_elf_flags(segment), address, segment.tail);
-			chunk.data->write(segment.buffer);
-			chunk.data->push(segment.tail);
+			auto segment_chunk = elf.segment(ElfSegmentType::LOAD, to_segment_flags(segment), address, segment.tail);
+			auto section_chunk = segment_chunk;
+
+			// create intermediate section between the segment and that data we want to save
+			if (create_sections) {
+				section_chunk = elf.section(segment.name, ElfSectionType::PROGBITS, segment_chunk.data);
+			}
+
+			section_chunk.data->write(segment.buffer);
+			segment_chunk.data->push(segment.tail);
 
 			address += segment.size();
 		}

@@ -64,9 +64,7 @@ namespace asmio {
 	 * class Module
 	 */
 
-	Module::~Module() {
-
-	}
+	Module::~Module() = default;
 
 	const char* Module::name() const {
 		return base_module;
@@ -96,6 +94,7 @@ namespace asmio {
 		if (stream.accept("section")) {
 			auto mode = util::to_lower(stream.expect(Token::NAME).raw);
 			uint32_t flags = 0;
+			std::string name;
 
 			for (char c : mode) {
 				if (c == 'r') flags |= BufferSegment::R;
@@ -104,8 +103,12 @@ namespace asmio {
 				else throw std::runtime_error {"Unknown section flag '" + std::to_string(c) + "' in section statement"};
 			}
 
+			if (const Token* token = stream.accept(Token::STRING)) {
+				name = token->as_string();
+			}
+
 			stream.terminal();
-			writer.section(flags);
+			writer.section(flags, name);
 			return;
 		}
 

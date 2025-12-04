@@ -158,7 +158,7 @@ namespace asmio {
 			/// Get a copy of the label map with resolved linkages
 			LabelMap<size_t> resolved_labels() const;
 
-			std::vector<ExportSymbol> resolved_exports() const {
+			const std::vector<ExportSymbol>& resolved_exports() const {
 				return exports;
 			}
 

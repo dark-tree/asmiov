@@ -106,7 +106,7 @@ namespace asmio {
 			 * Create a new ELF symbol,
 			 * local and global symbols can be defined in any order.
 			 */
-			void symbol(const std::string& name, ElfSymbolType type, ElfSymbolBinding binding, ElfSymbolVisibility visibility, const IndexedChunk& target, size_t offset, size_t size);
+			void symbol(const std::string& name, ElfSymbolType type, ElfSymbolBinding binding, ElfSymbolVisibility visibility, int section, size_t offset, size_t size);
 
 		public:
 
@@ -190,12 +190,26 @@ namespace asmio {
 				info.segment = segment_chunk.data;
 
 				section_chunk = elf.section(segment.name, ElfSectionType::PROGBITS, info);
+				section_map[segment.index] = section_chunk.index;
 			}
 
 			section_chunk.data->write(segment.buffer);
 			segment_chunk.data->push(segment.tail);
 
 			address += segment.size();
+		}
+
+		for (const ExportSymbol& symbol : segmented.resolved_exports()) {
+			const Label& label = symbol.label;
+
+			if (!label.is_text()) {
+				continue;
+			}
+
+			BufferMarker marker = segmented.get_label(label);
+			int section = section_map[marker.section];
+
+			elf.symbol(label.string(), ElfSymbolType::OBJECT, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, section, marker.offset, symbol.size);
 		}
 
 		return elf;

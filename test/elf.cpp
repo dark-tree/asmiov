@@ -78,7 +78,7 @@ namespace test::unit {
 		ElfFile file {ElfMachine::X86_64, 0, 0};
 
 		auto executable = file.segment(ElfSegmentType::LOAD, ElfSegmentFlags::R | ElfSegmentFlags::X, 0);
-		auto text = file.section(".text", ElfSectionType::PROGBITS, { .segment = executable.data });
+		auto text = file.section(".text", ElfSectionType::PROGBITS, { .segment = executable.data }).index;
 
 		file.symbol("iluvatar", ElfSymbolType::FUNC, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, text, 0xca, 0);
 		file.symbol("arda", ElfSymbolType::OBJECT, ElfSymbolBinding::LOCAL, ElfSymbolVisibility::DEFAULT, text, 0xdb, 1);
@@ -95,7 +95,40 @@ namespace test::unit {
 		ASSERT(result.contains("2: 00000000000000ec    44 OBJECT  GLOBAL HIDDEN     2 melkor"));
 	};
 
-	TEST(elf_exported_symbol) {
+	TEST(elf_writer_no_exported_symbol) {
+
+		SegmentedBuffer buffer;
+		BasicBufferWriter writer {buffer};
+
+		writer.label("aaaa");
+		writer.put_dword(0xAAAAAAAA);
+
+		writer.label("bbbb");
+		writer.put_dword(0xBBBBBBBB);
+
+		writer.label("cccc");
+		writer.put_dword(0xCCCCCCCC);
+
+		writer.label("dddd");
+		writer.put_dword(0xDDDDDDDD);
+
+		ElfFile file = to_elf(buffer, "dddd");
+		util::TempFile temp {file};
+
+		std::string result = invoke("readelf -a " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		// TODO support omitting section info
+		// ASSERT(result.contains("There are no section groups in this file."));
+		// ASSERT(result.contains("There are no sections in this file."));
+
+		SKIP("Unimplemented feature");
+
+	}
+
+	TEST(elf_writer_exported_symbol) {
 
 		SegmentedBuffer buffer;
 		BasicBufferWriter writer {buffer};
@@ -125,6 +158,11 @@ namespace test::unit {
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
+
+		ASSERT(result.contains("0: 0000000000000000     0 OBJECT  GLOBAL DEFAULT    2 aaaa"));
+		ASSERT(result.contains("1: 0000000000000004     0 OBJECT  GLOBAL DEFAULT    2 bbbb"));
+		ASSERT(result.contains("2: 0000000000000008     0 OBJECT  GLOBAL DEFAULT    2 cccc"));
+		ASSERT(result.contains("3: 000000000000000c     0 OBJECT  GLOBAL DEFAULT    2 dddd"));
 
 	};
 

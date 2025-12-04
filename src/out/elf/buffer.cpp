@@ -153,7 +153,7 @@ namespace asmio {
 		return {region, index};
 	}
 
-	void ElfFile::symbol(const std::string& name, ElfSymbolType type, ElfSymbolBinding binding, ElfSymbolVisibility visibility, const IndexedChunk& target, size_t offset, size_t size) {
+	void ElfFile::symbol(const std::string& name, ElfSymbolType type, ElfSymbolBinding binding, ElfSymbolVisibility visibility, int target, size_t offset, size_t size) {
 
 		if (!has_symbols) {
 			auto strings = section(".strtab", ElfSectionType::STRTAB, {});
@@ -176,7 +176,7 @@ namespace asmio {
 		symbol.type = type;
 		symbol.binding = binding;
 		symbol.visibility = visibility;
-		symbol.shndx = target.index;
+		symbol.shndx = target;
 		symbol.value = offset;
 		symbol.ssize = size;
 

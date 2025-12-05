@@ -8,11 +8,14 @@
 #include <fstream>
 #include <regex>
 #include <tasml/top.hpp>
+#include <util/tmp.hpp>
 
+#include "test.hpp"
 #include "vstl.hpp"
 #include "out/buffer/executable.hpp"
 
-namespace test::tas {
+namespace test {
+
 	using namespace asmio;
 
 	TEST (util_parse_int) {
@@ -147,6 +150,50 @@ namespace test::tas {
 			}
 
 		}
+
+	};
+
+	TEST (tasml_symbol_export) {
+
+		std::string code = R"(
+			lang x86
+			section rw ".custom"
+			test: byte 21, 37
+
+			section rx
+			export strlen:
+				mov rcx, /* inline comments! */ rax
+				dec rax
+
+				l_strlen_next:
+					inc rax
+					cmp byte [rax], 0
+				jne @l_strlen_next
+
+				sub rax, rcx
+				ret
+
+			export @test
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+		ElfFile file = to_elf(buffer, "strlen");
+		util::TempFile temp {file};
+
+		std::string result = call_shell("readelf -a " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		ASSERT(result.contains("0: 0000000000000000     0 OBJECT  GLOBAL DEFAULT    3 strlen"));
+		ASSERT(result.contains("1: 0000000000000000     0 OBJECT  GLOBAL DEFAULT    2 test"));
 
 	};
 

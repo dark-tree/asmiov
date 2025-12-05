@@ -83,6 +83,7 @@ namespace asmio {
 		 */
 
 		if (const Token* token = stream.accept(Token::LABEL)) {
+			stream.terminal();
 			writer.label(token->as_label());
 			return;
 		}
@@ -110,6 +111,28 @@ namespace asmio {
 			stream.terminal();
 			writer.section(flags, name);
 			return;
+		}
+
+		/*
+		 * Symbol export
+		 */
+
+		if (stream.accept("export")) {
+
+			if (const Token* token = stream.accept(Token::LABEL)) {
+				Label label = token->as_label();
+
+				writer.label(label);
+				writer.export_symbol(label);
+				return;
+			}
+
+			auto name = stream.expect(Token::REFERENCE).as_label();
+
+			stream.terminal();
+			writer.export_symbol(name);
+			return;
+
 		}
 
 		/*

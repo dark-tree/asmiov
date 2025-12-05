@@ -9,7 +9,7 @@
 
 #include "vstl.hpp"
 
-namespace test::unit {
+namespace test {
 
 	using namespace asmio;
 

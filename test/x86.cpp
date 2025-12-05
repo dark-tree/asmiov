@@ -12,7 +12,7 @@
 #include <out/buffer/executable.hpp>
 #include <tasml/top.hpp>
 
-namespace test::x86 {
+namespace test {
 
 	using namespace asmio;
 	using namespace asmio::x86;

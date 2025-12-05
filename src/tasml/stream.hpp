@@ -210,13 +210,19 @@ namespace tasml {
 				size_t line = peek().line;
 
 				while (!empty()) {
-					const Token& token = peek();
+					const Token& peeked = peek();
 
-					if (token.line != line || token.raw == ";") {
+					if (peeked.line != line || peeked.raw == ";") {
 						break;
 					}
 
-					next();
+					const Token& consumed = next();
+
+					// label is always the last token in a statement
+					// note: label is not the same as a label reference
+					if (consumed.type == Token::LABEL) {
+						break;
+					}
 				}
 
 				long finish = index;

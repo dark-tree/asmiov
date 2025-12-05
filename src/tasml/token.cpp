@@ -66,11 +66,15 @@ namespace tasml {
 	}
 
 	std::string Token::as_label() const {
-		if (type != LABEL) {
-			throw std::runtime_error {"Internal lexer error, can't convert non label into a label value!"};
+		if (type == LABEL) {
+			return raw.substr(0, raw.length() - 1);
 		}
 
-		return raw.substr(0, raw.length() - 1);
+		if (type == REFERENCE) {
+			return raw.substr(1);
+		}
+
+		throw std::runtime_error {"Internal lexer error, can't convert non label into a label value!"};
 	}
 
 }

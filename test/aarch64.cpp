@@ -8,7 +8,7 @@
 #include "out/buffer/executable.hpp"
 #include <tasml/top.hpp>
 
-namespace test::arm {
+namespace test {
 
 	using namespace asmio;
 	using namespace asmio::arm;

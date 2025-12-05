@@ -8,26 +8,11 @@
 
 #include "util/tmp.hpp"
 #include "out/elf/buffer.hpp"
+#include "test.hpp"
 
-namespace test::unit {
+namespace test {
 
 	using namespace asmio;
-
-	inline std::string invoke(std::string cmd) {
-		std::string out;
-		char buf[256];
-
-		cmd += " 2>&1";
-		FILE* pipe = popen(cmd.c_str(), "r");
-		if (!pipe) return out;
-
-		while (fgets(buf, sizeof(buf), pipe)) {
-			out += buf;
-		}
-
-		pclose(pipe);
-		return out;
-	}
 
 	TEST(elf_segments) {
 
@@ -37,7 +22,7 @@ namespace test::unit {
 		segment.data->write("1234"); // 5 bytes
 
 		util::TempFile temp {file};
-		std::string result = invoke("readelf -a " + temp.path());
+		std::string result = call_shell("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
@@ -58,7 +43,7 @@ namespace test::unit {
 		file.section(".data", ElfSectionType::PROGBITS, {});
 
 		util::TempFile temp {file};
-		std::string result = invoke("readelf -a " + temp.path());
+		std::string result = call_shell("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
@@ -85,7 +70,7 @@ namespace test::unit {
 		file.symbol("melkor", ElfSymbolType::OBJECT, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::HIDDEN, text, 0xec, 44);
 
 		util::TempFile temp {file};
-		std::string result = invoke("readelf -a " + temp.path());
+		std::string result = call_shell("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
@@ -115,7 +100,7 @@ namespace test::unit {
 		ElfFile file = to_elf(buffer, "dddd");
 		util::TempFile temp {file};
 
-		std::string result = invoke("readelf -a " + temp.path());
+		std::string result = call_shell("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
@@ -154,7 +139,7 @@ namespace test::unit {
 		ElfFile file = to_elf(buffer, "dddd");
 		util::TempFile temp {file};
 
-		std::string result = invoke("readelf -a " + temp.path());
+		std::string result = call_shell("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
@@ -187,7 +172,7 @@ namespace test::unit {
 		ElfFile file = to_elf(buffer, "abc");
 		util::TempFile temp {file};
 
-		std::string result = invoke("readelf -a " + temp.path());
+		std::string result = call_shell("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));

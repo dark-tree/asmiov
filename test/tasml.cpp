@@ -158,10 +158,12 @@ namespace test {
 		std::string code = R"(
 			lang x86
 			section rw ".custom"
-			test: byte 21, 37
+			tipp: byte 21, 37
+			pill: byte 42, 00
 
 			section rx
-			export strlen:
+			export my_strlen:
+			export weak strlen:
 				mov rcx, /* inline comments! */ rax
 				dec rax
 
@@ -173,7 +175,8 @@ namespace test {
 				sub rax, rcx
 				ret
 
-			export @test
+			export @tipp
+			export private @pill
 		)";
 
 		tasml::ErrorHandler reporter {vstl_self.name, true};
@@ -192,8 +195,10 @@ namespace test {
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
 
-		ASSERT(result.contains("0: 0000000000000000     0 OBJECT  GLOBAL DEFAULT    3 strlen"));
-		ASSERT(result.contains("1: 0000000000000000     0 OBJECT  GLOBAL DEFAULT    2 test"));
+		ASSERT(result.contains("0: 0000000000000002     0 OBJECT  LOCAL  HIDDEN     2 pill"));
+		ASSERT(result.contains("1: 0000000000000000     0 FUNC    GLOBAL PROTECTED    3 my_strlen"));
+		ASSERT(result.contains("2: 0000000000000000     0 FUNC    WEAK   PROTECTED    3 strlen"));
+		ASSERT(result.contains("3: 0000000000000000     0 OBJECT  GLOBAL PROTECTED    2 tipp"));
 
 	};
 

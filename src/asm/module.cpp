@@ -119,18 +119,28 @@ namespace asmio {
 
 		if (stream.accept("export")) {
 
+			ExportSymbol::Type type = ExportSymbol::PUBLIC;
+
+			if (stream.accept("public")) {
+				type = ExportSymbol::PUBLIC;
+			} else if (stream.accept("private")) {
+				type = ExportSymbol::PRIVATE;
+			} else if (stream.accept("weak")) {
+				type = ExportSymbol::WEAK;
+			}
+
 			if (const Token* token = stream.accept(Token::LABEL)) {
 				Label label = token->as_label();
 
 				writer.label(label);
-				writer.export_symbol(label);
+				writer.export_symbol(label, type);
 				return;
 			}
 
 			auto name = stream.expect(Token::REFERENCE).as_label();
 
 			stream.terminal();
-			writer.export_symbol(name);
+			writer.export_symbol(name, type);
 			return;
 
 		}

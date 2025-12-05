@@ -26,17 +26,17 @@ namespace asmio {
 	};
 
 	/// Single Label export symbol
-	struct ExportDefinition {
-
-		Label label;
-		size_t size;
-
-	};
-
 	struct ExportSymbol {
 
+		enum Type {
+			PRIVATE, // this symbol will not be visible outside the unit
+			PUBLIC,  // this symbol will be usable outside the unit
+			WEAK,    // PUBLIC symbol of lower precedence
+		};
+
 		Label label;
 		size_t size;
+		Type type;
 
 	};
 
@@ -162,8 +162,8 @@ namespace asmio {
 				return exports;
 			}
 
-			void add_export(const Label& label) {
-				exports.emplace_back(label, 0);
+			void add_export(const Label& label, ExportSymbol::Type type, size_t size) {
+				exports.emplace_back(label, size, type);
 			}
 
 	};

@@ -144,10 +144,10 @@ namespace test {
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
 
-		ASSERT(result.contains("0: 0000000000000000     0 OBJECT  GLOBAL DEFAULT    2 aaaa"));
-		ASSERT(result.contains("1: 0000000000000004     0 OBJECT  GLOBAL DEFAULT    2 bbbb"));
-		ASSERT(result.contains("2: 0000000000000008     0 OBJECT  GLOBAL DEFAULT    2 cccc"));
-		ASSERT(result.contains("3: 000000000000000c     0 OBJECT  GLOBAL DEFAULT    2 dddd"));
+		ASSERT(result.contains("0: 0000000000000000     0 OBJECT  GLOBAL PROTECTED    2 aaaa"));
+		ASSERT(result.contains("1: 0000000000000004     0 OBJECT  GLOBAL PROTECTED    2 bbbb"));
+		ASSERT(result.contains("2: 0000000000000008     0 OBJECT  GLOBAL PROTECTED    2 cccc"));
+		ASSERT(result.contains("3: 000000000000000c     0 OBJECT  GLOBAL PROTECTED    2 dddd"));
 
 	};
 

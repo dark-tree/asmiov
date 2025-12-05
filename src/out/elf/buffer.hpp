@@ -138,6 +138,11 @@ namespace asmio {
 
 	inline ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const Linkage::Handler& handler = nullptr) {
 
+		struct MappingInfo {
+			int section;
+			ElfSymbolType content;
+		};
+
 		static auto to_segment_flags = [] (const BufferSegment& segment) -> uint32_t {
 			uint32_t flags = 0;
 			if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
@@ -172,7 +177,7 @@ namespace asmio {
 		std::vector<ExportSymbol> symbols = segmented.resolved_exports();
 
 		bool create_sections = true;
-		std::unordered_map<int, int> section_map;
+		std::unordered_map<int, MappingInfo> section_map;
 
 		for (const BufferSegment& segment : segmented.segments()) {
 			if (segment.empty()) {
@@ -190,7 +195,12 @@ namespace asmio {
 				info.segment = segment_chunk.data;
 
 				section_chunk = elf.section(segment.name, ElfSectionType::PROGBITS, info);
-				section_map[segment.index] = section_chunk.index;
+
+				const ElfSymbolType content = segment.flags & BufferSegment::X
+					? ElfSymbolType::FUNC
+					: ElfSymbolType::OBJECT;
+
+				section_map[segment.index] = {section_chunk.index, content};
 			}
 
 			section_chunk.data->write(segment.buffer);
@@ -207,9 +217,31 @@ namespace asmio {
 			}
 
 			BufferMarker marker = segmented.get_label(label);
-			int section = section_map[marker.section];
+			MappingInfo info = section_map[marker.section];
 
-			elf.symbol(label.string(), ElfSymbolType::OBJECT, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, section, marker.offset, symbol.size);
+			ElfSymbolBinding binding;
+			ElfSymbolVisibility visibility;
+
+			switch (symbol.type) {
+
+				case ExportSymbol::PRIVATE:
+					binding = ElfSymbolBinding::LOCAL;
+					visibility = ElfSymbolVisibility::HIDDEN;
+					break;
+
+				case ExportSymbol::PUBLIC:
+					binding = ElfSymbolBinding::GLOBAL;
+					visibility = ElfSymbolVisibility::PROTECTED;
+					break;
+
+				case ExportSymbol::WEAK:
+					binding = ElfSymbolBinding::WEAK;
+					visibility = ElfSymbolVisibility::PROTECTED;
+					break;
+
+			}
+
+			elf.symbol(label.string(), info.content, binding, visibility, info.section, marker.offset, symbol.size);
 		}
 
 		return elf;

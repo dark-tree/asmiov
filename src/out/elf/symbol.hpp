@@ -26,11 +26,11 @@ enum struct ElfSymbolBinding : uint8_t {
 };
 
 struct PACKED ElfSymbol {
-	uint32_t name;                  ///< Offset into the string section
+	uint32_t name = 0;              ///< Offset into the string section
 	ElfSymbolType type : 4;         ///< Symbol's type
 	ElfSymbolBinding binding : 4;   ///< Symbol's binding
 	ElfSymbolVisibility visibility; ///< Symbol's visibility
-	uint16_t shndx;                 ///< Symbol's section
-	uint64_t value;                 ///< Value (e.g. address, offset) of a symbol
-	uint64_t ssize;                 ///< Size of the symbol, or zero if not applicable
+	uint16_t shndx = 0;             ///< Symbol's section
+	uint64_t value = 0;             ///< Value (e.g. address, offset) of a symbol
+	uint64_t ssize = 0;             ///< Size of the symbol, or zero if not applicable
 };

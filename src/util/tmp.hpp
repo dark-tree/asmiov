@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <filesystem>
+#include <fstream>
 
 namespace asmio::util {
 
@@ -18,11 +19,17 @@ namespace asmio::util {
 			std::string path() const;
 
 			template <typename T>
-			TempFile(const T& savable) : TempFile() {
+			TempFile(const T& savable, const char* extension = "") : TempFile(extension) {
 				(void) savable.save(path());
 			}
 
-			TempFile();
+			void write(const std::string& content) {
+				std::ofstream out(path());
+				out << content;
+				out.close();
+			}
+
+			TempFile(const char* extension = "");
 			~TempFile();
 
 	};

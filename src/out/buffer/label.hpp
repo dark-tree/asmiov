@@ -1,7 +1,7 @@
 #pragma once
 
 #include "external.hpp"
-#include "../../asm/util.hpp"
+#include "asm/util.hpp"
 
 namespace asmio {
 
@@ -10,10 +10,20 @@ namespace asmio {
 
 		private:
 
+			// a Label can exists in one of 4 distinct states, the empty state represents a Label
+			// that will never compare as equal to any other Label, except for the empty Label itself.
+			//
+			// Condition                                  | Union      | Description                            //
+			// ------------------------------------------ + ---------- + -------------------------------------- //
+			// length != 0, hash != 0, allocated == true  | Label::ptr | owns a null-byte terminated c-string   //
+			// length != 0, hash != 0, allocated == false | Label::str | points into a external char span       //
+			// length == 0, hash != 0, allocated == false | Label::id  | 64 bit integer based unique identifier //
+			// length == 0, hash == 0, allocated == false |            | empty, does not contain any reference  //
+
 			union {
+				void* ptr;       // used for allocated labels
 				const char* str; // used for const strings
 				uint64_t id;     // used for ID only Labels
-				void* ptr;       // used for allocated labels
 			};
 
 			uint8_t allocated : 1;
@@ -25,6 +35,8 @@ namespace asmio {
 			}
 
 		public:
+
+			static Label UNSET;
 
 			static Label make_unique() {
 				static uint64_t counter = 1;
@@ -42,11 +54,11 @@ namespace asmio {
 			}
 
 			constexpr bool empty() const {
-				return is_text() && (id == 0);
+				return hash == 0;
 			}
 
 			constexpr Label()
-				: id(0), allocated(false), length(0xFFFF), hash(0) {
+				: id(0), allocated(false), length(0), hash(0) {
 			}
 
 			constexpr Label(nullptr_t)
@@ -56,7 +68,7 @@ namespace asmio {
 			constexpr Label(const char* str)
 			: str(str), allocated(false) {
 				if (str == nullptr) {
-					length = 0xFFFE;
+					length = 0;
 					hash = 0;
 					return;
 				}
@@ -118,12 +130,18 @@ namespace asmio {
 
 			/// Get string label as std::string_view
 			constexpr std::string_view view() const {
-				return length == 0 ? "$internal" : std::string_view {str, str + length};
+				if (empty()) return "$unset";
+				if (!is_text()) return "$anonymous";
+
+				return std::string_view {str, str + length};
 			}
 
 			/// Get string label as std::string
 			std::string string() const {
-				return length == 0 ? "$internal:" + std::to_string(id) : std::string {view()};
+				if (empty()) return "$unset";
+				if (!is_text()) return "$anonymous:" + std::to_string(id);
+
+				return std::string {view()};
 			}
 
 			/// Function used in hashmaps to get the elements hash value

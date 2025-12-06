@@ -14,7 +14,7 @@ namespace asmio {
 		ChunkBuffer::Ptr segment = nullptr;
 
 		uint64_t address = 0;
-		uint64_t alignment = 0;
+		uint64_t alignment = 1;
 		uint64_t entry_size = 0;
 		uint64_t flags = 0;
 	};

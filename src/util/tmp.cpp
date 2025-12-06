@@ -8,10 +8,10 @@ namespace asmio::util {
 	 * class TempFile
 	 */
 
-	TempFile::TempFile() {
+	TempFile::TempFile(const char* extension) {
 		auto tmp = std::filesystem::temp_directory_path() / "asmiov";
 		std::filesystem::create_directories(tmp);
-		m_path = tmp / random_string(10);
+		m_path = tmp / (random_string(10) + extension);
 	}
 
 	TempFile::~TempFile() {

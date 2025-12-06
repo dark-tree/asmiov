@@ -8,11 +8,11 @@ namespace asmio {
 	constexpr uint32_t VERSION = 1;
 
 	enum struct ElfType : uint16_t {
-		NONE = 0,  // No file type
-		REL  = 1,  // Relocatable file
-		EXEC = 2,  // Executable file
-		DYN  = 3,  // Shared object file
-		CORE = 4,  // Core file
+		NONE = 0,  ///< No file type
+		REL  = 1,  ///< Relocatable file
+		EXEC = 2,  ///< Executable file
+		DYN  = 3,  ///< Shared object file
+		CORE = 4,  ///< Core file
 	};
 
 	enum struct ElfMachine : uint16_t {

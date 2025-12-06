@@ -1,6 +1,6 @@
 #pragma once
 
-#include "external.hpp"
+#include <external.hpp>
 #include <macro.hpp>
 
 namespace asmio {

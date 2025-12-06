@@ -3,7 +3,8 @@
 #include "external.hpp"
 #include "asm/x86/const.hpp"
 #include "out/buffer/sizes.hpp"
-#include "../../util.hpp"
+#include "asm/util.hpp"
+#include <macro.hpp>
 
 namespace asmio::x86 {
 

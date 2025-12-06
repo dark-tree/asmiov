@@ -1,7 +1,7 @@
 #pragma once
 
-#include "external.hpp"
-#include "macro.hpp"
+#include <external.hpp>
+#include <macro.hpp>
 
 namespace asmio {
 

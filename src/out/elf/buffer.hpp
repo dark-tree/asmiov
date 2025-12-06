@@ -224,8 +224,8 @@ namespace asmio {
 			BufferMarker marker = segmented.get_label(label);
 			MappingInfo info = section_map[marker.section];
 
-			ElfSymbolBinding binding;
-			ElfSymbolVisibility visibility;
+			ElfSymbolBinding binding = ElfSymbolBinding::GLOBAL;
+			ElfSymbolVisibility visibility = ElfSymbolVisibility::DEFAULT;
 
 			switch (symbol.type) {
 

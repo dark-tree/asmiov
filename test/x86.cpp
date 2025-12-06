@@ -3556,6 +3556,23 @@ namespace test {
 
 	};
 
+	TEST (exec_scall) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("add");
+		writer.put_mov(RAX, ref(RDI + 0));
+		writer.put_add(RAX, ref(RDI + 8));
+		writer.put_ret();
+
+		// check if no segfault occures
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.scall<uint32_t>("add", (uint64_t) 33, (uint64_t) 11), 44);
+		CHECK(buffer.scall<uint32_t>("add", (uint64_t) 7, (uint64_t) 3), 10);
+
+	};
+
 	TEST(elf_gcc_linker_x86_function) {
 
 		std::string code = R"(

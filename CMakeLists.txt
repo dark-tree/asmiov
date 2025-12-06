@@ -46,14 +46,21 @@ add_custom_command(
 		DEPENDS ${PROJECT_SOURCE_DIR}/util/ingen.py
 )
 
-file(GLOB_RECURSE ASMIO_SOURCES "src/*.cpp")
+file(GLOB_RECURSE ASMIO_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 list(FILTER ASMIO_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
 
-include_directories(src/ . ${vstl_SOURCE_DIR} "${PROJECT_BINARY_DIR}/src")
+set(ASMIOV_INCLUDE_DIRS
+		"${PROJECT_SOURCE_DIR}/src/"
+		"${PROJECT_SOURCE_DIR}"
+		"${PROJECT_BINARY_DIR}/src"
+)
+
 add_library(asmiov OBJECT ${ASMIO_BRIDGES} ${ASMIO_SOURCES})
+target_include_directories(asmiov PRIVATE ${ASMIOV_INCLUDE_DIRS})
 
 add_executable(tasml src/tasml/main.cpp)
 target_link_libraries(tasml PRIVATE asmiov)
+target_include_directories(tasml PRIVATE ${ASMIOV_INCLUDE_DIRS})
 
 add_executable(test
 		test/unit.cpp
@@ -63,6 +70,7 @@ add_executable(test
 		test/elf.cpp
 )
 target_link_libraries(test PRIVATE asmiov)
+target_include_directories(test PRIVATE ${ASMIOV_INCLUDE_DIRS} ${vstl_SOURCE_DIR})
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	target_compile_options(asmiov PUBLIC

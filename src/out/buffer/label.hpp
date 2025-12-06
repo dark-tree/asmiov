@@ -20,8 +20,10 @@ namespace asmio {
 			// length == 0, hash != 0, allocated == false | Label::id  | 64 bit integer based unique identifier //
 			// length == 0, hash == 0, allocated == false |            | empty, does not contain any reference  //
 
+			using ref_header = uint32_t;
+
 			union {
-				void* ptr;       // used for allocated labels
+				char* ptr;       // used for allocated labels, points at the string right after the ref_header
 				const char* str; // used for const strings
 				uint64_t id;     // used for ID only Labels
 			};
@@ -32,6 +34,10 @@ namespace asmio {
 
 			constexpr explicit Label(uint64_t id)
 				: id(id), allocated(false), length(0), hash(util::hash_tmix64(id)) {
+			}
+
+			ref_header* get_refcount() const {
+				return reinterpret_cast<ref_header*>(ptr - sizeof(ref_header));
 			}
 
 		public:
@@ -100,9 +106,9 @@ namespace asmio {
 			constexpr Label(const Label& label) noexcept
 				: id(label.id), allocated(label.allocated), length(label.length), hash(label.hash) {
 
+				// increase the ref-count
 				if (label.allocated) {
-					ptr = malloc(length);
-					memcpy(ptr, label.ptr, length);
+					*get_refcount() += 1;
 				}
 			}
 

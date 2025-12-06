@@ -3532,7 +3532,29 @@ namespace test {
 		CHECK(buffer.size(), 0);
 		CHECK(moved.size(), size);
 
-	}
+	};
+
+	TEST (exec_segment_align) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(BufferSegment::R | BufferSegment::X);
+		writer.put_mov(ref("target"), RAX);
+		writer.put_ret();
+
+		writer.section(0);
+		writer.put_space(1024);
+
+		writer.section(BufferSegment::R | BufferSegment::W);
+		writer.label("target");
+		writer.put_qword(0);
+
+		// check if no segfault occures
+		ExecutableBuffer buffer = to_executable(segmented);
+		buffer.call();
+
+	};
 
 	TEST(elf_gcc_linker_x86_function) {
 

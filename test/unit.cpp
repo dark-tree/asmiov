@@ -129,8 +129,8 @@ namespace test {
 		buffer.put<uint8_t>(0x22);
 		buffer.put<uint16_t>(0xAABB);
 
-		buffer.link<uint32_t>([&] { return foo; }); // getter style link
-		buffer.link<uint32_t>([&] (auto& target) { target = bar; }); // linker style link (will ignore endianness)
+		buffer.link<uint32_t>([&] noexcept { return foo; }); // getter style link
+		buffer.link<uint32_t>([&] (auto& target) noexcept { target = bar; }); // linker style link (will ignore endianness)
 
 		buffer.put<uint16_t>(0xABAB);
 
@@ -210,7 +210,7 @@ namespace test {
 		buffer.put<uint8_t>(0x22);
 		buffer.put<uint8_t>(0x33);
 
-		buffer.link<uint8_t>([&] { return abc; });
+		buffer.link<uint8_t>([&] noexcept { return abc; });
 
 		abc = 0x21;
 		auto bytes_1 = buffer.bake();

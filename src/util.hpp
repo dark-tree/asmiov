@@ -17,12 +17,6 @@ concept castable = requires (const A& arg) { static_cast<T>(arg); };
 #define ASMIOV_VERSION "1.0.0"
 #define ASMIOV_SOURCE "https://github.com/dark-tree/asmiov"
 
-/// Unsigned divide (round up)
-#define UDIV_UP(a, b) (((a) + (b) - 1) / (b))
-
-/// Align 'a' to a multiple of 'b'
-#define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
-
 namespace asmio::util {
 
 	inline std::string random_string(size_t length) {

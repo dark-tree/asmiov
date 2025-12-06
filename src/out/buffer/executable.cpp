@@ -12,7 +12,7 @@ namespace asmio {
 		const size_t page = getpagesize();
 
 		// this value should already be page aligned, but let's check anyway
-		length = ALIGN_UP(total, page);
+		length = util::align_up(total, page);
 
 		// create a basic memory map, after this we will set the correct flags for each segment
 		buffer = (uint8_t*) mmap(nullptr, length, PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);

@@ -50,17 +50,18 @@ tasml -o a.out test.s
 
 int main() {
 
-	using namespace asmio::elf;
+	using namespace asmio;
 
-	BufferWriter writer;
+	SegmentedBuffer segmented;
+	BufferWriter writer {segmented};
 
 	writer.label("text");
-	writer.put_ascii("Hello!");
+	writer.put_cstr("Hello!");
 
 	writer.label("strlen");
 	writer.put_mov(RCX, RAX);
 	writer.put_dec(RAX);
-	
+
 	writer.label("l_strlen_next");
 	writer.put_inc(RAX);
 	writer.put_cmp(ref<BYTE>(RAX), 0);
@@ -75,12 +76,9 @@ int main() {
 	writer.put_mov(RAX, 60); // sys_exit
 	writer.put_syscall();
 
-	ElfBuffer file = writer.bake_elf(nullptr);
-
-	int status;
-	RunResult result = file.execute("memfd-elf-1", &status);
-
-	return status;
+	// you can also use to_elf to create/run ELF file
+	ExecutableBuffer buffer = to_executable(segmented);
+	buffer.call("_start");
 	
 }
 

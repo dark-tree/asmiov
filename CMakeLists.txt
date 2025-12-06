@@ -46,39 +46,13 @@ add_custom_command(
 		DEPENDS ${PROJECT_SOURCE_DIR}/util/ingen.py
 )
 
-set(ASMIO_SOURCES
-		${ASMIO_BRIDGES}
-
-		src/out/buffer/segmented.cpp
-		src/out/buffer/executable.cpp
-		src/out/buffer/writer.cpp
-		src/out/buffer/label.cpp
-
-		src/out/chunk/buffer.cpp
-		src/out/elf/buffer.cpp
-
-		src/asm/module.cpp
-
-		src/asm/x86/writer.cpp
-		src/asm/x86/module.cpp
-		src/asm/x86/argument/location.cpp
-		src/asm/x86/instructions/cpu.cpp
-		src/asm/x86/instructions/fpu.cpp
-
-		src/asm/aarch64/writer.cpp
-		src/asm/aarch64/module.cpp
-		src/asm/aarch64/instructions/basic.cpp
-		src/asm/aarch64/instructions/branch.cpp
-
-		src/tasml/top.cpp
-		src/tasml/tokenizer.cpp
-		src/tasml/token.cpp
-)
+file(GLOB_RECURSE ASMIO_SOURCES "src/*.cpp")
+list(FILTER ASMIO_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
 
 include_directories(src/ . ${vstl_SOURCE_DIR} "${PROJECT_BINARY_DIR}/src")
-add_library(asmiov OBJECT ${ASMIO_SOURCES})
+add_library(asmiov OBJECT ${ASMIO_BRIDGES} ${ASMIO_SOURCES})
 
-add_executable(tasml src/tasml/tasml.cpp)
+add_executable(tasml src/tasml/main.cpp)
 target_link_libraries(tasml PRIVATE asmiov)
 
 add_executable(test
@@ -86,6 +60,7 @@ add_executable(test
 		test/tasml.cpp
 		test/x86.cpp
 		test/aarch64.cpp
+		test/elf.cpp
 )
 target_link_libraries(test PRIVATE asmiov)
 

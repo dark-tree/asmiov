@@ -138,7 +138,7 @@ namespace asmio::x86 {
 		put_inst_imm(imm.offset, width);
 	}
 
-	void BufferWriter::put_inst_std(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool longer) {
+	void BufferWriter::put_inst_std(uint8_t opcode, const Location& dst, RegInfo packed, uint8_t size, bool longer) {
 
 		// always query suffix size to clear it when not used
 		const int suffix_bytes = get_suffix();
@@ -311,19 +311,19 @@ namespace asmio::x86 {
 
 	}
 
-	void BufferWriter::put_inst_std_ri(uint8_t opcode, Location dst, uint8_t inst) {
+	void BufferWriter::put_inst_std_ri(uint8_t opcode, const Location& dst, uint8_t inst) {
 		put_inst_std_as(opcode, dst, RegInfo::raw(inst));
 	}
 
-	void BufferWriter::put_inst_std_as(uint8_t opcode, Location dst, RegInfo packed, bool longer) {
+	void BufferWriter::put_inst_std_as(uint8_t opcode, const Location& dst, RegInfo packed, bool longer) {
 		put_inst_std(opcode, dst, packed, dst.size, longer);
 	}
 
-	void BufferWriter::put_inst_std_dw(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool direction, bool wide, bool longer) {
+	void BufferWriter::put_inst_std_dw(uint8_t opcode, const Location& dst, RegInfo packed, uint8_t size, bool direction, bool wide, bool longer) {
 		put_inst_std(pack_opcode_dw(opcode, direction, wide), dst, packed, size, longer);
 	}
 
-	void BufferWriter::put_inst_std_ds(uint8_t opcode, Location dst, RegInfo packed, uint8_t size, bool direction, bool longer) {
+	void BufferWriter::put_inst_std_ds(uint8_t opcode, const Location& dst, RegInfo packed, uint8_t size, bool direction, bool longer) {
 		put_inst_std_dw(opcode, dst, packed, size, direction, size != BYTE, longer);
 	}
 
@@ -335,7 +335,7 @@ namespace asmio::x86 {
 	/**
 	 * Used for constructing the MOV instruction
 	 */
-	void BufferWriter::put_inst_mov(Location dst, Location src, bool direction) {
+	void BufferWriter::put_inst_mov(const Location& dst, const Location& src, bool direction) {
 
 		// for immediate values this will equal 0
 		uint8_t opr_size = pair_size(dst, src);
@@ -354,7 +354,7 @@ namespace asmio::x86 {
 	/**
 	 * Used for constructing the MOVSX and MOVZX instructions
 	 */
-	void BufferWriter::put_inst_movx(uint8_t opcode, Location dst, Location src) {
+	void BufferWriter::put_inst_movx(uint8_t opcode, const Location& dst, const Location& src) {
 		uint8_t dst_len = dst.size;
 		uint8_t src_len = src.size;
 
@@ -377,7 +377,7 @@ namespace asmio::x86 {
 	/**
 	 * Used to for constructing the shift instructions
 	 */
-	void BufferWriter::put_inst_shift(Location dst, Location src, uint8_t inst) {
+	void BufferWriter::put_inst_shift(const Location& dst, const Location& src, uint8_t inst) {
 
 		RegInfo reg_opcode = RegInfo::raw(inst);
 
@@ -407,7 +407,7 @@ namespace asmio::x86 {
 	/**
 	 * Used to for constructing the double shift instructions
 	 */
-	void BufferWriter::put_inst_double_shift(uint8_t opcode, Location dst, Location src, Location cnt) {
+	void BufferWriter::put_inst_double_shift(uint8_t opcode, const Location& dst, const Location& src, const Location& cnt) {
 
 		if (cnt.is_immediate()) {
 			set_suffix(1);
@@ -425,7 +425,7 @@ namespace asmio::x86 {
 
 	}
 
-	void BufferWriter::put_inst_tuple(Location dst, Location src, uint8_t opcode_rmr, uint8_t opcode_reg) {
+	void BufferWriter::put_inst_tuple(const Location& dst, const Location& src, uint8_t opcode_rmr, uint8_t opcode_reg) {
 
 		const uint8_t opr_size = pair_size(src, dst);
 
@@ -457,7 +457,7 @@ namespace asmio::x86 {
 	/**
 	 * Used for constructing the Bit Test family of instructions
 	 */
-	void BufferWriter::put_inst_btx(Location dst, Location src, uint8_t opcode, uint8_t inst) {
+	void BufferWriter::put_inst_btx(const Location& dst, const Location& src, uint8_t opcode, uint8_t inst) {
 
 		uint8_t opr_size = pair_size(dst, src);
 
@@ -484,7 +484,7 @@ namespace asmio::x86 {
 	/**
 	 * Used for constructing the 'conditional jump' family of instructions
 	 */
-	void BufferWriter::put_inst_jx(Location dst, uint8_t sopcode, uint8_t lopcode) {
+	void BufferWriter::put_inst_jx(const Location& dst, uint8_t sopcode, uint8_t lopcode) {
 
 		Label label = dst.label;
 		long addend = dst.offset;
@@ -521,12 +521,8 @@ namespace asmio::x86 {
 	/**
 	 * Used for constructing the 'set byte' family of instructions
 	 */
-	void BufferWriter::put_inst_setx(Location dst, uint8_t lopcode) {
+	void BufferWriter::put_inst_setx(const Location& dst, uint8_t lopcode) {
 		put_inst_std_as(0b1001'0000 | lopcode, dst, RegInfo::raw(0), true);
-	}
-
-	void BufferWriter::put_inst_rex(uint8_t wrxb) {
-		put_byte(REX_PREFIX | wrxb);
 	}
 
 	void BufferWriter::put_rex_w() {

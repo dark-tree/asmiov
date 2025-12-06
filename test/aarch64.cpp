@@ -7,8 +7,11 @@
 #include "asm/aarch64/writer.hpp"
 #include "out/buffer/executable.hpp"
 #include <tasml/top.hpp>
+#include <util/tmp.hpp>
 
-namespace test::arm {
+#include "test.hpp"
+
+namespace test {
 
 	using namespace asmio;
 	using namespace asmio::arm;
@@ -47,7 +50,7 @@ namespace test::arm {
 		BufferWriter writer {segmented};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(W(0), W(0), X(0));
+			writer.put_orr(W(0), W(0), X(0));
 		};
 
 	};
@@ -58,19 +61,19 @@ namespace test::arm {
 		BufferWriter writer {segmented};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(W(0), W(1), 0xFF00FF00'FF00FF00);
+			writer.put_orr(W(0), W(1), 0x000000FF'FFFFFFFF);
 		};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(X(0), X(1), 0b00100000'00110000);
+			writer.put_orr(X(0), X(1), 0b00100000'00110000);
 		};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(X(0), X(1), 0);
+			writer.put_orr(X(0), X(1), 0);
 		};
 
 		EXPECT_THROW(std::runtime_error) {
-			writer.put_inst_orr(X(0), X(1), std::numeric_limits<uint64_t>::max());
+			writer.put_orr(X(0), X(1), std::numeric_limits<uint64_t>::max());
 		};
 
 	};
@@ -229,8 +232,8 @@ namespace test::arm {
 
 		writer.put_movz(X(4), 0x0021);
 		writer.put_movz(X(3), 0x4300);
-		writer.put_inst_orr(X(2), X(3), X(4));
-		writer.put_inst_orr(X(0), XZR, X(2));
+		writer.put_orr(X(2), X(3), X(4));
+		writer.put_orr(X(0), XZR, X(2));
 		writer.put_ret();
 
 		uint64_t r0 = to_executable(segmented).call_u64();
@@ -244,7 +247,7 @@ namespace test::arm {
 		BufferWriter writer {segmented};
 
 		writer.put_movz(X(1), 0b00000101);
-		writer.put_inst_orr(X(0), X(1), 0b1001100110011001100110011001100110011001100110011001100110011001);
+		writer.put_orr(X(0), X(1), 0b1001100110011001100110011001100110011001100110011001100110011001);
 		writer.put_ret();
 
 		uint64_t r0 = to_executable(segmented).call_u64();
@@ -940,7 +943,7 @@ namespace test::arm {
 		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
-		asmio::ElfBuffer elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
+		asmio::ElfFile elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
 			reporter.link(link.target, what);
 		});
 
@@ -949,11 +952,10 @@ namespace test::arm {
 			FAIL("Failed to link executable");
 		}
 
-		int rc = 0;
-		asmio::RunResult result = elf.execute("memfd", &rc);
+		RunResult result = elf.execute("memfd");
 
-		CHECK(result, asmio::RunResult::SUCCESS);
-		CHECK(rc, 100);
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 100);
 
 	};
 
@@ -1339,6 +1341,351 @@ namespace test::arm {
 
 		auto exec = to_executable(segmented);
 		CHECK(exec.call_i64(), 12);
+
+	};
+
+	TEST (writer_exec_tst) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 0);
+		writer.put_mov(X1, 0xF1);
+		writer.put_mov(X2, 0x08);
+		writer.put_tst(X1, X2);
+		writer.put_b(Condition::EQ, "zero");
+		writer.put_ret();
+
+		writer.label("not_zero");
+		writer.put_mov(X0, 243731);
+		writer.put_ret();
+
+		writer.label("zero");
+		writer.put_mov(X2, 0x03);
+		writer.put_tst(X1, X2);
+		writer.put_b(Condition::NE, "not_zero");
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 243731);
+
+	};
+
+	TEST (writer_exec_and_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1,     0b10111110);
+		writer.put_and(X0, X1, 0b10000011'10000011'10000011'10000011'10000011'10000011'10000011'10000011);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0b1000'0010);
+
+	};
+
+	TEST (writer_exec_eor_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1,                                                                    0b10111110);
+		writer.put_eor(X0, X1, 0b10000011'10000011'10000011'10000011'10000011'10000011'10000011'10000011);
+		writer.put_and(X0, X0, 0xFFFF);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0b10000011'00111101);
+
+	};
+
+	TEST (writer_exec_sbfm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xABCD);
+		writer.put_sbfm(X0, X1, 0b11111);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0x000D);
+
+	};
+
+	TEST (writer_exec_sbc) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 3);
+		writer.put_mov(X2, 2);
+		writer.put_mov(X3, 7);
+		writer.put_subs(X0, X2, X1); // C=0
+		writer.put_mov(X4, X0);
+		writer.put_sbc(X0, X3, XZR); // X0 = X3 - XZR - ~C
+		writer.put_b(Condition::CS, "carry_set");
+		writer.put_ret();
+
+		writer.label("carry_set");
+		writer.put_mov(X0, 0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 6);
+
+	};
+
+	TEST (writer_exec_uxtb) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xABCDEF);
+		writer.put_uxtb(X0, X1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0xEF);
+
+	};
+
+	TEST (writer_exec_uxth) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xABCDEF);
+		writer.put_uxth(X0, X1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0xCDEF);
+
+	};
+
+	TEST (writer_exec_bfc) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 0xABCDEF);
+		writer.put_bfc(X0, 0x0FF000);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0xA00DEF);
+
+	};
+
+	TEST (writer_exec_bfm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 0xABCDEF);
+		writer.put_mov(X1, 0x123456);
+		writer.put_bfm(X0, X1, 0x0FF000);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0xA56DEF);
+
+	};
+
+	TEST (writer_exec_bic) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 0b10001110);
+		writer.put_mov(X1,   0b01010100);
+		writer.put_bic(X0, X0, X1, ShiftType::LSR, 2);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0b1000'1010);
+
+	};
+
+	TEST (writer_exec_umsubl) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 11);
+		writer.put_mov(X1, 3);
+		writer.put_mov(X2, 2);
+		writer.put_umsubl(X0, W0, W1, X2);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 2-11*3);
+
+	};
+
+	TEST (writer_exec_umnegl) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 11);
+		writer.put_mov(X1, 3);
+		writer.put_umnegl(X0, W0, W1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), -11*3);
+
+	};
+
+	TEST (writer_exec_smnegl) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X0, 11);
+		writer.put_mov(X1, -3);
+		writer.put_smnegl(X0, W0, W1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 11*3);
+
+	};
+
+	TEST (writer_exec_lsr_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0b111001010111);
+		writer.put_lsr(X0, X1, 2);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0b1110010101);
+
+	};
+
+	TEST (writer_exec_and_imm_large) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xFFFF'AAAA'BBBB'CCCC);
+		writer.put_and(X1, X1, 0xF000'F000'F000'F000);
+		writer.put_and(X0, X1, 0xFFFF'FFFF'FFFF'F000);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64(), 0xF000'A000'B000'C000);
+
+	};
+
+	TEST (writer_exec_lsl_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xAFCD'1111'2222'333F);
+		writer.put_lsl(X0, X1, 4);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64(), 0xFCD'1111'2222'333F'0);
+
+	};
+
+	TEST (writer_exec_lsl_0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0x8BCD'1111'2222'3331);
+		writer.put_lsl(X0, X1, 0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64(), 0x8BCD'1111'2222'3331);
+
+	};
+
+	TEST (writer_exec_lsr_0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0x8BCD'1111'2222'3331);
+		writer.put_lsr(X0, X1, 0);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64(), 0x8BCD'1111'2222'3331);
+
+	};
+
+	TEST (writer_exec_asr_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, -64);
+		writer.put_asr(X0, X1, 4);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), -4);
+
+	};
+
+	TEST(elf_gcc_linker_aarch64_function) {
+
+		std::string code = R"(
+			lang aarch64
+			section rx
+
+			export get_42:
+				mov x0, 42
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+		ElfFile file = to_elf(buffer, Label::UNSET);
+		util::TempFile object {file, ".tasml.o"};
+
+		std::string result = call_shell("readelf -a " + object.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+		ASSERT(result.contains("1: 0000000000000000     0 FUNC    GLOBAL PROTECTED    2 get_42"));
+
+		util::TempFile main_src {".main.c"};
+		main_src.write(R"(
+			#include <stdio.h>
+
+			int get_42();
+
+			int main() {
+				printf("%d", get_42());
+			}
+		)");
+
+		// link with our object
+		util::TempFile exec {".out"};
+		std::string gcc_output = call_shell("gcc -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		CHECK(gcc_output, "");
+
+		std::string exe_output = call_shell(exec.path());
+		CHECK(exe_output, "42");
 
 	};
 

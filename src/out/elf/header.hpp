@@ -1,29 +1,38 @@
 #pragma once
 
 #include "external.hpp"
+#include "macro.hpp"
 
 namespace asmio {
 
 	constexpr uint32_t VERSION = 1;
 
 	enum struct ElfType : uint16_t {
-		NONE = 0,  // No file type
-		REL  = 1,  // Relocatable file
-		EXEC = 2,  // Executable file
-		DYN  = 3,  // Shared object file
-		CORE = 4,  // Core file
+		NONE = 0,  ///< No file type
+		REL  = 1,  ///< Relocatable file
+		EXEC = 2,  ///< Executable file
+		DYN  = 3,  ///< Shared object file
+		CORE = 4,  ///< Core file
 	};
 
 	enum struct ElfMachine : uint16_t {
-		NONE  = 0,  // No machine
-		M32   = 1,  // AT&T WE 32100
-		SPARC = 2,  // SPARC
-		I386  = 3,  // Intel 80386
-		M68K  = 4,  // Motorola 68000
-		M88K  = 5,  // Motorola 88000
-		I860  = 7,  // Intel 80860
-		X86_64 = 62, // AMD x86-64 architecture
-		AARCH64 = 183 // AArch64
+		NONE  = 0,     ///< No machine
+		M32   = 1,     ///< AT&T WE 32100
+		SPARC = 2,     ///< SPARC
+		I386  = 3,     ///< Intel 80386
+		M68K  = 4,     ///< Motorola 68000
+		M88K  = 5,     ///< Motorola 88000
+		I860  = 7,     ///< Intel 80860
+		X86_64 = 62,   ///< AMD x86-64 architecture
+		AARCH64 = 183, ///< AArch64
+
+#if ARCH_AARCH64
+		NATIVE = AARCH64,
+#endif
+
+#if ARCH_X86
+		NATIVE = X86_64,
+#endif
 	};
 
 	enum struct ElfClass : uint8_t {
@@ -38,7 +47,7 @@ namespace asmio {
 		MSB  = 2,   // Two's complement, big-endian.
 	};
 
-	struct __attribute__((__packed__)) ElfIdentification {
+	struct PACKED ElfIdentification {
 		uint8_t magic[4];    ///< Magic number identifying the file as an ELF object file
 		ElfClass clazz;      ///< Size of basic data types
 		ElfData data;        ///< Endianness
@@ -48,7 +57,7 @@ namespace asmio {
 		uint8_t pad[7];      ///< Must all be 0
 	};
 
-	struct __attribute__((__packed__)) ElfFileHeader {
+	struct PACKED ElfFileHeader {
 		ElfIdentification identification; ///< The initial bytes mark the file
 		ElfType type;        ///< Specifies the file type
 		ElfMachine machine;  ///< Specifies the required architecture

@@ -62,11 +62,10 @@ namespace asmio::arm {
 			return;
 		}
 
-		const auto nrs = compute_immediate_bitmask(imm, dst.wide());
+		const auto nrs = BitPattern::try_pack(imm);
 
-		if (nrs.has_value()) {
-			put_inst_orr_bitmask(dst, dst.wide() ? XZR : WZR, nrs.value());
-			return;
+		if (nrs.ok()) {
+			return put_orr(dst, dst.wide() ? XZR : WZR, nrs);
 		}
 
 		const size_t length = dst.wide() ? 64 : 32;
@@ -98,7 +97,7 @@ namespace asmio::arm {
 			return;
 		}
 
-		put_inst_orr(dst, src, dst.wide() ? XZR : WZR);
+		put_orr(dst, src, dst.wide() ? XZR : WZR);
 	}
 
 	void BufferWriter::put_ret() {
@@ -166,20 +165,69 @@ namespace asmio::arm {
 		put_inst_ldst(dst, base, std::bit_cast<int64_t>(offset), sizing, OFFSET, STORE);
 	}
 
+	void BufferWriter::put_ands(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b11'100100, dst, src, pattern);
+	}
+
+	void BufferWriter::put_and(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b11'100100, dst, src, pattern);
+	}
+
+	void BufferWriter::put_ands(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
+		put_inst_shifted_register(0b1101010, 0, dst, a, b, imm6, shift);
+	}
+
 	void BufferWriter::put_and(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
-		put_inst_shifted_register(0b0001010, dst, a, b, imm6, shift);
+		put_inst_shifted_register(0b0001010, 0, dst, a, b, imm6, shift);
+	}
+
+	void BufferWriter::put_eor(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b10'100100, dst, src, pattern);
 	}
 
 	void BufferWriter::put_eor(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
-		put_inst_shifted_register(0b1001010, dst, a, b, imm6, shift);
+		put_inst_shifted_register(0b1001010, 0, dst, a, b, imm6, shift);
+	}
+
+	void BufferWriter::put_orr(Registry destination, Registry source, BitPattern pattern) {
+
+		// destination can be SP
+		if (!source.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected source to be a general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b01100100, destination, source, pattern);
 	}
 
 	void BufferWriter::put_orr(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
-		put_inst_shifted_register(0b0101010, dst, a, b, imm6, shift);
+		put_inst_shifted_register(0b0101010, 0, dst, a, b, imm6, shift);
 	}
 
 	void BufferWriter::put_svc(uint16_t imm16) {
 		put_dword(0b11010100000 << 21 | imm16 << 5 | 0b00001);
+	}
+
+	void BufferWriter::put_sbc(Registry dst, Registry a, Registry b) {
+		put_inst_sbc(dst, a, b, false);
+	}
+
+	void BufferWriter::put_sbcs(Registry dst, Registry a, Registry b) {
+		put_inst_sbc(dst, a, b, true);
 	}
 
 	void BufferWriter::put_sub(Registry dst, Registry a, Registry b, Sizing size, uint8_t lsl3) {
@@ -203,7 +251,7 @@ namespace asmio::arm {
 
 		// we have four register so the last one needs to be checked manually
 		if (dst.wide() != addend.wide()) {
-			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
+			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width"};
 		}
 
 		uint32_t sf = dst.wide() ? 1 : 0;
@@ -211,11 +259,27 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_smaddl(Registry dst, Registry a, Registry b, Registry addend) {
-		put_inst_maddl(dst, a, b, addend, false);
+		put_inst_mulopl(dst, a, b, addend, false, false);
 	}
 
 	void BufferWriter::put_umaddl(Registry dst, Registry a, Registry b, Registry addend) {
-		put_inst_maddl(dst, a, b, addend, true);
+		put_inst_mulopl(dst, a, b, addend, true, false);
+	}
+
+	void BufferWriter::put_smsubl(Registry dst, Registry a, Registry b, Registry addend) {
+		put_inst_mulopl(dst, a, b, addend, false, true);
+	}
+
+	void BufferWriter::put_umsubl(Registry dst, Registry a, Registry b, Registry addend) {
+		put_inst_mulopl(dst, a, b, addend, true, true);
+	}
+
+	void BufferWriter::put_smnegl(Registry dst, Registry a, Registry b) {
+		put_smsubl(dst, a, b, XZR);
+	}
+
+	void BufferWriter::put_umnegl(Registry dst, Registry a, Registry b) {
+		put_umsubl(dst, a, b, XZR);
 	}
 
 	void BufferWriter::put_mul(Registry dst, Registry a, Registry b) {
@@ -266,15 +330,78 @@ namespace asmio::arm {
 		put_inst_shift_v(dst, src, bits, ShiftType::LSR);
 	}
 
+	void BufferWriter::put_lsr(Registry dst, Registry src, uint16_t shift) {
+		const uint32_t width = dst.size * 8;
+		const uint32_t ones = width - 1; // one bit gets discarded anyway
+
+		if (shift > ones) {
+			throw std::runtime_error {"Invalid operand, can't shift by more than register width"};
+		}
+
+		// the ISA doesn't mention us needing to that but for shift=0
+		// the top bit would be cut of without any shifting to cover that,
+		// there were similar issues in LSL (immediate).
+		if (shift == 0) {
+			put_mov(dst, src);
+			return;
+		}
+
+		put_ubfm(dst, src, {width, ones, shift});
+	}
+
 	void BufferWriter::put_lsl(Registry dst, Registry src, Registry bits) {
 		put_inst_shift_v(dst, src, bits, ShiftType::LSL);
+	}
+
+	void BufferWriter::put_lsl(Registry dst, Registry src, uint16_t shift) {
+		const uint32_t width = dst.size * 8;
+		const uint32_t ones = width - 1; // one bit gets discarded anyway
+
+		if (shift > ones) {
+			throw std::runtime_error {"Invalid operand, can't shift by more than register width"};
+		}
+
+		if (shift == 0) {
+			put_mov(dst, src);
+			return;
+		}
+
+		// TODO we do (width - shift) here while the ISA says to use (ones - shift)
+		//      but that causes the top one bit to not be copied, is that a mistake in the
+		//      specification? As with length set to 64 (for shift 0) the BitPattern would be invalid
+		//      we also need to check for shift=0 and encode this using a normal mov.
+		//      The debugger sees this as the intended LSL alias.
+		put_ubfm(dst, src, {width, width - shift, -shift % width});
 	}
 
 	void BufferWriter::put_asr(Registry dst, Registry src, Registry bits) {
 		put_inst_shift_v(dst, src, bits, ShiftType::ASR);
 	}
 
+	void BufferWriter::put_asr(Registry dst, Registry src, uint16_t shift) {
+		const uint32_t width = dst.size * 8;
+		const uint32_t ones = width - 1; // one bit gets discarded anyway
+
+		if (shift > ones) {
+			throw std::runtime_error {"Invalid operand, can't shift by more than register width"};
+		}
+
+		// the ISA doesn't mention us needing to that but for shift=0
+		// the top bit would be cut of without any shifting to cover that,
+		// there were similar issues in LSL (immediate).
+		if (shift == 0) {
+			put_mov(dst, src);
+			return;
+		}
+
+		put_sbfm(dst, src, {width, ones, shift});
+	}
+
 	void BufferWriter::put_asl(Registry dst, Registry src, Registry bits) {
+		put_lsl(dst, src, bits);
+	}
+
+	void BufferWriter::put_asl(Registry dst, Registry src, uint16_t bits) {
 		put_lsl(dst, src, bits);
 	}
 
@@ -312,6 +439,57 @@ namespace asmio::arm {
 
 	void BufferWriter::put_cset(Condition condition, Registry dst) {
 		put_cinc(condition, dst, dst.wide() ? XZR : WZR);
+	}
+
+	void BufferWriter::put_tst(Registry a, Registry b, ShiftType shift, uint8_t lsl6) {
+		put_ands(a.wide() ? XZR : WZR, a, b, shift, lsl6);
+	}
+
+	void BufferWriter::put_sbfm(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b00'100110, dst, src, pattern);
+	}
+
+	void BufferWriter::put_ubfm(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b10'100110, dst, src, pattern);
+	}
+
+	void BufferWriter::put_uxtb(Registry dst, Registry src) {
+		put_ubfm(dst, src, 0xFF);
+	}
+
+	void BufferWriter::put_uxth(Registry dst, Registry src) {
+		put_ubfm(dst, src, 0xFFFF);
+	}
+
+	void BufferWriter::put_bfm(Registry dst, Registry src, BitPattern pattern) {
+
+		if (!src.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose register"};
+		}
+
+		put_inst_bitmask_immediate(0b01'100110, dst, src, pattern);
+	}
+
+	void BufferWriter::put_bfc(Registry dst, BitPattern pattern) {
+		put_bfm(dst, dst.wide() ? XZR : WZR, pattern);
+	}
+
+	void BufferWriter::put_bic(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t lsl6) {
+		put_inst_bic(dst, a, b, shift, lsl6, false);
+	}
+
+	void BufferWriter::put_bics(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t lsl6) {
+		put_inst_bic(dst, a, b, shift, lsl6, true);
 	}
 
 	void BufferWriter::put_hint(uint8_t imm7) {

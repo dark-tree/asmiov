@@ -4,6 +4,7 @@
 #include "header.hpp"
 #include "section.hpp"
 #include "segment.hpp"
+#include "symbol.hpp"
 #include "out/buffer/segmented.hpp"
 #include "out/chunk/buffer.hpp"
 
@@ -11,39 +12,36 @@
 
 namespace asmio {
 
-	enum struct RunResult : uint8_t {
-		SUCCESS,     // elf file was executed
-		ARGS_ERROR,  // the given arguments are invalid
-		MEMFD_ERROR, // memfd failed
-		MMAP_ERROR,  // mmap failed
-		SEAL_ERROR,  // fcntl failed
-		STAT_ERROR,  // fstat failed
-		FORK_ERROR,  // fork failed
-		EXEC_ERROR,  // file not executable
-		WAIT_ERROR,  // waitpid failed
+	template <auto V>
+	constexpr static auto supply = [] noexcept { return V; };
+
+	enum struct RunStatus {
+		SUCCESS,     ///< elf file was executed
+		ARGS_ERROR,  ///< the given arguments are invalid
+		MEMFD_ERROR, ///< memfd failed
+		MMAP_ERROR,  ///< mmap failed
+		SEAL_ERROR,  ///< fcntl failed
+		STAT_ERROR,  ///< fstat failed
+		FORK_ERROR,  ///< fork failed
+		EXEC_ERROR,  ///< file not executable
+		WAIT_ERROR,  ///< waitpid failed
 	};
 
-	inline std::ostream& operator<<(std::ostream& os, RunResult c) {
-		switch(c) {
-			case RunResult::SUCCESS: return os << "SUCCESS";
-			case RunResult::ARGS_ERROR: return os << "ARGS_ERROR";
-			case RunResult::MEMFD_ERROR: return os << "MEMFD_ERROR";
-			case RunResult::SEAL_ERROR: return os << "SEAL_ERROR";
-			case RunResult::FORK_ERROR: return os << "FORK_ERROR";
-			case RunResult::EXEC_ERROR: return os << "EXEC_ERROR";
-			case RunResult::WAIT_ERROR: return os << "WAIT_ERROR";
-			default: return os << "UNKNOWN";
+	struct RunResult {
+		RunResult(RunStatus type)
+			: type(type), status(0) {
 		}
-	}
 
-	inline uint32_t to_elf_flags(const BufferSegment& segment) {
-		uint32_t flags = 0;
-		if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
-		if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
-		if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
+		RunResult(int status)
+			: type(RunStatus::SUCCESS), status(status) {
+		}
 
-		return flags;
-	}
+		const RunStatus type;
+		const int status;
+	};
+
+	std::ostream& operator<<(std::ostream& os, RunStatus c);
+	std::ostream& operator<<(std::ostream& os, const RunResult& result);
 
 	/**
 	 * Based on Tool Interface Standard (TIS) Executable and Linking Format (ELF)
@@ -53,6 +51,13 @@ namespace asmio {
 	 * 2. https://www.man7.org/linux/man-pages/man5/elf.5.html
 	 */
 	class ElfFile {
+
+		public:
+
+			struct IndexedChunk {
+				ChunkBuffer::Ptr data;
+				int index;
+			};
 
 		protected:
 
@@ -64,6 +69,7 @@ namespace asmio {
 
 			bool has_sections = false;
 			bool has_segments = false;
+			bool has_symbols = false;
 
 			ChunkBuffer::Ptr section_headers;
 			ChunkBuffer::Ptr segment_headers;
@@ -71,67 +77,179 @@ namespace asmio {
 			ChunkBuffer::Ptr sections;
 			ChunkBuffer::Ptr section_string_table;
 
-			void define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, uint32_t link, uint32_t info);
-			void define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t tail, uint64_t align);
+			ChunkBuffer::Ptr symbol_strings;
+			ChunkBuffer::Ptr local_symbols;
+			ChunkBuffer::Ptr other_symbols;
+
+			std::unordered_map<std::string, IndexedChunk> section_map;
+
+			int define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, const ElfSectionCreateInfo& info);
+			int define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t tail, uint64_t align);
 
 		public:
 
-			ElfFile(ElfMachine machine, uint64_t mount, uint64_t entrypoint);
+			ElfFile(ElfMachine machine, ElfType type, uint64_t mount, uint64_t entrypoint);
 
 			/**
 			 * Create a new ELF section in the given segment, if no segment is provided the
 			 * section will be created in a common off-segment chunk. The backing data buffer is returned.
 			 */
-			ChunkBuffer::Ptr section(const std::string& name, ElfSectionType type, uint32_t link, uint32_t info, const ChunkBuffer::Ptr& segment = nullptr);
+			IndexedChunk section(const std::string& name, ElfSectionType type, const ElfSectionCreateInfo& info);
 
 			/**
 			 * Create a new ELF segment,
 			 * this can then be used to create section in, or used directly as a data buffer.
 			 */
-			ChunkBuffer::Ptr segment(ElfSegmentType type, uint32_t flags, uint64_t address, uint64_t tail = 0);
+			IndexedChunk segment(ElfSegmentType type, uint32_t flags, uint64_t address, uint64_t tail = 0);
 
-	};
-
-	class ElfBuffer : public ElfFile {
+			/**
+			 * Create a new ELF symbol,
+			 * local and global symbols can be defined in any order.
+			 */
+			void symbol(const std::string& name, ElfSymbolType type, ElfSymbolBinding binding, ElfSymbolVisibility visibility, int section, size_t offset, size_t size);
 
 		public:
 
 			/**
-			 * creates a new ELF buffer
-			 * @param segmented content
-			 * @param mount page aligned virtual mounting address
-			 * @param entrypoint offset in bytes into the content where the execution will begin
+			 * Save the ELF to an executable file,
+			 * if that is possible the file is given the execute permission.
 			 */
-			explicit ElfBuffer(SegmentedBuffer& segmented, uint64_t mount, uint64_t entrypoint);
+			bool save(const std::string& path) const;
 
-		public:
+			/**
+			 * Serialize the ELF file to a byte buffer,
+			 * if you wish to save the file use save() instead.
+			 */
+			std::vector<uint8_t> bytes() const;
 
-			/// Save buffer as a ELF file
-			bool save(const char* path) const;
+			/**
+			 * Fork into the in-memory view of the file,
+			 * environ is inherited from the calling process.
+			 */
+			RunResult execute(const char* name) const;
 
-			/// Fork into the in-memory view of the file
-			RunResult execute(const char* name, int* status) const;
-
-			/// Fork into the in-memory view of the file, with arguments
-			RunResult execute(const char** argv, const char** envp, int* status) const;
+			/**
+			 * Fork into the in-memory view of the file, with arguments
+			 * to inherit environ pass it as the second argument.
+			 */
+			RunResult execute(const char** argv, const char** envp) const;
 
 	};
 
-	inline ElfBuffer to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const Linkage::Handler& handler = nullptr) {
+	inline ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const Linkage::Handler& handler = nullptr) {
+
+		struct MappingInfo {
+			int section;
+			ElfSymbolType content;
+		};
+
+		static auto to_segment_flags = [] (const BufferSegment& segment) -> uint32_t {
+			uint32_t flags = 0;
+			if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
+			if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
+			if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
+
+			return flags;
+		};
+
+		static auto to_section_flags = [] (const BufferSegment& segment) -> uint32_t {
+			uint32_t flags = 0;
+			if (segment.flags & BufferSegment::R) flags |= ElfSectionFlags::R;
+			if (segment.flags & BufferSegment::W) flags |= ElfSectionFlags::W;
+			if (segment.flags & BufferSegment::X) flags |= ElfSectionFlags::X;
+
+			return flags;
+		};
 
 		// after alignment we will know how big the buffer needs to be
 		const size_t page = getpagesize();
 		segmented.align(page);
 		segmented.link(address, handler);
 
-		if (!segmented.has_label(entry)) {
-			throw std::runtime_error {"Entrypoint '" + entry.string() + "' not defined!"};
+
+		uint64_t entrypoint = 0;
+		ElfType type = ElfType::REL;
+		bool create_sections = true;
+
+		// if we have an entrypoint create an executable file
+		if (!entry.empty()) {
+			if (!segmented.has_label(entry)) {
+				throw std::runtime_error {"Entrypoint '" + entry.string() + "' not defined!"};
+			}
+
+			entrypoint = segmented.get_offset(segmented.get_label(entry));
+			type = ElfType::EXEC;
 		}
 
-		BufferMarker entrymark = segmented.get_label(entry);
-		uint64_t entrypoint = segmented.get_offset(entrymark);
+		ElfFile elf {segmented.elf_machine, type, address, entrypoint};
+		std::unordered_map<int, MappingInfo> section_map;
 
-		return ElfBuffer {segmented, address, entrypoint};
+		for (const BufferSegment& segment : segmented.segments()) {
+			if (segment.empty()) {
+				continue;
+			}
+
+			auto segment_chunk = elf.segment(ElfSegmentType::LOAD, to_segment_flags(segment), address, segment.tail);
+			auto section_chunk = segment_chunk;
+
+			// create intermediate section between the segment and that data we want to save
+			if (create_sections) {
+				ElfSectionCreateInfo info {};
+				info.address = address;
+				info.flags = to_section_flags(segment);
+				info.segment = segment_chunk.data;
+
+				section_chunk = elf.section(segment.name, ElfSectionType::PROGBITS, info);
+
+				const ElfSymbolType content = segment.flags & BufferSegment::X
+					? ElfSymbolType::FUNC
+					: ElfSymbolType::OBJECT;
+
+				section_map[segment.index] = {section_chunk.index, content};
+			}
+
+			section_chunk.data->write(segment.buffer);
+			segment_chunk.data->push(segment.tail);
+
+			address += segment.size();
+		}
+
+		for (const ExportSymbol& symbol : segmented.exports()) {
+			const Label& label = symbol.label;
+
+			if (!label.is_text()) {
+				continue;
+			}
+
+			BufferMarker marker = segmented.get_label(label);
+			MappingInfo info = section_map[marker.section];
+
+			ElfSymbolBinding binding;
+			ElfSymbolVisibility visibility;
+
+			switch (symbol.type) {
+
+				case ExportSymbol::PRIVATE:
+					binding = ElfSymbolBinding::LOCAL;
+					visibility = ElfSymbolVisibility::HIDDEN;
+					break;
+
+				case ExportSymbol::PUBLIC:
+					binding = ElfSymbolBinding::GLOBAL;
+					visibility = ElfSymbolVisibility::PROTECTED;
+					break;
+
+				case ExportSymbol::WEAK:
+					binding = ElfSymbolBinding::WEAK;
+					visibility = ElfSymbolVisibility::PROTECTED;
+					break;
+
+			}
+
+			elf.symbol(label.string(), info.content, binding, visibility, info.section, marker.offset, symbol.size);
+		}
+
+		return elf;
 	}
 
 }

@@ -5,6 +5,7 @@
 #include "argument/registry.hpp"
 #include "argument/shift.hpp"
 #include "argument/condition.hpp"
+#include "argument/pattern.hpp"
 
 namespace asmio::arm {
 
@@ -24,50 +25,16 @@ namespace asmio::arm {
 			};
 
 			/**
-			 * Try to compute the ARM immediate bitmask based on a target value, this is a multi-step process
-			 * that tries to guess the correct coefficients, if that fails it returns a std::nullopt.
-			 *
-			 * @param value The value to encode
-			 * @param wide If the bitmask is expected to be used in a "wide" (64 bit) context
-			 *
-			 * @return Combined 'N:immr:imms' bit pattern, or nullopt.
-			 */
-			std::optional<uint16_t> compute_immediate_bitmask(uint64_t value, bool wide);
-
-			/**
-			 * Try to compute the ARM immediate bitmask based on a target value, this is a multi-step process
-			 * that tries to guess the correct coefficients, if that fails it returns a std::nullopt.
-			 *
-			 * @param value The bit pattern to try encoding
-			 * @param size Size of one repeating element within the pattern
-			 *
-			 * @return Combined 'N:immr:imms' bit pattern, or nullopt.
-			 */
-			std::optional<uint16_t> compute_element_bitmask(uint64_t value, size_t size);
-
-			/**
-			 * Constructs the N:immr:imms value for bitmask immediate instructions,
-			 * the correctness of provided arguments IS NOT CHECKED.
-			 *
-			 * @param size size of one element in bits (2,4,8,16,32,64)
-			 * @param ones number of ones in the element (1 <= ones <= size)
-			 * @param roll right-roll of the elements within one pattern element (roll < size)
-			 *
-			 * @return Combined 'N:immr:imms' bit pattern
-			 */
-			uint16_t pack_bitmask(uint32_t size, uint32_t ones, uint32_t roll);
-
-			/**
 			 * Writes a standard 'bitmask immediate' instruction into the buffer,
 			 * with 'sf' derived from destination size.
 			 */
-			void put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, uint16_t n_immr_imms);
+			void put_inst_bitmask_immediate(uint32_t opc_from_23, Registry destination, Registry source, BitPattern pattern);
 
 			/**
 			 * Writes the standard 'shifted register' instruction into the buffer,
 			 * with 'sf' derived from destination size.
 			 */
-			void put_inst_shifted_register(uint32_t opc_from_24, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift);
+			void put_inst_shifted_register(uint32_t opc_from_24, uint32_t bit_21, Registry dst, Registry n, Registry m, uint8_t imm6, ShiftType shift);
 
 			/**
 			 * Writes the standard 'extended register' instruction into the buffer,
@@ -85,7 +52,7 @@ namespace asmio::arm {
 			static void link_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
 			static void link_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
 
-		private:
+		protected:
 
 			static uint8_t pack_shift(uint8_t shift, bool wide);
 			static uint64_t get_size(Size size);
@@ -100,14 +67,20 @@ namespace asmio::arm {
 			/// Encode "ADC/ADCS (extended register)" operation
 			void put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags);
 
+			/// Encode "SBC/SBCS" operation
+			void put_inst_sbc(Registry destination, Registry a, Registry b, bool set_flags);
+
+			/// Encode "BIC/BICS" operation
+			void put_inst_bic(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t lsl6, bool set_flags);
+
 			/// Encode "CLS/CLZ" operation
 			void put_inst_count(Registry destination, Registry source, uint8_t imm1);
 
 			/// Encode "ILDR/LDRI/LDR" as well as the "ISTR/STRI/STR" operations
 			void put_inst_ldst(Registry dst, Registry base, int64_t offset, Sizing sizing, MemoryOperation op, MemoryDirection dir);
 
-			/// Encode "SMADDL/UMADDL" operation
-			void put_inst_maddl(Registry dst, Registry a, Registry b, Registry addend, bool is_unsigned);
+			/// Encode "SMADDL/UMADDL/SMSUBL/UMSUBL" operation
+			void put_inst_mulopl(Registry dst, Registry a, Registry b, Registry addend, bool is_unsigned, bool is_subtract);
 
 			/// Encode "UMULH/SMULH" operation
 			void put_inst_mulh(Registry dst, Registry a, Registry b, bool is_unsigned);
@@ -126,8 +99,6 @@ namespace asmio::arm {
 
 		public:
 
-			void put_inst_orr(Registry destination, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t imm6 = 0);
-			void put_inst_orr(Registry destination, Registry source, uint64_t pattern);
 			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12 = false, bool set_flags = false);
 			void put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags = false);
 
@@ -159,9 +130,16 @@ namespace asmio::arm {
 			INST put_istr(Registry dst, Registry base, int64_t offset, Sizing size); ///< Increment base and store value to memory
 			INST put_stri(Registry dst, Registry base, int64_t offset, Sizing size); ///< Store value to memory and increment base
 			INST put_str(Registry registry, Registry base, uint64_t offset, Sizing size); ///< Store value to memory
+			INST put_ands(Registry dst, Registry src, BitPattern pattern); ///< Bitwise AND between register and bit pattern
+			INST put_and(Registry dst, Registry src, BitPattern pattern);  ///< Bitwise AND between register and bit pattern, set flags
+			INST put_ands(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one, set flags
 			INST put_and(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one
+			INST put_eor(Registry destination, Registry source, BitPattern pattern); ///< Bitwise XOR between register and bit pattern
 			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise XOR between two register, shifting the second one
+			INST put_orr(Registry destination, Registry source, BitPattern pattern); ///< Bitwise OR between register and bit pattern
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise OR between two register, shifting the second one
+			INST put_sbc(Registry dst, Registry a, Registry b);            ///< Subtract with Carry
+			INST put_sbcs(Registry dst, Registry a, Registry b);           ///< Subtract with Carry and set flags
 			INST put_sub(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, potentially extending one of them
 			INST put_subs(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, set the flags, potentially extending one of them
 			INST put_cmp(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Compare
@@ -169,6 +147,10 @@ namespace asmio::arm {
 			INST put_madd(Registry dst, Registry a, Registry b, Registry addend); ///< Multiply and Add 64 bit registers
 			INST put_smaddl(Registry dst, Registry a, Registry b, Registry addend); ///< Signed multiply two 32 bit registers and add 64 bit register
 			INST put_umaddl(Registry dst, Registry a, Registry b, Registry addend); ///< Unsigned multiply two 32 bit registers and add 64 bit register
+			INST put_smsubl(Registry dst, Registry a, Registry b, Registry addend); ///< Signed multiply two 32 bit registers and subtract 64 bit register
+			INST put_umsubl(Registry dst, Registry a, Registry b, Registry addend); ///< Unsigned multiply two 32 bit registers and subtract 64 bit register
+			INST put_smnegl(Registry dst, Registry a, Registry b);         ///< Signed multiply two 32 bit registers and negate result
+			INST put_umnegl(Registry dst, Registry a, Registry b);         ///< Unsigned multiply two 32 bit registers and negate result
 			INST put_mul(Registry dst, Registry a, Registry b);            ///< Multiply 64 bit registers
 			INST put_smul(Registry dst, Registry a, Registry b);           ///< Signed multiply 32 bit registers
 			INST put_umul(Registry dst, Registry a, Registry b);           ///< Unsigned multiply 32 bit registers
@@ -181,9 +163,13 @@ namespace asmio::arm {
 			INST put_rev64(Registry dst, Registry src);                    ///< Reverse bytes in 64-bit qwords
 			INST put_ror(Registry dst, Registry src, Registry bits);       ///< Rotate Right by register
 			INST put_lsr(Registry dst, Registry src, Registry bits);       ///< Logical Shift Right by register
+			INST put_lsr(Registry dst, Registry src, uint16_t bits);       ///< Logical Shift Right by immediate
 			INST put_lsl(Registry dst, Registry src, Registry bits);       ///< Logical Shift Left by register
+			INST put_lsl(Registry dst, Registry src, uint16_t bits);       ///< Logical Shift Left by immediate
 			INST put_asr(Registry dst, Registry src, Registry bits);       ///< Arithmetic Shift Right by register
+			INST put_asr(Registry dst, Registry src, uint16_t bits);       ///< Arithmetic Shift Right by immediate
 			INST put_asl(Registry dst, Registry src, Registry bits);       ///< Arithmetic Shift Left by register
+			INST put_asl(Registry dst, Registry src, uint16_t bits);       ///< Arithmetic Shift Left by immediate
 			INST put_ror(Registry dst, Registry src, uint8_t imm);         ///< Rotate Right by immediate
 			INST put_extr(Registry dst, Registry left, Registry right, uint8_t imm5); ///< Extract register
 			INST put_csel(Condition condition, Registry dst, Registry truthy, Registry falsy); ///< Conditional Select
@@ -191,6 +177,15 @@ namespace asmio::arm {
 			INST put_cinc(Condition condition, Registry dst, Registry src);///< Conditional Increment if true
 			INST put_cinc(Condition condition, Registry dst);              ///< Conditional Increment if true
 			INST put_cset(Condition condition, Registry dst);              ///< Conditional Set if true
+			INST put_tst(Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Test shifted register
+			INST put_sbfm(Registry dst, Registry src, BitPattern pattern); ///< Signed Bitfield Insert in Zero
+			INST put_ubfm(Registry dst, Registry src, BitPattern pattern); ///< Unsigned Bitfield Insert in Zero
+			INST put_uxtb(Registry dst, Registry src);                     ///< Extract Byte
+			INST put_uxth(Registry dst, Registry src);                     ///< Extract Two Bytes
+			INST put_bfm(Registry dst, Registry src, BitPattern pattern);  ///< Bitfield Move
+			INST put_bfc(Registry dst, BitPattern pattern);                ///< Bitfield Clear
+			INST put_bic(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise Bit Clear
+			INST put_bics(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise Bit Clear and set flags
 
 			// control
 			INST put_svc(uint16_t imm16);                                  ///< Supervisor call

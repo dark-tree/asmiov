@@ -92,7 +92,7 @@ namespace asmio {
 			std::vector<BufferSegment> sections;
 			LabelMap<BufferMarker> labels;
 			std::vector<Linkage> linkages;
-			std::vector<ExportSymbol> exports;
+			std::vector<ExportSymbol> exported_symbols;
 
 		public:
 
@@ -158,13 +158,11 @@ namespace asmio {
 			/// Get a copy of the label map with resolved linkages
 			LabelMap<size_t> resolved_labels() const;
 
-			const std::vector<ExportSymbol>& resolved_exports() const {
-				return exports;
-			}
+			/// Get a list of exported symbols
+			const std::vector<ExportSymbol>& exports() const;
 
-			void add_export(const Label& label, ExportSymbol::Type type, size_t size) {
-				exports.emplace_back(label, size, type);
-			}
+			/// Add new symbol to the export list
+			void add_export(const Label& label, ExportSymbol::Type type, size_t size);
 
 	};
 

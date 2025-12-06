@@ -182,8 +182,6 @@ namespace asmio {
 		}
 
 		ElfFile elf {segmented.elf_machine, type, address, entrypoint};
-		std::vector<ExportSymbol> symbols = segmented.resolved_exports();
-
 		std::unordered_map<int, MappingInfo> section_map;
 
 		for (const BufferSegment& segment : segmented.segments()) {
@@ -216,7 +214,7 @@ namespace asmio {
 			address += segment.size();
 		}
 
-		for (const ExportSymbol& symbol : segmented.resolved_exports()) {
+		for (const ExportSymbol& symbol : segmented.exports()) {
 			const Label& label = symbol.label;
 
 			if (!label.is_text()) {

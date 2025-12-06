@@ -218,4 +218,12 @@ namespace asmio {
 		return result;
 	}
 
+	const std::vector<ExportSymbol>& SegmentedBuffer::exports() const {
+		return exported_symbols;
+	}
+
+	void SegmentedBuffer::add_export(const Label& label, ExportSymbol::Type type, size_t size)  {
+		exported_symbols.emplace_back(label, size, type);
+	}
+
 }

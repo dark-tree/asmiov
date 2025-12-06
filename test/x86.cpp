@@ -11,12 +11,16 @@
 #include <fstream>
 #include <out/buffer/executable.hpp>
 #include <tasml/top.hpp>
+#include <util/tmp.hpp>
 
-namespace test::x86 {
+#include "test.hpp"
+
+namespace test {
 
 	using namespace asmio;
 	using namespace asmio::x86;
 
+	static_assert(vstl::string_appendable<RunStatus>);
 	static_assert(vstl::string_appendable<RunResult>);
 
 	/*
@@ -432,6 +436,17 @@ namespace test::x86 {
 
 	}
 
+	TEST (writer_check_int3) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_int(3);
+
+		CHECK(segmented.segments()[0].size(), 1);
+
+	}
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for x86
@@ -467,7 +482,7 @@ namespace test::x86 {
 
 		writer.put_mov(EAX, 5);
 		writer.put_nop();
-		writer.put_ret();
+		writer.put_ret(0);
 
 		ExecutableBuffer buffer = to_executable(segmented);
 		uint32_t eax = buffer.call_u32();
@@ -1409,6 +1424,201 @@ namespace test::x86 {
 
 		ExecutableBuffer buffer = to_executable(segmented);
 		CHECK(buffer.call_u32("main"), 42);
+
+	}
+
+	TEST (writer_exec_call_register) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("add");
+		writer.put_add(RAX, RCX);
+		writer.put_ret();
+
+		writer.label("main");
+		writer.put_push(R15);
+		writer.put_mov(RAX, 69);
+		writer.put_mov(RCX, 2);
+		writer.put_lea(R15, "add");
+
+		writer.put_call(R15);
+		writer.put_pop(R15);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32("main"), 71);
+
+	}
+
+	TEST (wrtier_exec_ror) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0xFA);
+		writer.put_ror(AL, 4);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 0xAF);
+
+	}
+
+	TEST (wrtier_exec_rcl) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_scf(1);
+		writer.put_mov(RAX, 0);
+		writer.put_rcl(AL, 1);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1);
+
+	}
+
+	TEST (wrtier_exec_rcr) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_scf(1);
+		writer.put_mov(RAX, 0);
+		writer.put_rcr(AX, 1);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1UL << 15);
+
+	}
+
+	TEST (wrtier_exec_shr) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 11);
+		writer.put_shr(AX, 1);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 5);
+
+	}
+
+	TEST (writer_exec_loope_zf1) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_add(RAX, RAX); // zet ZF to 0
+		writer.put_loope("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 2);
+
+	}
+
+	TEST (writer_exec_loope_zf0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_loope("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1); // exits at first LOOPE as ZF=0
+
+	}
+
+	TEST (writer_exec_loope_zf1) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+		writer.put_mov(RSI, 0);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_add(RSI, RSI); // zet ZF to 0
+		writer.put_loope("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 10);
+
+	}
+
+	TEST (writer_exec_loope_zf0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_loope("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1); // exits at first LOOPE as ZF=0
+
+	}
+
+	TEST (writer_exec_loopne_zf1) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 11);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_loopne("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 11);
+
+	}
+
+	TEST (writer_exec_loopne_zf0) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RAX, 0);
+		writer.put_mov(RCX, 10);
+		writer.put_mov(RSI, 0);
+
+		writer.label("loopy");
+		writer.put_inc(RAX);
+		writer.put_add(RSI, RSI); // zet ZF to 0
+		writer.put_loopne("loopy");
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 1);
 
 	}
 
@@ -2856,6 +3066,22 @@ namespace test::x86 {
 
 	}
 
+	TEST (writer_exec_bsf_64) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// bytes              1        2        3        4        5        6        7        8
+		writer.put_mov(RCX, 0b00000000'00000001'00000000'00000000'00000000'00000000'00000000'00000000);
+
+		writer.put_bsf(RAX, RCX);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u32(), 48);
+
+	}
+
 	TEST (writer_exec_cqo) {
 
 		SegmentedBuffer segmented;
@@ -3022,14 +3248,12 @@ namespace test::x86 {
 		writer.put_int(0x80); // 32 bit syscall
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfBuffer file = to_elf(segmented, "_start");
+		ElfFile file = to_elf(segmented, "_start");
 
-		int status;
+		RunResult result = file.execute("memfd-elf-1");
 
-		RunResult result = file.execute("memfd-elf-1", &status);
-
-		CHECK(result, RunResult::SUCCESS);
-		CHECK(status, 42);
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 42);
 
 	}
 
@@ -3059,12 +3283,11 @@ namespace test::x86 {
 		writer.put_ret();
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfBuffer file = to_elf(segmented, "_start");
-		int status;
-		RunResult result = file.execute("memfd-elf-1", &status);
+		ElfFile file = to_elf(segmented, "_start");
+		RunResult result = file.execute("memfd-elf-1");
 
-		CHECK(result, RunResult::SUCCESS);
-		CHECK(status, 13);
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 13);
 
 	}
 
@@ -3094,12 +3317,11 @@ namespace test::x86 {
 		writer.put_ret();
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfBuffer file = to_elf(segmented, "_start");
-		int status;
-		RunResult result = file.execute("memfd-elf-1", &status);
+		ElfFile file = to_elf(segmented, "_start");
+		RunResult result = file.execute("memfd-elf-1");
 
-		CHECK(result, RunResult::SUCCESS);
-		CHECK(status, 20);
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 20);
 
 	}
 
@@ -3333,6 +3555,55 @@ namespace test::x86 {
 		buffer.call();
 
 	};
+
+	TEST(elf_gcc_linker_x86_function) {
+
+		std::string code = R"(
+			lang x86
+			section rx
+
+			export get_42:
+				mov rax, 42
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+		ElfFile file = to_elf(buffer, Label::UNSET);
+		util::TempFile object {file, ".tasml.o"};
+
+		std::string result = call_shell("readelf -a " + object.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+		ASSERT(result.contains("1: 0000000000000000     0 FUNC    GLOBAL PROTECTED    2 get_42"));
+
+		util::TempFile main_src {".main.c"};
+		main_src.write(R"(
+			#include <stdio.h>
+
+			int get_42();
+
+			int main() {
+				printf("%d", get_42());
+			}
+		)");
+
+		// link with our object
+		util::TempFile exec {".out"};
+		std::string gcc_output = call_shell("gcc -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		CHECK(gcc_output, "");
+
+		std::string exe_output = call_shell(exec.path());
+		CHECK(exe_output, "42");
+
+	}
 
 #endif
 ;}

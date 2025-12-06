@@ -7,6 +7,8 @@ namespace asmio {
 	 * class Label
 	 */
 
+	Label Label::UNSET {};
+
 	Label::Label(const std::string& str) {
 		if (str.empty()) {
 			throw std::runtime_error {"Label text can't be empty!"};

@@ -137,7 +137,7 @@ namespace asmio::x86 {
 			}
 
 			/// Checks if this location contains a label an nothing else
-			constexpr bool is_jump_label() {
+			constexpr bool is_jump_label() const {
 				return is_labeled() && base == UNSET && index == UNSET && !reference;
 			}
 

@@ -1,26 +1,27 @@
 #pragma once
 
 #include "external.hpp"
+#include <macro.hpp>
 
 namespace asmio {
 
 	struct ElfSegmentFlags {
-		static constexpr uint32_t X = 0b001; // Executable segment
-		static constexpr uint32_t W = 0b010; // Writable segment
-		static constexpr uint32_t R = 0b100; // Readable segment
+		static constexpr uint32_t X = 0b001; ///< Executable segment
+		static constexpr uint32_t W = 0b010; ///< Writable segment
+		static constexpr uint32_t R = 0b100; ///< Readable segment
 	};
 
 	enum struct ElfSegmentType : uint32_t {
-		NONE    = 0, // Inactive
-		LOAD    = 1, // Loadable segment
-		DYNAMIC = 2, // Dynamic linking information
-		INTERP  = 3, // Location and size of a null-terminated path name to invoke as an interpreter
-		NOTE    = 4, // Custom attached metadata
-		SHLIB   = 5, // Reserved but has unspecified semantics
-		PHDR    = 6  // Specifies the location and size of the program header table itself
+		NONE    = 0, ///< Inactive
+		LOAD    = 1, ///< Loadable segment
+		DYNAMIC = 2, ///< Dynamic linking information
+		INTERP  = 3, ///< Location and size of a null-terminated path name to invoke as an interpreter
+		NOTE    = 4, ///< Custom attached metadata
+		SHLIB   = 5, ///< Reserved but has unspecified semantics
+		PHDR    = 6  ///< Specifies the location and size of the program header table itself
 	};
 
-	struct __attribute__((__packed__)) ElfSegmentHeader {
+	struct PACKED ElfSegmentHeader {
 		ElfSegmentType type; ///< Segment type
 		uint32_t flags;      ///< See SegmentFlags
 		uint64_t offset;     ///< Offset to the first byte of the segment

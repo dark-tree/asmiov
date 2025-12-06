@@ -429,8 +429,7 @@ namespace asmio::x86 {
 	void BufferWriter::put_bsf(Location dst, Location src) {
 		uint32_t size = pair_size(src, dst);
 
-		// FIXME
-		if (size != WORD && size != DWORD) {
+		if (size != WORD && size != DWORD && size != QWORD) {
 			throw std::runtime_error {"Invalid operand size, expected word or dword"};
 		}
 
@@ -446,8 +445,7 @@ namespace asmio::x86 {
 	void BufferWriter::put_bsr(Location dst, Location src) {
 		uint32_t size = pair_size(src, dst);
 
-		// FIXME
-		if (size != WORD && size != DWORD) {
+		if (size != WORD && size != DWORD && size != QWORD) {
 			throw std::runtime_error {"Invalid operand size, expected word or dword"};
 		}
 
@@ -950,7 +948,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error {"Invalid operands"};
+		throw std::runtime_error {"Invalid operands, immediate value expected"};
 	}
 
 	/// Leave Procedure
@@ -1442,8 +1440,7 @@ namespace asmio::x86 {
 				return;
 			}
 
-			put_byte(0b11000011);
-			return;
+			return put_ret();
 		}
 
 		throw std::runtime_error {"Invalid operand"};

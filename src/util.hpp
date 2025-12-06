@@ -1,6 +1,9 @@
 #pragma once
 
 #include <external.hpp>
+#include <macro.hpp>
+#include <fstream>
+#include <random>
 
 template <typename T>
 concept trivially_copyable = std::is_trivially_copyable_v<T>;
@@ -15,6 +18,28 @@ concept castable = requires (const A& arg) { static_cast<T>(arg); };
 #define ASMIOV_SOURCE "https://github.com/dark-tree/asmiov"
 
 namespace asmio::util {
+
+	inline std::string random_string(size_t length) {
+		static const std::string_view alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		static std::uniform_int_distribution dist(0, static_cast<int>(alphabet.size() - 1));
+		thread_local std::mt19937 rng {std::random_device{} ()};
+
+		std::string out;
+		out.reserve(length);
+
+		for (std::size_t i = 0; i < length; ++i) {
+			out.push_back(alphabet[dist(rng)]);
+		}
+
+		return out;
+	}
+
+	inline void load_file_into(std::ifstream& file, std::string& string) {
+		file.seekg(0, std::ios::end);
+		string.reserve(file.tellg());
+		file.seekg(0, std::ios::beg);
+		string.assign(std::istreambuf_iterator {file}, std::istreambuf_iterator<char> {});
+	}
 
 	/// Unsigned divide (round up)
 	template <std::integral T>
@@ -115,7 +140,7 @@ namespace asmio::util {
 	 * significant) side of a number.
 	 */
 	constexpr int count_trailing_ones(uint64_t value) {
-		return __builtin_ctz(~value); // ctz(~x) == cto(x)
+		return __builtin_ctzll(~value); // ctz(~x) == cto(x)
 	}
 
 	template <std::integral T>
@@ -157,13 +182,23 @@ namespace asmio::util {
 			hash = (hash << 5) + hash * 33 + str[i];
 		}
 
+		if (hash == 0) {
+			return 1;
+		}
+
 		return hash;
 	}
 
 	constexpr uint64_t hash_tmix64(uint64_t x) {
 		x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
 		x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
-		return x ^ (x >> 31);
+		x = (x ^ (x >> 31));
+
+		if (x == 0) {
+			return 1;
+		}
+
+		return x;
 	}
 
 	constexpr int digit_value(char c) {

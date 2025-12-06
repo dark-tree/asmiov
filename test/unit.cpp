@@ -9,7 +9,7 @@
 
 #include "vstl.hpp"
 
-namespace test::unit {
+namespace test {
 
 	using namespace asmio;
 
@@ -68,6 +68,16 @@ namespace test::unit {
 		CHECK(util::min_sign_extended_bytes(0x7FFF'FF01), 4);
 		CHECK(util::min_sign_extended_bytes(0x80), 2);
 		CHECK(util::min_sign_extended_bytes(0xFFFF), 4);
+
+	};
+
+	TEST (util_is_sign_encodable) {
+
+		CHECK(util::is_signed_encodable(-100, 8), true);
+		CHECK(util::is_signed_encodable(-128, 8), true);
+		CHECK(util::is_signed_encodable(-129, 8), false);
+		CHECK(util::is_signed_encodable(127, 8), true);
+		CHECK(util::is_signed_encodable(128, 8), false);
 
 	};
 

@@ -96,11 +96,7 @@ int main(int argc, char** argv) {
 			return EXIT_ERROR;
 		}
 
-		// load file contents into string
-		file.seekg(0, std::ios::end);
-		assembly.reserve(file.tellg());
-		file.seekg(0, std::ios::beg);
-		assembly.assign(std::istreambuf_iterator<char> {file}, std::istreambuf_iterator<char> {});
+		asmio::util::load_file_into(file, assembly);
 	}
 
 	tasml::ErrorHandler handler {input, !args.has("--xansi")};
@@ -111,7 +107,7 @@ int main(int argc, char** argv) {
 		asmio::SegmentedBuffer buffer = tasml::assemble(handler, assembly);
 
 		// link and create the final ELF file
-		asmio::ElfBuffer elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
+		asmio::ElfFile elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
 			handler.link(link.target, what);
 		});
 
@@ -120,7 +116,7 @@ int main(int argc, char** argv) {
 		}
 
 		// write to output file
-		if (!elf.save(output.c_str())) {
+		if (!elf.save(output)) {
 			printf("Failed to save output\n");
 			return EXIT_ERROR;
 		}

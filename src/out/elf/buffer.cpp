@@ -78,7 +78,7 @@ namespace asmio {
 		return chunk->index();
 	}
 
-	ElfFile::ElfFile(ElfMachine machine, uint64_t mount, uint64_t entrypoint) {
+	ElfFile::ElfFile(ElfMachine machine, ElfType type, uint64_t mount, uint64_t entrypoint) {
 		root = std::make_shared<ChunkBuffer>();
 
 		auto chunk = root->chunk("ehdr");
@@ -107,7 +107,7 @@ namespace asmio {
 			ident.abi_version = 0;
 			memset(ident.pad, 0, sizeof(ident.pad));
 
-			header.type = ElfType::EXEC;
+			header.type = type;
 			header.machine = machine;
 			header.version = ELF_VERSION;
 			header.entry = mount + entrypoint;
@@ -133,12 +133,15 @@ namespace asmio {
 		}
 
 		if (!has_sections) {
-			define_section("", nullptr, ElfSectionType::NONE, {});
+			define_section("", nullptr, ElfSectionType::NONE, {.alignment = 0});
 			define_section(".shstrtab", section_string_table, ElfSectionType::STRTAB, {});
 			has_sections = true;
 		}
 
-		auto region = info.segment == nullptr ? sections->chunk() : info.segment->chunk();
+		auto region = info.segment == nullptr
+			? sections->chunk(info.alignment)
+			: info.segment->chunk(info.alignment);
+
 		int index = define_section(name, region, type, info);
 		section_map[name] = {region, index};
 
@@ -160,8 +163,9 @@ namespace asmio {
 
 			ElfSectionCreateInfo info {};
 			info.link = [i = strings.index] noexcept { return i; };
-			info.info = [this] noexcept { return local_symbols->regions(); };
+			info.info = [this] noexcept { return local_symbols->bytes() / sizeof(ElfSymbol); };
 			info.entry_size = sizeof(ElfSymbol);
+			info.alignment = 8;
 
 			auto symbols = section(".symtab", ElfSectionType::SYMTAB, info);
 
@@ -169,6 +173,13 @@ namespace asmio {
 			local_symbols = symbols.data->chunk();
 			other_symbols = symbols.data->chunk();
 			has_symbols = true;
+
+			// string table must start with \0
+			symbol_strings->put<char>(0);
+
+			// first symbol must be empty/undefined
+			ElfSymbol symbol {};
+			local_symbols->put<ElfSymbol>(symbol);
 		}
 
 		ElfSymbol symbol {};

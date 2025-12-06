@@ -88,7 +88,7 @@ namespace asmio {
 
 		public:
 
-			ElfFile(ElfMachine machine, uint64_t mount, uint64_t entrypoint);
+			ElfFile(ElfMachine machine, ElfType type, uint64_t mount, uint64_t entrypoint);
 
 			/**
 			 * Create a new ELF section in the given segment, if no segment is provided the
@@ -166,17 +166,24 @@ namespace asmio {
 		segmented.align(page);
 		segmented.link(address, handler);
 
-		if (!segmented.has_label(entry)) {
-			throw std::runtime_error {"Entrypoint '" + entry.string() + "' not defined!"};
+
+		uint64_t entrypoint = 0;
+		ElfType type = ElfType::REL;
+		bool create_sections = true;
+
+		// if we have an entrypoint create an executable file
+		if (!entry.empty()) {
+			if (!segmented.has_label(entry)) {
+				throw std::runtime_error {"Entrypoint '" + entry.string() + "' not defined!"};
+			}
+
+			entrypoint = segmented.get_offset(segmented.get_label(entry));
+			type = ElfType::EXEC;
 		}
 
-		BufferMarker entrymark = segmented.get_label(entry);
-		uint64_t entrypoint = segmented.get_offset(entrymark);
-
-		ElfFile elf {segmented.elf_machine, address, entrypoint};
+		ElfFile elf {segmented.elf_machine, type, address, entrypoint};
 		std::vector<ExportSymbol> symbols = segmented.resolved_exports();
 
-		bool create_sections = true;
 		std::unordered_map<int, MappingInfo> section_map;
 
 		for (const BufferSegment& segment : segmented.segments()) {

@@ -195,10 +195,11 @@ namespace test {
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
 
-		ASSERT(result.contains("0: 0000000000000002     0 OBJECT  LOCAL  HIDDEN     2 pill"));
-		ASSERT(result.contains("1: 0000000000000000     0 FUNC    GLOBAL PROTECTED    3 my_strlen"));
-		ASSERT(result.contains("2: 0000000000000000     0 FUNC    WEAK   PROTECTED    3 strlen"));
-		ASSERT(result.contains("3: 0000000000000000     0 OBJECT  GLOBAL PROTECTED    2 tipp"));
+		ASSERT(result.contains("0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND"))
+		ASSERT(result.contains("1: 0000000000000002     0 OBJECT  LOCAL  HIDDEN     2 pill"));
+		ASSERT(result.contains("2: 0000000000000000     0 FUNC    GLOBAL PROTECTED    3 my_strlen"));
+		ASSERT(result.contains("3: 0000000000000000     0 FUNC    WEAK   PROTECTED    3 strlen"));
+		ASSERT(result.contains("4: 0000000000000000     0 OBJECT  GLOBAL PROTECTED    2 tipp"));
 
 	};
 

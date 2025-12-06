@@ -194,7 +194,6 @@ namespace test {
 	TEST(elf_gcc_linker_compatible) {
 
 		std::string code = R"(
-			lang x86
 			section r
 			export test: byte "hello!", 0
 		)";
@@ -207,6 +206,9 @@ namespace test {
 			FAIL("Errors generated");
 		}
 
+		// override the architecture
+		buffer.elf_machine = ElfMachine::NATIVE;
+
 		ElfFile file = to_elf(buffer, Label::UNSET);
 		util::TempFile object {file, ".tasml.o"};
 
@@ -217,7 +219,7 @@ namespace test {
 
 		ASSERT(result.contains("REL (Relocatable file)"));
 		ASSERT(result.contains("0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND"));
-		ASSERT(result.contains("1: 0000000000000000     0 OBJECT  GLOBAL PROTECTED    2 test"))
+		ASSERT(result.contains("1: 0000000000000000     0 OBJECT  GLOBAL PROTECTED    2 test"));
 
 		util::TempFile main_src {".main.c"};
 		main_src.write(R"(
@@ -232,8 +234,8 @@ namespace test {
 
 		// link with our object
 		util::TempFile exec {".out"};
-		std::string gcc_output = call_shell("gcc -o " + exec.path() + " " + object.path() + " " + main_src.path() );
-		ASSERT(gcc_output.empty());
+		std::string gcc_output = call_shell("gcc -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		CHECK(gcc_output, "");
 
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "hello!");

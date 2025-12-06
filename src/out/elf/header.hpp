@@ -16,15 +16,23 @@ namespace asmio {
 	};
 
 	enum struct ElfMachine : uint16_t {
-		NONE  = 0,  // No machine
-		M32   = 1,  // AT&T WE 32100
-		SPARC = 2,  // SPARC
-		I386  = 3,  // Intel 80386
-		M68K  = 4,  // Motorola 68000
-		M88K  = 5,  // Motorola 88000
-		I860  = 7,  // Intel 80860
-		X86_64 = 62, // AMD x86-64 architecture
-		AARCH64 = 183 // AArch64
+		NONE  = 0,     ///< No machine
+		M32   = 1,     ///< AT&T WE 32100
+		SPARC = 2,     ///< SPARC
+		I386  = 3,     ///< Intel 80386
+		M68K  = 4,     ///< Motorola 68000
+		M88K  = 5,     ///< Motorola 88000
+		I860  = 7,     ///< Intel 80860
+		X86_64 = 62,   ///< AMD x86-64 architecture
+		AARCH64 = 183, ///< AArch64
+
+#if ARCH_AARCH64
+		NATIVE = AARCH64,
+#endif
+
+#if ARCH_X86
+		NATIVE = X86_64,
+#endif
 	};
 
 	enum struct ElfClass : uint8_t {

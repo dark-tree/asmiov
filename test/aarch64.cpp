@@ -7,6 +7,9 @@
 #include "asm/aarch64/writer.hpp"
 #include "out/buffer/executable.hpp"
 #include <tasml/top.hpp>
+#include <util/tmp.hpp>
+
+#include "test.hpp"
 
 namespace test {
 
@@ -1634,6 +1637,55 @@ namespace test {
 
 		auto exec = to_executable(segmented);
 		CHECK(exec.call_i64(), -4);
+
+	};
+
+	TEST(elf_gcc_linker_aarch64_function) {
+
+		std::string code = R"(
+			lang aarch64
+			section rx
+
+			export get_42:
+				mov x0, 42
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+		ElfFile file = to_elf(buffer, Label::UNSET);
+		util::TempFile object {file, ".tasml.o"};
+
+		std::string result = call_shell("readelf -a " + object.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+		ASSERT(result.contains("1: 0000000000000000     0 FUNC    GLOBAL PROTECTED    2 get_42"));
+
+		util::TempFile main_src {".main.c"};
+		main_src.write(R"(
+			#include <stdio.h>
+
+			int get_42();
+
+			int main() {
+				printf("%d", get_42());
+			}
+		)");
+
+		// link with our object
+		util::TempFile exec {".out"};
+		std::string gcc_output = call_shell("gcc -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		CHECK(gcc_output, "");
+
+		std::string exe_output = call_shell(exec.path());
+		CHECK(exe_output, "42");
 
 	};
 

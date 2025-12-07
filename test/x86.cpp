@@ -2875,7 +2875,7 @@ namespace test {
 		writer.put_mov(RAX, RDI);
 		writer.put_ret();
 
-		writer.section(BufferSegment::R | BufferSegment::W);
+		writer.section(MemoryFlag::R | MemoryFlag::W);
 		writer.label("src").put_cstr("123456789ABCDEF");
 
 		ExecutableBuffer buffer = to_executable(segmented);
@@ -3242,7 +3242,7 @@ namespace test {
 		BufferWriter writer {segmented};
 
 		writer.label("_start");
-		writer.section(BufferSegment::X | BufferSegment::R);
+		writer.section(MemoryFlag::X | MemoryFlag::R);
 		writer.put_mov(RBX, 42); // exit code
 		writer.put_mov(RAX, 1); // sys_exit
 		writer.put_int(0x80); // 32 bit syscall
@@ -3329,11 +3329,11 @@ namespace test {
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
-		writer.section(BufferSegment::R);
+		writer.section(MemoryFlag::R);
 		writer.label("data");
 		writer.put_dword(42);
 
-		writer.section(BufferSegment::X | BufferSegment::R);
+		writer.section(MemoryFlag::X | MemoryFlag::R);
 		writer.label("read");
 		writer.put_mov(EAX, ref("data"));
 		writer.put_ret();
@@ -3539,14 +3539,14 @@ namespace test {
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
 
-		writer.section(BufferSegment::R | BufferSegment::X);
+		writer.section(MemoryFlag::R | MemoryFlag::X);
 		writer.put_mov(ref("target"), RAX);
 		writer.put_ret();
 
-		writer.section(0);
+		writer.section(MemoryFlag::NONE);
 		writer.put_space(1024);
 
-		writer.section(BufferSegment::R | BufferSegment::W);
+		writer.section(MemoryFlag::R | MemoryFlag::W);
 		writer.label("target");
 		writer.put_qword(0);
 

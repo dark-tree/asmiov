@@ -4,6 +4,7 @@
 
 #include "external.hpp"
 #include "label.hpp"
+#include "memory.hpp"
 
 namespace asmio {
 
@@ -43,15 +44,11 @@ namespace asmio {
 	/// One track in the SegmentedBuffer
 	struct BufferSegment {
 
-		constexpr static uint8_t R = 0b001;
-		constexpr static uint8_t W = 0b010;
-		constexpr static uint8_t X = 0b100;
-
 		// by default create a mixed-use section
-		constexpr static uint8_t DEFAULT = R | W | X;
+		constexpr static MemoryFlags DEFAULT = { true, true, true };
 
 		uint16_t index = 0;
-		uint8_t flags = 0;
+		MemoryFlags flags {};
 		uint8_t padder = 0; // byte used to pad the buffer tail
 		std::vector<uint8_t> buffer;
 		std::string name;
@@ -60,7 +57,7 @@ namespace asmio {
 		int64_t start = 0;
 		int64_t tail = 0;
 
-		BufferSegment(uint32_t index, uint8_t flags, std::string name = "") noexcept;
+		BufferSegment(uint32_t index, MemoryFlags flags, std::string name = "") noexcept;
 
 		/// Get size of this buffer, including padding
 		size_t size() const;
@@ -74,11 +71,8 @@ namespace asmio {
 		/// Update internal paddings to ensure page alignment
 		size_t align(size_t start, size_t page);
 
-		/// Convert internal flags to the mprotect() flags set
-		int get_mprot_flags() const;
-
 		/// Compute default name based on assigned flags
-		static const char* default_name(uint64_t flags);
+		static const char* default_name(MemoryFlags flags);
 
 	};
 
@@ -141,7 +135,7 @@ namespace asmio {
 			void insert(uint8_t* data, size_t bytes);
 
 			/// Select the section to use
-			void use_section(uint8_t flags, const std::string& name = "");
+			void use_section(MemoryFlags flags, const std::string& name = "");
 
 			/// Get section count
 			size_t count() const;

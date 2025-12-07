@@ -9,7 +9,7 @@ namespace asmio {
 	 * class BufferSegment
 	 */
 
-	BufferSegment::BufferSegment(uint32_t index, uint8_t flags, std::string name) noexcept
+	BufferSegment::BufferSegment(uint32_t index, MemoryFlags flags, std::string name) noexcept
 		: index(index), flags(flags), name(std::move(name)) {
 	}
 
@@ -35,28 +35,18 @@ namespace asmio {
 		return offset + aligned;
 	}
 
-	int BufferSegment::get_mprot_flags() const {
-		// FIXME this is dumb
-
-		int protect = 0;
-		if (flags & R) protect |= PROT_READ;
-		if (flags & W) protect |= PROT_WRITE;
-		if (flags & X) protect |= PROT_EXEC;
-		return protect;
-	}
-
-	const char* BufferSegment::default_name(uint64_t flags) {
+	const char* BufferSegment::default_name(MemoryFlags flags) {
 
 		// normal sections
-		if (flags == R) return ".rodata";
-		if (flags == (R | X)) return ".text";
-		if (flags == (R | W)) return ".data";
+		if (flags == MemoryFlag::R) return ".rodata";
+		if (flags == (MemoryFlag::R | MemoryFlag::X)) return ".text";
+		if (flags == (MemoryFlag::R | MemoryFlag::W)) return ".data";
 
 		// weird sections
-		if (flags == W) return ".w";
-		if (flags == X) return ".x";
-		if (flags == (W | X)) return ".wx";
-		if (flags == (R | W | X)) return ".rwx";
+		if (flags == MemoryFlag::W) return ".w";
+		if (flags == MemoryFlag::X) return ".x";
+		if (flags == (MemoryFlag::W | MemoryFlag::X)) return ".wx";
+		if (flags == (MemoryFlag::R | MemoryFlag::W | MemoryFlag::X)) return ".rwx";
 
 		// flags == 0
 		return ".nil";
@@ -148,7 +138,7 @@ namespace asmio {
 		buffer.insert(buffer.end(), data, data + bytes);
 	}
 
-	void SegmentedBuffer::use_section(uint8_t flags, const std::string& hint) {
+	void SegmentedBuffer::use_section(MemoryFlags flags, const std::string& hint) {
 		int index = -1;
 		const int count = static_cast<int>(sections.size());
 		const std::string name = hint.empty() ? BufferSegment::default_name(flags) : hint;
@@ -186,7 +176,7 @@ namespace asmio {
 		std::cout << "./unasm.sh " << base_address << " \"";
 
 		for (const BufferSegment& segment : sections) {
-			std::cout << "SECTION " << (segment.flags & BufferSegment::X ? ".text" : ".data") << " \\ndb ";
+			std::cout << "SECTION " << (segment.flags.x ? ".text" : ".data") << " \\ndb ";
 			bool first = true;
 
 			for (uint8_t byte : segment.buffer) {

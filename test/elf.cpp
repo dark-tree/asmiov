@@ -123,7 +123,7 @@ namespace test {
 		SegmentedBuffer buffer;
 		BasicBufferWriter writer {buffer};
 
-		writer.section(BufferSegment::R);
+		writer.section(MemoryFlag::R);
 		writer.export_symbol("aaaa");
 		writer.export_symbol("bbbb");
 		writer.export_symbol("cccc");
@@ -164,15 +164,15 @@ namespace test {
 
 		writer.label("abc");
 		writer.put_dword(0);
-		writer.section(BufferSegment::R);
+		writer.section(MemoryFlag::R);
 		writer.put_dword(0);
-		writer.section(BufferSegment::R | BufferSegment::X);
+		writer.section(MemoryFlag::R | MemoryFlag::X);
 		writer.put_dword(0);
-		writer.section(BufferSegment::R);
+		writer.section(MemoryFlag::R);
 		writer.put_dword(0);
-		writer.section(BufferSegment::R, ".custom");
+		writer.section(MemoryFlag::R, ".custom");
 		writer.put_dword(0);
-		writer.section(BufferSegment::R | BufferSegment::W);
+		writer.section(MemoryFlag::R | MemoryFlag::W);
 		writer.put_dword(0);
 
 		ElfFile file = to_elf(buffer, "abc");

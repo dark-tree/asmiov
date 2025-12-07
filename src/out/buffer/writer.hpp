@@ -16,7 +16,7 @@ namespace asmio {
 
 			BasicBufferWriter(SegmentedBuffer& buffer);
 
-			BasicBufferWriter& section(uint8_t flags, const std::string& name = "");
+			BasicBufferWriter& section(MemoryFlags flags, const std::string& name = "");
 			BasicBufferWriter& label(const Label& label);
 			BasicBufferWriter& export_symbol(const Label& label, ExportSymbol::Type type = ExportSymbol::PUBLIC, size_t size = 0);
 

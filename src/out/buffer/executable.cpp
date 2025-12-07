@@ -71,7 +71,7 @@ namespace asmio {
 
 			memcpy(data, segment.buffer.data(), bytes);
 			memset(data + bytes, segment.padder, segment.tail);
-			mprotect(data, segment.size(), segment.get_mprot_flags());
+			mprotect(data, segment.size(), segment.flags.to_mprotect());
 		}
 
 		// copy the label map

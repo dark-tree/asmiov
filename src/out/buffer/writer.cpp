@@ -8,7 +8,7 @@ namespace asmio {
 		: buffer(buffer) {
 	}
 
-	BasicBufferWriter& BasicBufferWriter::section(uint8_t flags, const std::string& name) {
+	BasicBufferWriter& BasicBufferWriter::section(MemoryFlags flags, const std::string& name) {
 		buffer.use_section(flags, name);
 		return *this;
 	}

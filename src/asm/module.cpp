@@ -94,13 +94,13 @@ namespace asmio {
 
 		if (stream.accept("section")) {
 			auto mode = util::to_lower(stream.expect(Token::NAME).raw);
-			uint32_t flags = 0;
+			MemoryFlags flags {};
 			std::string name;
 
 			for (char c : mode) {
-				if (c == 'r') flags |= BufferSegment::R;
-				else if (c == 'w') flags |= BufferSegment::W;
-				else if (c == 'x') flags |= BufferSegment::X;
+				if (c == 'r') flags |= MemoryFlag::R;
+				else if (c == 'w') flags |= MemoryFlag::W;
+				else if (c == 'x') flags |= MemoryFlag::X;
 				else throw std::runtime_error {"Unknown section flag '" + std::to_string(c) + "' in section statement"};
 			}
 

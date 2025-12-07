@@ -143,24 +143,6 @@ namespace asmio {
 			ElfSymbolType content;
 		};
 
-		static auto to_segment_flags = [] (const BufferSegment& segment) -> uint32_t {
-			uint32_t flags = 0;
-			if (segment.flags & BufferSegment::R) flags |= ElfSegmentFlags::R;
-			if (segment.flags & BufferSegment::W) flags |= ElfSegmentFlags::W;
-			if (segment.flags & BufferSegment::X) flags |= ElfSegmentFlags::X;
-
-			return flags;
-		};
-
-		static auto to_section_flags = [] (const BufferSegment& segment) -> uint32_t {
-			uint32_t flags = 0;
-			if (segment.flags & BufferSegment::R) flags |= ElfSectionFlags::R;
-			if (segment.flags & BufferSegment::W) flags |= ElfSectionFlags::W;
-			if (segment.flags & BufferSegment::X) flags |= ElfSectionFlags::X;
-
-			return flags;
-		};
-
 		// after alignment we will know how big the buffer needs to be
 		const size_t page = getpagesize();
 		segmented.align(page);
@@ -189,22 +171,19 @@ namespace asmio {
 				continue;
 			}
 
-			auto segment_chunk = elf.segment(ElfSegmentType::LOAD, to_segment_flags(segment), address, segment.tail);
+			auto segment_chunk = elf.segment(ElfSegmentType::LOAD, segment.flags.to_elf_segment(), address, segment.tail);
 			auto section_chunk = segment_chunk;
 
 			// create intermediate section between the segment and that data we want to save
 			if (create_sections) {
 				ElfSectionCreateInfo info {};
 				info.address = address;
-				info.flags = to_section_flags(segment);
+				info.flags = segment.flags.to_elf_section();
 				info.segment = segment_chunk.data;
 
 				section_chunk = elf.section(segment.name, ElfSectionType::PROGBITS, info);
 
-				const ElfSymbolType content = segment.flags & BufferSegment::X
-					? ElfSymbolType::FUNC
-					: ElfSymbolType::OBJECT;
-
+				const ElfSymbolType content = segment.flags.to_elf_symbol();
 				section_map[segment.index] = {section_chunk.index, content};
 			}
 

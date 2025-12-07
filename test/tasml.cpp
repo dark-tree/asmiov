@@ -203,4 +203,65 @@ namespace test {
 
 	};
 
+	TEST (tasml_embed_statement) {
+
+		std::string embed = "Hello embedded content!\n";
+		util::TempFile embedded {".txt"};
+		embedded.write(embed);
+
+		std::string code = R"(
+			section r
+			export private begin:
+				embed ")" + embedded.path() + R"("
+			export private end:
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+		ElfFile file = to_elf(buffer, Label::UNSET);
+		util::TempFile temp {file};
+
+		std::string result = call_shell("readelf -a " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		CHECK(embed.size(), 0x18);
+
+		ASSERT(result.contains("0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND"));
+		ASSERT(result.contains("1: 0000000000000000     0 OBJECT  LOCAL  HIDDEN     2 begin"));
+		ASSERT(result.contains("2: 0000000000000018     0 OBJECT  LOCAL  HIDDEN     2 end"));
+
+		// very basic test but it's unlikely thet embed specifically broke ELF itself,
+		// so if the string is in there we can readable assume everything worked.
+		std::string strings = call_shell("strings " + temp.path());
+		ASSERT(strings.contains(embed));
+
+	};
+
+	TEST (tasml_embed_missing_file) {
+
+		std::string code = R"(
+			section r
+			export private begin:
+				embed "missing-file.bin"
+			export private end:
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+
+		EXPECT_THROW(std::runtime_error) {
+			tasml::assemble(reporter, code);
+		};
+
+		CHECK(reporter.ok(), false);
+
+	};
+
 }

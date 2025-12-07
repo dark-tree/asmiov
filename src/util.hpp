@@ -19,6 +19,28 @@ concept castable = requires (const A& arg) { static_cast<T>(arg); };
 
 namespace asmio::util {
 
+	// https://codereview.stackexchange.com/a/22907
+	inline std::vector<char> read_whole(const std::string& path) {
+		std::ifstream ifs(path, std::ios::binary|std::ios::ate);
+
+		if (!ifs.is_open() || ifs.bad()) {
+			throw std::runtime_error {"Could not open file '" + path + "'"};
+		}
+
+		std::ifstream::pos_type pos = ifs.tellg();
+
+		if (pos == 0) {
+			return {};
+		}
+
+		std::vector<char> result(pos);
+
+		ifs.seekg(0, std::ios::beg);
+		ifs.read(result.data(), pos);
+
+		return result;
+	}
+
 	inline std::string random_string(size_t length) {
 		static const std::string_view alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		static std::uniform_int_distribution dist(0, static_cast<int>(alphabet.size() - 1));

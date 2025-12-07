@@ -146,6 +146,21 @@ namespace asmio {
 		}
 
 		/*
+		 * Embed statement
+		 */
+
+		if (stream.accept("embed")) {
+			const Token& token = stream.expect(Token::STRING);
+
+			try {
+				auto bytes = util::read_whole(token.as_string());
+				buffer.insert(reinterpret_cast<uint8_t*>(bytes.data()), bytes.size());
+			} catch (const std::exception& e) {
+				reporter.error(token.line, token.column, e.what());
+			}
+		}
+
+		/*
 		 * Data statements
 		 */
 

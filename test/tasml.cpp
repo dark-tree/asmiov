@@ -9,6 +9,7 @@
 #include <regex>
 #include <tasml/top.hpp>
 #include <util/tmp.hpp>
+#include <out/elf/export.hpp>
 
 #include "test.hpp"
 #include "vstl.hpp"

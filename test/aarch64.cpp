@@ -6,6 +6,7 @@
 #include "vstl.hpp"
 #include "asm/aarch64/writer.hpp"
 #include "out/buffer/executable.hpp"
+#include <out/elf/export.hpp>
 #include <tasml/top.hpp>
 #include <util/tmp.hpp>
 

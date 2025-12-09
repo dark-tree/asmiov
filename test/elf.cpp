@@ -8,7 +8,7 @@
 #include <tasml/top.hpp>
 
 #include "util/tmp.hpp"
-#include "out/elf/buffer.hpp"
+#include "out/elf/export.hpp"
 #include "test.hpp"
 
 namespace test {
@@ -17,7 +17,7 @@ namespace test {
 
 	TEST(elf_segments) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0, 0};
+		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
 
 		auto segment = file.segment(ElfSegmentType::LOAD, ElfSegmentFlags::R | ElfSegmentFlags::W, 0x42);
 		segment.data->write("1234"); // 5 bytes
@@ -41,7 +41,7 @@ namespace test {
 
 	TEST(elf_sections) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0, 0};
+		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
 
 		file.section(".text", ElfSectionType::PROGBITS, {});
 		file.section(".data", ElfSectionType::PROGBITS, {});
@@ -64,7 +64,7 @@ namespace test {
 
 	TEST(elf_symbols) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0, 0};
+		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
 
 		auto executable = file.segment(ElfSegmentType::LOAD, ElfSegmentFlags::R | ElfSegmentFlags::X, 0);
 		auto text = file.section(".text", ElfSectionType::PROGBITS, { .segment = executable.data }).index;

@@ -5,7 +5,7 @@
 
 #include "vstl.hpp"
 #include "asm/x86/writer.hpp"
-#include "out/elf/buffer.hpp"
+#include <out/elf/export.hpp>
 
 // private libs
 #include <fstream>
@@ -3620,7 +3620,35 @@ namespace test {
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "42");
 
-	}
+	};
+
+	TEST (writer_elf_segments) {
+
+		using namespace asmio;
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::X | MemoryFlag::R);
+
+		writer.label("_start");
+		writer.put_mov(RBX, ref("my_data")); // exit code
+		writer.put_mov(RAX, 1); // sys_exit
+		writer.put_int(0x80); // 32 bit syscall
+
+		writer.section(MemoryFlag::R);
+		writer.label("my_data");
+		writer.put_qword(42);
+
+		segmented.elf_machine = ElfMachine::X86_64;
+		ElfFile file = to_elf(segmented, "_start");
+
+		RunResult result = file.execute("memfd-elf-1");
+
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 42);
+
+	};
 
 #endif
 ;}

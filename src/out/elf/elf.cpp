@@ -1,5 +1,5 @@
 
-#include "buffer.hpp"
+#include "elf.hpp"
 
 #include <filesystem>
 
@@ -78,7 +78,7 @@ namespace asmio {
 		return chunk->index();
 	}
 
-	ElfFile::ElfFile(ElfMachine machine, ElfType type, uint64_t mount, uint64_t entrypoint) {
+	ElfFile::ElfFile(ElfMachine machine, ElfType type, uint64_t entrypoint) {
 		root = std::make_shared<ChunkBuffer>();
 
 		auto chunk = root->chunk("ehdr");
@@ -110,7 +110,7 @@ namespace asmio {
 			header.type = type;
 			header.machine = machine;
 			header.version = ELF_VERSION;
-			header.entry = mount + entrypoint;
+			header.entry = entrypoint;
 			header.phoff = has_segments ? segment_headers->offset() : 0;
 			header.shoff = has_sections ? section_headers->offset() : 0;
 			header.flags = 0;

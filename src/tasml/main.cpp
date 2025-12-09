@@ -2,7 +2,7 @@
 #include "util.hpp"
 #include "args.hpp"
 #include "error.hpp"
-#include <out/elf/buffer.hpp>
+#include <out/elf/export.hpp>
 
 // private libs
 #include <iostream>

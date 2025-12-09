@@ -1,6 +1,7 @@
 #pragma once
 
 #include <out/elf/header.hpp>
+#include <util/set.hpp>
 
 #include "external.hpp"
 #include "label.hpp"
@@ -38,6 +39,15 @@ namespace asmio {
 		Label label;
 		size_t size;
 		Type type;
+
+	};
+
+	struct SourceLocation {
+
+		BufferMarker marker;
+		uint32_t line;
+		uint16_t column;
+		uint16_t file;
 
 	};
 
@@ -87,6 +97,9 @@ namespace asmio {
 			LabelMap<BufferMarker> labels;
 			std::vector<Linkage> linkages;
 			std::vector<ExportSymbol> exported_symbols;
+
+			std::vector<SourceLocation> source_locations;
+			util::IndexedSet<std::string> source_files;
 
 		public:
 
@@ -157,6 +170,15 @@ namespace asmio {
 
 			/// Add new symbol to the export list
 			void add_export(const Label& label, ExportSymbol::Type type, size_t size);
+
+			/// Add location specifier for the current address
+			void add_location(const std::string& path, uint32_t line, uint32_t column);
+
+			/// Get source location list
+			const std::vector<SourceLocation>& locations() const;
+
+			/// Get source file list
+			const std::vector<std::string>& files() const;
 
 	};
 

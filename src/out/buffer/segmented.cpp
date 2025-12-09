@@ -216,4 +216,20 @@ namespace asmio {
 		exported_symbols.emplace_back(label, size, type);
 	}
 
+	void SegmentedBuffer::add_location(const std::string& path, uint32_t line, uint32_t column) {
+		if (column > 0xFFFF) {
+			column = 0xFFFF;
+		}
+
+		source_locations.emplace_back(current(), line, column, source_files.put(path));
+	}
+
+	const std::vector<SourceLocation>& SegmentedBuffer::locations() const {
+		return source_locations;
+	}
+
+	const std::vector<std::string>& SegmentedBuffer::files() const {
+		return source_files.items();
+	}
+
 }

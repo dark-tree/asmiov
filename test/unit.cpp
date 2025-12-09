@@ -5,6 +5,7 @@
 
 #include <util.hpp>
 #include <out/buffer/label.hpp>
+#include <out/buffer/segmented.hpp>
 #include <out/chunk/buffer.hpp>
 
 #include "vstl.hpp"
@@ -226,5 +227,49 @@ namespace test {
 
 	};
 
+	TEST (util_parse_int) {
+
+		CHECK(util::parse_int("0"), 0);
+		CHECK(util::parse_int("+1000"), 1000);
+		CHECK(util::parse_int("-1000"), -1000);
+		CHECK(util::parse_int("0xFEB00000"), 0xFEB00000);
+		CHECK(util::parse_int("0xFAFFFFFFFBFFFFFE"), 0xFAFFFFFFFBFFFFFE);
+		CHECK(util::parse_int("0b1010101"), 0b1010101);
+		CHECK(util::parse_int("-0b1010101"), -0b1010101);
+
+	}
+
+	TEST (util_source_location) {
+
+		SegmentedBuffer program;
+
+		program.add_location("./my/foo.txt", 1, 1);
+		program.push(1);
+		program.push(2);
+		program.push(3);
+		program.push(4);
+
+		program.add_location("./my/bar.txt", 1, 1);
+		program.push(5);
+		program.push(6);
+
+		program.add_location("./my/foo.txt", 2, 10);
+		program.push(7);
+		program.push(8);
+
+		const auto& locations = program.locations();
+		const auto& files = program.files();
+
+		CHECK(files.size(), 2);
+		CHECK(locations.size(), 3);
+
+		CHECK(files[0], "./my/foo.txt");
+		CHECK(files[1], "./my/bar.txt");
+
+		CHECK(locations[0].file, 0);
+		CHECK(locations[1].file, 1);
+		CHECK(locations[2].file, 0);
+
+	};
 
 }

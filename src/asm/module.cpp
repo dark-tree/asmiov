@@ -114,6 +114,20 @@ namespace asmio {
 		}
 
 		/*
+		 * Source mapping definition
+		 */
+
+		if (stream.accept("source")) {
+			const Token& path = stream.expect(Token::STRING);
+			const Token& line = stream.expect(Token::INT);
+			const Token& column = stream.expect(Token::INT);
+
+			stream.terminal();
+			buffer.add_location(path.as_string(), line.as_int(), column.as_int());
+			return;
+		}
+
+		/*
 		 * Symbol export
 		 */
 

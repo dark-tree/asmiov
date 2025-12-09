@@ -18,18 +18,6 @@ namespace test {
 
 	using namespace asmio;
 
-	TEST (util_parse_int) {
-
-		CHECK(util::parse_int("0"), 0);
-		CHECK(util::parse_int("+1000"), 1000);
-		CHECK(util::parse_int("-1000"), -1000);
-		CHECK(util::parse_int("0xFEB00000"), 0xFEB00000);
-		CHECK(util::parse_int("0xFAFFFFFFFBFFFFFE"), 0xFAFFFFFFFBFFFFFE);
-		CHECK(util::parse_int("0b1010101"), 0b1010101);
-		CHECK(util::parse_int("-0b1010101"), -0b1010101);
-
-	}
-
 	TEST (tasml_check_basic_error) {
 
 		std::string code = R"(
@@ -261,6 +249,30 @@ namespace test {
 		};
 
 		CHECK(reporter.ok(), false);
+
+	};
+
+	TEST (tasml_source_mapping) {
+
+		std::string code = R"(
+			source "./test/foo.bar" 21 37
+			byte 1
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		auto program = tasml::assemble(reporter, code);
+		ASSERT(reporter.ok());
+
+		auto slocs = program.locations();
+		auto files = program.files();
+
+		CHECK(slocs.size(), 1);
+		CHECK(files.size(), 1);
+
+		CHECK(files[0], "./test/foo.bar");
+		CHECK(slocs[0].file, 0);
+		CHECK(slocs[0].line, 21);
+		CHECK(slocs[0].column, 37);
 
 	};
 

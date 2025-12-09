@@ -1,7 +1,6 @@
 #pragma once
-#include <string>
-#include <filesystem>
-#include <fstream>
+
+#include "external.hpp"
 
 namespace asmio::util {
 

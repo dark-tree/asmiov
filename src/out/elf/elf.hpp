@@ -5,8 +5,8 @@
 #include "section.hpp"
 #include "segment.hpp"
 #include "symbol.hpp"
-#include "out/buffer/segmented.hpp"
 #include "out/chunk/buffer.hpp"
+#include "out/chunk/codecs.hpp"
 
 #define DEFAULT_ELF_MOUNT 0x08048000
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <out/buffer/segmented.hpp>
 #include "elf.hpp"
 
 namespace asmio {

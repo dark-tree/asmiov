@@ -7,6 +7,7 @@
 #include <out/buffer/label.hpp>
 #include <out/buffer/segmented.hpp>
 #include <out/chunk/buffer.hpp>
+#include <out/chunk/codecs.hpp>
 
 #include "vstl.hpp"
 
@@ -269,6 +270,84 @@ namespace test {
 		CHECK(locations[0].file, 0);
 		CHECK(locations[1].file, 1);
 		CHECK(locations[2].file, 0);
+
+	};
+
+	TEST (util_codec_uleb128) {
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<UnsignedLeb128>(13);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 1);
+			CHECK(bytes[0], 13);
+		}
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<UnsignedLeb128>(127);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 1);
+			CHECK(bytes[0], 127);
+		}
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<UnsignedLeb128>(128);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 2);
+			CHECK(bytes[0], 128);
+			CHECK(bytes[1], 1);
+		}
+
+		{ // from wikipedia
+			ChunkBuffer buffer {};
+			buffer.put<UnsignedLeb128>(624485);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 3);
+			CHECK(bytes[0], 0xE5);
+			CHECK(bytes[1], 0x8E);
+			CHECK(bytes[2], 0x26);
+		}
+
+	};
+
+	TEST (util_codec_sleb128) {
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<SignedLeb128>(13);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 1);
+			CHECK(bytes[0], 13);
+		}
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<SignedLeb128>(-1);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 1);
+			CHECK(bytes[0], 0x7f);
+		}
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<SignedLeb128>(128);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 2);
+			CHECK(bytes[0], 128);
+			CHECK(bytes[1], 1);
+		}
+
+		{ // from wikipedia
+			ChunkBuffer buffer {};
+			buffer.put<SignedLeb128>(-123456);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 3);
+			CHECK(bytes[0], 0xC0);
+			CHECK(bytes[1], 0xBB);
+			CHECK(bytes[2], 0x78);
+		}
 
 	};
 

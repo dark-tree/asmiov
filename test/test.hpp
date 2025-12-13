@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace test {
 
 	inline std::string call_shell(std::string cmd) {

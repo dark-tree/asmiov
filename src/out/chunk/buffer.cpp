@@ -113,7 +113,7 @@ namespace asmio {
 	}
 
 	void ChunkBuffer::add_link(const Linker& linker) {
-		m_root->m_linkers.emplace_back(this, shared_bytes.size(), linker);
+		m_root->m_linkers.emplace_back(this, size(), linker);
 	}
 
 	void ChunkBuffer::set_root(ChunkBuffer* chunk) {
@@ -252,7 +252,7 @@ namespace asmio {
 		return m_root;
 	}
 
-	ChunkBuffer& ChunkBuffer::adopt(const Ptr& orphan) {
+	ChunkBuffer* ChunkBuffer::adopt(const Ptr& orphan) {
 
 		if (orphan->m_parent != nullptr) {
 			throw std::runtime_error {"Unable to adopt element from another tree!"};
@@ -270,7 +270,40 @@ namespace asmio {
 
 		last_region = CHUNK;
 		m_regions.emplace_back(orphan);
-		return *this;
+		return this;
+	}
+
+	ChunkBuffer* ChunkBuffer::merge(const Ptr& orphan) {
+
+		if (orphan->m_parent != nullptr) {
+			throw std::runtime_error {"Unable to adopt element from another tree!"};
+		}
+
+		std::vector<uint8_t> buffer;
+		buffer.reserve(orphan->bytes());
+
+		orphan->bake(buffer);
+		this->write(buffer);
+
+		return this;
+	}
+
+	ChunkBuffer* ChunkBuffer::clear() {
+		if (has_links) {
+			throw std::runtime_error {"Unable to clear a buffer with links!"};
+		}
+
+		for (const auto& region : m_regions) {
+			if (std::holds_alternative<Ptr>(region)) {
+				throw std::runtime_error {"Unable to clear a buffer with childrens!"};
+			}
+		}
+
+		m_regions.clear();
+		shared_bytes.clear();
+		last_region = UNSET;
+
+		return this;
 	}
 
 	ChunkBuffer::Ptr ChunkBuffer::chunk(const char* name) {

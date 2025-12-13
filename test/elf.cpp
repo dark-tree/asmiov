@@ -242,4 +242,97 @@ namespace test {
 
 	};
 
+	TEST(elf_line_section) {
+
+		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+
+		auto emitter1 = file.line_emitter();
+		auto emitter2 = file.line_emitter();
+
+		CHECK(emitter1, emitter2);
+
+		DwarfDir d = emitter2->add_directory("./");
+		DwarfFile f = emitter2->add_file(d, "hate.txt");
+		emitter2->set_file(f);
+		emitter2->set_mapping(0xFFFFFF, 1, 1);
+		emitter2->end_sequence();
+
+		util::TempFile temp {file};
+		std::string result = call_shell("readelf -aw " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		ASSERT(result.contains("[ 2] .debug_line       PROGBITS"));
+
+		ASSERT(result.contains("Line Base:                   -3"));
+		ASSERT(result.contains("Line Range:                  12"));
+		ASSERT(result.contains("Opcode Base:                 13"));
+
+		ASSERT(result.contains("0	./"));
+		ASSERT(result.contains("0	0	hate.txt"));
+
+		ASSERT(result.contains("[0x00000035]  Set File Name to entry 0 in the File Name Table"));
+		ASSERT(result.contains("[0x00000037]  Set column to 1"));
+		ASSERT(result.contains("[0x00000039]  Advance PC by 16777215 to 0xffffff"));
+		ASSERT(result.contains("[0x0000003f]  Extended opcode 1: End of Sequence"));
+
+	};
+
+	TEST(elf_line_sequence) {
+
+		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+
+		auto emitter = file.line_emitter();
+
+
+		DwarfDir d = emitter->add_directory("./");
+		DwarfFile f1 = emitter->add_file(d, "caine.txt");
+		DwarfFile f2 = emitter->add_file(d, "abel.txt");
+
+		emitter->set_file(f1);
+		emitter->set_mapping(0x20000000, 1, 1);
+		emitter->set_mapping(0x20000004, 2, 1);
+		emitter->set_mapping(0x20000005, 42, 1);
+		emitter->set_mapping(0x20000006, 42, 3);
+
+		emitter->set_file(f2);
+		emitter->set_mapping(0x10000000, 1, 1);
+		emitter->set_mapping(0x10000014, 2, 1); // test special case
+		emitter->end_sequence();
+
+		util::TempFile temp {file};
+		std::string result = call_shell("readelf -aw " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		auto line_block = util::split_string(result, "Line Number Statements:").at(1);
+		auto lines = util::normalize_strings(util::split_string(line_block));
+
+		std::vector<std::string> expected = {
+			"[0x00000040]  Set File Name to entry 0 in the File Name Table",
+			"[0x00000042]  Set column to 1",
+			"[0x00000044]  Advance PC by 536870912 to 0x20000000",
+			"[0x0000004a]  Copy",
+			"[0x0000004b]  Special opcode 52: advance Address by 4 to 0x20000004 and Line by 1 to 2",
+			"[0x0000004c]  Advance Line by 40 to 42",
+			"[0x0000004e]  Special opcode 15: advance Address by 1 to 0x20000005 and Line by 0 to 42",
+			"[0x0000004f]  Set column to 3",
+			"[0x00000051]  Special opcode 15: advance Address by 1 to 0x20000006 and Line by 0 to 42",
+			"[0x00000052]  Set File Name to entry 1 in the File Name Table",
+			"[0x00000054]  Extended opcode 2: set Address to 0x10000000",
+			"[0x0000005f]  Set column to 1",
+			"[0x00000061]  Advance Line by -41 to 1",
+			"[0x00000063]  Copy",
+			"[0x00000064]  Advance PC by 20 to 0x10000014",
+			"[0x00000066]  Advance Line by 1 to 2",
+			"[0x00000068]  Copy",
+			"[0x00000069]  Extended opcode 1: End of Sequence",
+		};
+
+		CHECK(lines, expected);
+
+	};
+
 }

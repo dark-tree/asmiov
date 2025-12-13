@@ -202,6 +202,18 @@ namespace asmio {
 
 	}
 
+	std::shared_ptr<DwarfLineEmitter> ElfFile::line_emitter() {
+		if (dwarf_line_emitter) {
+			return dwarf_line_emitter;
+		}
+
+		auto chunk = section(".debug_line", ElfSectionType::PROGBITS, {});
+		chunk.data->name = ".debug_line";
+
+		dwarf_line_emitter = std::make_shared<DwarfLineEmitter>(chunk.data, 8);
+		return dwarf_line_emitter;
+	}
+
 	bool ElfFile::save(const std::string& path) const {
 
 		using std::filesystem::perms;

@@ -19,6 +19,97 @@ concept castable = requires (const A& arg) { static_cast<T>(arg); };
 
 namespace asmio::util {
 
+	template <typename, typename...>
+	struct function_decompose : std::false_type {};
+
+	template <typename R, typename... A>
+	struct function_decompose<R(A...)> {
+		using return_type = R;
+		using arguments = std::tuple<A...>;
+
+		template <size_t index>
+		using arg_type = std::tuple_element_t<index, arguments>;
+	};
+
+	template <typename F, typename T>
+	struct UniqueHandle {
+
+		private:
+
+			friend F; // wait, you can do that?
+			T m_handle;
+
+			constexpr UniqueHandle(T handle)
+				: m_handle(handle) {
+			}
+
+		public:
+
+			const T& handle() const {
+				return m_handle;
+			}
+
+	};
+
+	// https://stackoverflow.com/a/6500499
+	inline std::string trim(const std::string& str) {
+		std::string copy = str;
+		copy.erase(copy.find_last_not_of(' ') + 1);  // Suffixing spaces
+		copy.erase(0, copy.find_first_not_of(' '));  // Prefixing spaces
+		return copy;
+	}
+
+	// https://stackoverflow.com/a/46931770
+	inline std::vector<std::string> split_string(const std::string& str, const std::string_view& delim) {
+		size_t pos_start = 0, pos_end, delim_len = delim.length();
+		std::string token;
+		std::vector<std::string> res;
+
+		while ((pos_end = str.find(delim, pos_start)) != std::string::npos) {
+			token = str.substr (pos_start, pos_end - pos_start);
+			pos_start = pos_end + delim_len;
+			res.push_back (token);
+		}
+
+		res.push_back(str.substr(pos_start));
+		return res;
+	}
+
+	// https://stackoverflow.com/a/46931770
+	inline std::vector<std::string> split_string(const std::string& str, char delim = '\n') {
+		std::vector<std::string> result;
+		std::stringstream ss (str);
+				size_t count = 0;
+
+		for (char c : str) {
+			if (c == delim) count ++;
+		}
+
+		result.reserve(count);
+		std::string item;
+
+		while (getline(ss, item, delim)) {
+			result.push_back(item);
+		}
+
+		return result;
+	}
+
+	inline std::vector<std::string> normalize_strings(const std::vector<std::string>& strings) {
+		std::vector<std::string> output;
+		output.reserve(strings.size());
+
+		for (auto& string : strings) {
+			if (string.empty()) {
+				continue;
+			}
+
+			output.push_back(trim(string));
+		}
+
+		return output;
+	}
+
 	// https://codereview.stackexchange.com/a/22907
 	inline std::vector<char> read_whole(const std::string& path) {
 		std::ifstream ifs(path, std::ios::binary|std::ios::ate);

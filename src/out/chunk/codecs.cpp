@@ -58,4 +58,31 @@ namespace asmio {
 		}
 	}
 
+	void DynamicInt::encode(ChunkBuffer& buffer, std::tuple<int, uint64_t> pack) {
+		int bytes = std::get<0>(pack);
+		uint64_t value = std::get<1>(pack);
+
+		if (bytes == 1) {
+			buffer.put<uint8_t>(value);
+			return;
+		}
+
+		if (bytes == 2) {
+			buffer.put<uint16_t>(value);
+			return;
+		}
+
+		if (bytes == 4) {
+			buffer.put<uint32_t>(value);
+			return;
+		}
+
+		if (bytes == 8) {
+			buffer.put<uint64_t>(value);
+			return;
+		}
+
+		throw std::runtime_error("Invalid byte width in DynamicInt codec!");
+	}
+
 }

@@ -5,6 +5,7 @@
 #include "section.hpp"
 #include "segment.hpp"
 #include "symbol.hpp"
+#include "dwarf/lines.hpp"
 #include "out/chunk/buffer.hpp"
 #include "out/chunk/codecs.hpp"
 
@@ -81,6 +82,7 @@ namespace asmio {
 			ChunkBuffer::Ptr local_symbols;
 			ChunkBuffer::Ptr other_symbols;
 
+			std::shared_ptr<DwarfLineEmitter> dwarf_line_emitter = nullptr;
 			std::unordered_map<std::string, IndexedChunk> section_map;
 
 			int define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, const ElfSectionCreateInfo& info);
@@ -107,6 +109,12 @@ namespace asmio {
 			 * local and global symbols can be defined in any order.
 			 */
 			void symbol(const std::string& name, ElfSymbolType type, ElfSymbolBinding binding, ElfSymbolVisibility visibility, int section, size_t offset, size_t size);
+
+			/**
+			 * Get a handle for adding address-line mapping information into the file, this object can be queried
+			 * multiple times but should be used only once as the address values need to be provided in ascending order.
+			 */
+			std::shared_ptr<DwarfLineEmitter> line_emitter();
 
 		public:
 

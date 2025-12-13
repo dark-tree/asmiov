@@ -253,8 +253,7 @@ namespace test {
 
 		DwarfDir d = emitter2->add_directory("./");
 		DwarfFile f = emitter2->add_file(d, "hate.txt");
-		emitter2->set_file(f);
-		emitter2->set_mapping(0xFFFFFF, 1, 1);
+		emitter2->set_mapping(0xFFFFFF, f, 1, 1);
 		emitter2->end_sequence();
 
 		util::TempFile temp {file};
@@ -285,20 +284,17 @@ namespace test {
 
 		auto emitter = file.line_emitter();
 
-
 		DwarfDir d = emitter->add_directory("./");
 		DwarfFile f1 = emitter->add_file(d, "caine.txt");
 		DwarfFile f2 = emitter->add_file(d, "abel.txt");
 
-		emitter->set_file(f1);
-		emitter->set_mapping(0x20000000, 1, 1);
-		emitter->set_mapping(0x20000004, 2, 1);
-		emitter->set_mapping(0x20000005, 42, 1);
-		emitter->set_mapping(0x20000006, 42, 3);
+		emitter->set_mapping(0x20000000, f1, 1, 1);
+		emitter->set_mapping(0x20000004, f1, 2, 1);
+		emitter->set_mapping(0x20000005, f1, 42, 1);
+		emitter->set_mapping(0x20000006, f1, 42, 3);
 
-		emitter->set_file(f2);
-		emitter->set_mapping(0x10000000, 1, 1);
-		emitter->set_mapping(0x10000014, 2, 1); // test special case
+		emitter->set_mapping(0x10000000, f2, 1, 1);
+		emitter->set_mapping(0x10000014, f2, 2, 1); // test special case
 		emitter->end_sequence();
 
 		util::TempFile temp {file};
@@ -329,6 +325,43 @@ namespace test {
 			"[0x00000066]  Advance Line by 1 to 2",
 			"[0x00000068]  Copy",
 			"[0x00000069]  Extended opcode 1: End of Sequence",
+		};
+
+		CHECK(lines, expected);
+
+	};
+
+	TEST (tasml_source_mapping) {
+
+		std::string code = R"(
+			source "./test/foo.bar" 21 37
+			byte 1
+			source "./test/foo.bar" 22 37
+			byte 2
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name, true};
+		auto program = tasml::assemble(reporter, code);
+		ASSERT(reporter.ok());
+
+		ElfFile file = to_elf(program, Label::UNSET);
+		util::TempFile object {file, ".o"};
+
+		std::string result = call_shell("readelf -aw " + object.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		auto line_block = util::split_string(result, "Line Number Statements:").at(1);
+		auto lines = util::normalize_strings(util::split_string(line_block));
+
+		std::vector<std::string> expected = {
+			"[0x0000003a]  Set File Name to entry 0 in the File Name Table",
+			"[0x0000003c]  Set column to 37",
+			"[0x0000003e]  Advance Line by 20 to 21",
+			"[0x00000040]  Copy",
+			"[0x00000041]  Special opcode 16: advance Address by 1 to 0x1 and Line by 1 to 22",
+			"[0x00000042]  Extended opcode 1: End of Sequence"
 		};
 
 		CHECK(lines, expected);

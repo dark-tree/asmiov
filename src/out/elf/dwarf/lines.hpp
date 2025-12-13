@@ -129,11 +129,8 @@ namespace asmio {
 			/// Add a new file entry and get its handle
 			DwarfFile add_file(DwarfDir dir, const std::string& path);
 
-			/// Set the current file
-			void set_file(DwarfFile file);
-
 			/// Associate the given address with the given line and column in the current file
-			void set_mapping(size_t address, int line, int column);
+			void set_mapping(size_t address, DwarfFile file, int line, int column);
 
 			/// Terminate the current sequence
 			void end_sequence();

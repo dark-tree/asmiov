@@ -140,15 +140,13 @@ namespace asmio {
 		return file;
 	}
 
-	void DwarfLineEmitter::set_file(DwarfFile file) {
+	void DwarfLineEmitter::set_mapping(size_t address, DwarfFile file, int line, int column) {
+
 		if (state.file != file.handle()) {
 			state.file = file.handle();
 
 			emit(DwarfLineStdOpcode::set_file, make_encodec<UnsignedLeb128>(state.file));
 		}
-	}
-
-	void DwarfLineEmitter::set_mapping(size_t address, int line, int column) {
 
 		if (address < state.address) {
 			const auto location = std::make_tuple<int, uint64_t>(8, static_cast<uint64_t>(address));

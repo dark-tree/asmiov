@@ -4,6 +4,31 @@
 
 namespace asmio {
 
+	static void export_line_data(ElfFile& elf, SegmentedBuffer& segmented) {
+
+		// don't create the line emitter if we have no lines
+		if (segmented.locations().empty()) {
+			return;
+		}
+
+		auto emitter = elf.line_emitter();
+
+		const DwarfDir root = emitter->add_directory("/");
+		std::vector<DwarfFile> files;
+
+		for (const auto& file : segmented.files()) {
+			files.emplace_back(emitter->add_file(root, file));
+		}
+
+		for (const auto& line : segmented.locations()) {
+			size_t address = segmented.get_offset(line.marker);
+			emitter->set_mapping(address, files[line.file], line.line, line.column);
+		}
+
+		emitter->end_sequence();
+
+	}
+
 	ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address, const Linkage::Handler& handler) {
 
 		struct MappingInfo {
@@ -11,7 +36,7 @@ namespace asmio {
 			ElfSymbolType content;
 		};
 
-		// after alignment we will know how big the buffer needs to be
+		// after alignment, we will know how big the buffer needs to be
 		const size_t page = getpagesize();
 		segmented.align(page);
 		segmented.link(address, handler);
@@ -92,6 +117,8 @@ namespace asmio {
 
 			elf.symbol(label.string(), info.content, binding, visibility, info.section, marker.offset, symbol.size);
 		}
+
+		export_line_data(elf, segmented);
 
 		return elf;
 	}

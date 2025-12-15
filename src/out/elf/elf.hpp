@@ -5,6 +5,7 @@
 #include "section.hpp"
 #include "segment.hpp"
 #include "symbol.hpp"
+#include "dwarf/abbrev.hpp"
 #include "dwarf/lines.hpp"
 #include "out/chunk/buffer.hpp"
 #include "out/chunk/codecs.hpp"
@@ -83,6 +84,7 @@ namespace asmio {
 			ChunkBuffer::Ptr other_symbols;
 
 			std::shared_ptr<DwarfLineEmitter> dwarf_line_emitter = nullptr;
+			std::shared_ptr<DwarfAbbreviations> dwarf_abbrev_emitter = nullptr;
 			std::unordered_map<std::string, IndexedChunk> section_map;
 
 			int define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, const ElfSectionCreateInfo& info);
@@ -115,6 +117,8 @@ namespace asmio {
 			 * multiple times but should be used only once as the address values need to be provided in ascending order.
 			 */
 			std::shared_ptr<DwarfLineEmitter> line_emitter();
+
+			std::shared_ptr<DwarfAbbreviations> dwarf_abbrev();
 
 		public:
 

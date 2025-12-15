@@ -331,7 +331,7 @@ namespace test {
 
 	};
 
-	TEST (tasml_source_mapping) {
+	TEST (elf_tasml_source_mapping) {
 
 		std::string code = R"(
 			source "./test/foo.bar" 21 37
@@ -365,6 +365,52 @@ namespace test {
 		};
 
 		CHECK(lines, expected);
+
+	};
+
+	TEST (elf_dwarf_abbreviations) {
+
+		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+
+		auto emitter = file.dwarf_abbrev();
+
+		auto t1 = DwarfObjectBuilder::of(DwarfTag::base_type)
+			.add(DwarfAttr::name, DwarfForm::string)
+			.add(DwarfAttr::encoding, DwarfForm::data1)
+			.add(DwarfAttr::byte_size, DwarfForm::data1);
+
+		auto t2 = DwarfObjectBuilder::of(DwarfTag::pointer_type)
+			.add(DwarfAttr::type, DwarfForm::ref4);
+
+		// same as t1
+		auto t3 = DwarfObjectBuilder::of(DwarfTag::base_type)
+			.add(DwarfAttr::name, DwarfForm::string)
+			.add(DwarfAttr::encoding, DwarfForm::data1)
+			.add(DwarfAttr::byte_size, DwarfForm::data1);
+
+		int a = emitter->submit(t1);
+		int b = emitter->submit(t1); // excluded
+		int c = emitter->submit(t2);
+		int d = emitter->submit(t3); // excluded
+
+		CHECK(a, 1);
+		CHECK(b, 1);
+		CHECK(c, 2);
+		CHECK(d, 1);
+
+		util::TempFile object {file};
+		std::string result = call_shell("readelf -aw " + object.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		ASSERT(result.contains("1      DW_TAG_base_type    [no children]"));
+		ASSERT(result.contains("2      DW_TAG_pointer_type    [no children]"));
+		ASSERT(result.contains("DW_AT_name         DW_FORM_string"));
+		ASSERT(result.contains("DW_AT_encoding     DW_FORM_data1"));
+		ASSERT(result.contains("DW_AT_byte_size    DW_FORM_data1"));
+		ASSERT(result.contains("DW_AT_type         DW_FORM_ref4"));
+		ASSERT(result.contains("DW_AT value: 0     DW_FORM value: 0"));
 
 	};
 

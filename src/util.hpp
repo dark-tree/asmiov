@@ -11,6 +11,9 @@ concept trivially_copyable = std::is_trivially_copyable_v<T>;
 template <typename T, typename A>
 concept castable = requires (const A& arg) { static_cast<T>(arg); };
 
+#define ENUM_BEGIN __INTERNAL__ = __LINE__,
+#define ENUM_END ENUM_LENGTH = __LINE__ - __INTERNAL__ - 1,
+
 #define EXIT_OK 0
 #define EXIT_ERROR 1
 
@@ -18,6 +21,12 @@ concept castable = requires (const A& arg) { static_cast<T>(arg); };
 #define ASMIOV_SOURCE "https://github.com/dark-tree/asmiov"
 
 namespace asmio::util {
+
+	template <typename T>
+	concept is_enumeration = requires { std::is_enum_v<T>; };
+
+	template <is_enumeration T>
+	constexpr size_t enum_length = static_cast<size_t>(T::ENUM_LENGTH);
 
 	template <typename, typename...>
 	struct function_decompose : std::false_type {};
@@ -312,6 +321,11 @@ namespace asmio::util {
 		}
 
 		return x;
+	}
+
+	template <typename T>
+	constexpr uint64_t hash_djb2(const std::vector<T>& data) {
+		return hash_djb2(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T));
 	}
 
 	constexpr int digit_value(char c) {

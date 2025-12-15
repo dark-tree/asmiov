@@ -4,7 +4,7 @@ namespace asmio {
 
 	/// See DWARF specification v5 section 7.5.6, page 220
 	/// DWARF data encoding description
-	enum struct DwarfForm {
+	enum struct DwarfForm : uint8_t {
 		addr           = 0x01,
 		block2         = 0x03,
 		block4         = 0x04,

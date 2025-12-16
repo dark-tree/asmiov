@@ -5,6 +5,7 @@
 
 #include <vstl.hpp>
 #include <out/buffer/writer.hpp>
+#include <out/elf/dwarf/encoding.hpp>
 #include <tasml/top.hpp>
 
 #include "util/tmp.hpp"
@@ -371,7 +372,6 @@ namespace test {
 	TEST (elf_dwarf_abbreviations) {
 
 		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
-
 		auto emitter = file.dwarf_abbrev();
 
 		auto t1 = DwarfObjectBuilder::of(DwarfTag::base_type)
@@ -411,6 +411,45 @@ namespace test {
 		ASSERT(result.contains("DW_AT_byte_size    DW_FORM_data1"));
 		ASSERT(result.contains("DW_AT_type         DW_FORM_ref4"));
 		ASSERT(result.contains("DW_AT value: 0     DW_FORM value: 0"));
+
+	};
+
+	TEST (elf_dwarf_info) {
+
+		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+		auto emitter = file.dwarf_info();
+
+		auto t1 = DwarfObjectBuilder::of(DwarfTag::base_type)
+			.add(DwarfAttr::name, DwarfForm::string)
+			.add(DwarfAttr::encoding, DwarfForm::data1)
+			.add(DwarfAttr::byte_size, DwarfForm::data1);
+
+		auto t2 = DwarfObjectBuilder::of(DwarfTag::pointer_type)
+			.add(DwarfAttr::type, DwarfForm::ref4);
+
+		auto unit = emitter->compile_unit("my_unit.s");
+
+		auto s1 = emitter->submit(t1, unit);
+		s1->write("test_t");
+		s1->put<uint8_t>(DwarfEncoding::UNSIGNED);
+		s1->put<uint8_t>(4);
+
+		auto s2 = emitter->submit(t2, unit);
+		s2->put<uint32_t>(s1.offset);
+
+		util::TempFile object {file};
+		std::string result = call_shell("readelf -aw " + object.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		ASSERT(result.contains("Abbrev Number: 1 (DW_TAG_compile_unit)"));
+		ASSERT(result.contains("Abbrev Number: 2 (DW_TAG_base_type)"));
+		ASSERT(result.contains("Abbrev Number: 3 (DW_TAG_pointer_type)"));
+		ASSERT(result.contains("DW_AT_name        : test_t"));
+		ASSERT(result.contains("DW_AT_name        : my_unit.s"));
+		ASSERT(result.contains("DW_AT_encoding    : 7	(unsigned)"));
+		ASSERT(result.contains("DW_AT_type        : <0x24>"));
 
 	};
 

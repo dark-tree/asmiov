@@ -89,6 +89,8 @@ namespace asmio {
 
 			DwarfAbbreviation delegate();
 
+			bool has_children();
+
 	};
 
 	class DwarfAbbreviations {

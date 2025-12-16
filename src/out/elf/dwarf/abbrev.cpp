@@ -84,6 +84,10 @@ namespace asmio {
 		return abbreviation;
 	}
 
+	bool DwarfObjectBuilder::has_children() {
+		return head.children;
+	}
+
 	/*
 	 * region DwarfAbbreviations
 	 */

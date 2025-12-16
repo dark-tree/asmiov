@@ -226,6 +226,18 @@ namespace asmio {
 		return dwarf_abbrev_emitter;
 	}
 
+	std::shared_ptr<DwarfInformation> ElfFile::dwarf_info() {
+		if (dwarf_info_emitter) {
+			return dwarf_info_emitter;
+		}
+
+		auto chunk = section(".debug_info", ElfSectionType::PROGBITS, {});
+		chunk.data->name = ".debug_info";
+
+		dwarf_info_emitter = std::make_shared<DwarfInformation>(chunk.data, dwarf_abbrev());
+		return dwarf_info_emitter;
+	}
+
 	bool ElfFile::save(const std::string& path) const {
 
 		using std::filesystem::perms;

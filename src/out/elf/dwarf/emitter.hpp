@@ -5,8 +5,6 @@ namespace asmio {
 
 	struct DwarfArrayEmitter {
 
-		constexpr static int DWARF_VERSION = 5;
-
 		ChunkBuffer::Ptr head;
 		ChunkBuffer::Ptr body;
 

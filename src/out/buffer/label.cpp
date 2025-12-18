@@ -15,8 +15,7 @@ namespace asmio {
 		}
 
 		allocated = true;
-		ptr = reinterpret_cast<char*>(malloc(sizeof(ref_header) + str.size())) + sizeof(ref_header);
-		*get_refcount() = 1;
+		ptr = ref_allocate<char>(str.size());
 
 		length = str.length();
 		hash = util::hash_djb2(str.c_str(), length);
@@ -26,13 +25,7 @@ namespace asmio {
 	Label::~Label() {
 		if (allocated) {
 			allocated = false;
-
-			ref_header* header = get_refcount();
-			*header -= 1;
-
-			if (*header == 0) {
-				free(header);
-			}
+			ref_free(ptr);
 		}
 	}
 

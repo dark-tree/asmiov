@@ -1,7 +1,10 @@
 #pragma once
 
+#include <util/refcnt.hpp>
+
 #include "external.hpp"
 #include "asm/util.hpp"
+#include "util/refcnt.hpp"
 
 namespace asmio {
 
@@ -10,20 +13,18 @@ namespace asmio {
 
 		private:
 
-			// a Label can exists in one of 4 distinct states, the empty state represents a Label
+			// a Label can exist in one of 4 distinct states, the empty state represents a Label
 			// that will never compare as equal to any other Label, except for the empty Label itself.
 			//
 			// Condition                                  | Union      | Description                            //
 			// ------------------------------------------ + ---------- + -------------------------------------- //
 			// length != 0, hash != 0, allocated == true  | Label::ptr | owns a null-byte terminated c-string   //
-			// length != 0, hash != 0, allocated == false | Label::str | points into a external char span       //
-			// length == 0, hash != 0, allocated == false | Label::id  | 64 bit integer based unique identifier //
+			// length != 0, hash != 0, allocated == false | Label::str | points into an external char span      //
+			// length == 0, hash != 0, allocated == false | Label::id  | 64-bit integer based unique identifier //
 			// length == 0, hash == 0, allocated == false |            | empty, does not contain any reference  //
 
-			using ref_header = uint32_t;
-
 			union {
-				char* ptr;       // used for allocated labels, points at the string right after the ref_header
+				char* ptr;       // used for allocated labels, points at the string right after the RefHeader
 				const char* str; // used for const strings
 				uint64_t id;     // used for ID only Labels
 			};
@@ -34,10 +35,6 @@ namespace asmio {
 
 			constexpr explicit Label(uint64_t id)
 				: id(id), allocated(false), length(0), hash(util::hash_tmix64(id)) {
-			}
-
-			ref_header* get_refcount() const {
-				return reinterpret_cast<ref_header*>(ptr - sizeof(ref_header));
 			}
 
 		public:
@@ -108,7 +105,7 @@ namespace asmio {
 
 				// increase the ref-count
 				if (label.allocated) {
-					*get_refcount() += 1;
+					ref_increment(ptr);
 				}
 			}
 

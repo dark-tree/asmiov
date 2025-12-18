@@ -351,4 +351,33 @@ namespace test {
 
 	};
 
+	TEST (util_refcnt) {
+
+		int* buffer = ref_allocate<int>(4);
+
+		buffer[0] = 21;
+		buffer[1] = 37;
+		buffer[2] = 19;
+		buffer[3] = 23;
+
+		CHECK(ref_count(buffer), 1);
+		CHECK(buffer[0], 21);
+		CHECK(buffer[3], 23);
+
+		ref_increment(buffer);
+
+		CHECK(ref_count(buffer), 2);
+		CHECK(buffer[0], 21);
+		CHECK(buffer[3], 23);
+
+		ASSERT(!ref_free(buffer));
+
+		CHECK(ref_count(buffer), 1);
+		CHECK(buffer[0], 21);
+		CHECK(buffer[3], 23);
+
+		ASSERT(ref_free(buffer));
+
+	};
+
 }

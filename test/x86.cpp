@@ -2,6 +2,7 @@
 #define DEBUG_MODE false
 #define VSTL_TEST_COUNT 3
 #define VSTL_PRINT_SKIP_REASON true
+#define VSTL_PRINT_MODULES true
 
 #include "vstl.hpp"
 #include "asm/x86/writer.hpp"
@@ -3429,7 +3430,7 @@ namespace test {
 
 		tasml::ErrorHandler reporter {"tasml_tokenize", true};
 
-		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name(), code);
 		CHECK(to_executable(buffer).call_i32("_start"), 6);
 
 	};
@@ -3452,7 +3453,7 @@ namespace test {
 				ret
 		)";
 
-		SegmentedBuffer segmented = tasml::assemble(vstl_self.name, code);
+		SegmentedBuffer segmented = tasml::assemble(vstl_self.name(), code);
 		ExecutableBuffer buffer = to_executable(segmented);
 
 		buffer.call_i64("_start");
@@ -3515,7 +3516,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer;
-		int size;
+		size_t size;
 
 		{
 			buffer = to_executable(segmented);
@@ -3584,7 +3585,7 @@ namespace test {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {

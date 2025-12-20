@@ -26,7 +26,7 @@ namespace test {
 			b 7, @test
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 
 		EXPECT_THROW(std::runtime_error) {
 			tasml::assemble(reporter, code);
@@ -44,7 +44,7 @@ namespace test {
 			mov x2, x1
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		tasml::assemble(reporter, code);
 
 		ASSERT(reporter.ok());
@@ -66,7 +66,7 @@ namespace test {
 			nop
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -91,7 +91,7 @@ namespace test {
 			ret x8
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -126,7 +126,7 @@ namespace test {
 
 			while (std::regex_search(it, content.cend(), res, pattern)) {
 
-				tasml::ErrorHandler reporter {std::string(vstl_self.name) + "-" + file + "-" + std::to_string(suffix++), true};
+				tasml::ErrorHandler reporter {std::string(vstl_self.name()) + "-" + file + "-" + std::to_string(suffix++), true};
 
 				try {
 					tasml::assemble(reporter, res.str(1));
@@ -168,7 +168,7 @@ namespace test {
 			export private @pill
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -205,7 +205,7 @@ namespace test {
 			export private end:
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -243,7 +243,7 @@ namespace test {
 			export private end:
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 
 		EXPECT_THROW(std::runtime_error) {
 			tasml::assemble(reporter, code);
@@ -260,12 +260,12 @@ namespace test {
 			byte 1
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		auto program = tasml::assemble(reporter, code);
 		ASSERT(reporter.ok());
 
-		auto slocs = program.locations();
-		auto files = program.files();
+		auto& slocs = program.locations();
+		auto& files = program.files();
 
 		CHECK(slocs.size(), 1);
 		CHECK(files.size(), 1);

@@ -87,7 +87,7 @@ namespace test {
 
 		ChunkBuffer buffer;
 
-		// by default we encode as little-endian
+		// by default, we encode as little-endian
 		buffer.put<uint32_t>(0xA1A2'A3A4);
 		buffer.put<uint8_t>(0xBB);
 		buffer.put<uint8_t>(0xCC);

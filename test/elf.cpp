@@ -199,7 +199,7 @@ namespace test {
 			export test: byte "hello!", 0
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -341,7 +341,7 @@ namespace test {
 			byte 2
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		auto program = tasml::assemble(reporter, code);
 		ASSERT(reporter.ok());
 

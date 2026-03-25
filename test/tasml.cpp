@@ -112,10 +112,11 @@ namespace test {
 
 		for (const auto& file : files) {
 
-			std::ifstream ifs {file};
+			auto path = std::filesystem::current_path() / ".." / file;
+			std::ifstream ifs {path};
 
 			if (!ifs.is_open()) {
-				FAIL("Failed to read file " + file + ", current working directory is " + std::filesystem::current_path().string());
+				FAIL("Failed to read file: " + path.string());
 			}
 
 			std::string content;

@@ -98,14 +98,14 @@ namespace asmio::x86 {
 		buffer.insert((uint8_t *) &immediate, std::min(width, uint8_t(QWORD)));
 	}
 
-	void BufferWriter::put_linker_command(const Label& label, int32_t addend, int32_t shift, uint8_t width, LinkType type) {
+	void BufferWriter::put_linker_command(const Label& label, int32_t addend, uint8_t width, LinkType type) {
 
 		// cap at maximum supported size
 		if (width > QWORD) {
 			width = QWORD;
 		}
 
-		buffer.add_linkage(label, shift, [width, type, addend] (SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+		buffer.add_linkage(label, [width, type, addend] (SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
 			BufferMarker src = buffer->get_label(linkage.label);
 			BufferMarker dst = linkage.target;
 
@@ -132,7 +132,7 @@ namespace asmio::x86 {
 		}
 
 		if (imm.is_labeled()) {
-			put_linker_command(imm.label, imm.offset, 0, width, ABSOLUTE);
+			put_linker_command(imm.label, imm.offset, width, ABSOLUTE);
 		}
 
 		put_inst_imm(imm.offset, width);
@@ -538,7 +538,7 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_label(const Label& label, uint8_t size, int64_t addend) {
-		put_linker_command(label, addend - size, 0, size, RELATIVE);
+		put_linker_command(label, addend - size, size, RELATIVE);
 
 		while (size --> 0) {
 			put_byte(0);

@@ -127,7 +127,7 @@ namespace asmio {
 			void link(size_t base, const Linkage::Handler& handler = nullptr);
 
 			/// Insert linker command to be executed once link() is called
-			void add_linkage(const Label& label, int shift, const Linkage::Linker& linker);
+			void add_linkage(const Label& label, const Linkage::Linker& linker);
 
 			/// Get the label value
 			BufferMarker get_label(const Label& label);

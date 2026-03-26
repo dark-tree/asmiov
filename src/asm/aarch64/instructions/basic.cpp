@@ -23,12 +23,12 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_adr(Registry destination, Label label) {
-		buffer.add_linkage(label, 0, link_21_5_lo_hi);
+		buffer.add_linkage(label, link_21_5_lo_hi);
 		put_dword(0b0 << 31 | 0b10000 << 24 | destination.reg);
 	}
 
 	void BufferWriter::put_adrp(Registry destination, Label label) {
-		buffer.add_linkage(label, 0, link_21_5_lo_hi);
+		buffer.add_linkage(label, link_21_5_lo_hi);
 		put_dword(0b1 << 31 | 0b10000 << 24 | destination.reg);
 	}
 
@@ -137,7 +137,7 @@ namespace asmio::arm {
 
 	void BufferWriter::put_ldr(Registry registry, Label label) {
 		uint16_t sf = registry.wide() ? 1 : 0;
-		buffer.add_linkage(label, 0, link_19_5_aligned);
+		buffer.add_linkage(label, link_19_5_aligned);
 		put_dword(sf << 30 | 0b011000 << 24 | registry.reg);
 	}
 

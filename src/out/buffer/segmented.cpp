@@ -93,9 +93,9 @@ namespace asmio {
 		}
 	}
 
-	void SegmentedBuffer::add_linkage(const Label& label, int shift, const Linkage::Linker& linker) {
+	void SegmentedBuffer::add_linkage(const Label& label, const Linkage::Linker& linker) {
 		uint32_t offset = sections[selected].buffer.size();
-		linkages.emplace_back(label, BufferMarker {(uint32_t) selected, offset + shift}, linker);
+		linkages.emplace_back(label, BufferMarker {(uint32_t) selected, offset}, linker);
 	}
 
 	BufferMarker SegmentedBuffer::get_label(const Label& label) {

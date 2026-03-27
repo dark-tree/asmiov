@@ -81,16 +81,31 @@ namespace asmio {
 		}
 	}
 
-	void SegmentedBuffer::link(size_t base, const LinkReporter& handler) {
+	std::vector<Linkage> SegmentedBuffer::link(size_t base, const LinkReporter& handler) {
 		base_address = base;
+
+		std::vector<Linkage> external;
 
 		for (const Linkage& linkage : linkages) {
 			try {
-				linkage.type.linker(this, linkage, base);
-			} catch (std::runtime_error& error) {
+				auto it = labels.find(linkage.label);
+
+				if (it == labels.end()) {
+					if (external_symbols.contains(linkage.label)) {
+						external.push_back(linkage);
+						continue;
+					}
+
+					throw std::runtime_error {"Undefined label '" + linkage.label.string() + "' used"};
+				}
+
+				linkage.type.linker(this, linkage, it->second, base);
+			} catch (const std::runtime_error& error) {
 				if (handler) handler(linkage, error.what()); else throw;
 			}
 		}
+
+		return external;
 	}
 
 	void SegmentedBuffer::add_linkage(const Label& label, const Linkage::Type& linker, int64_t addend) {
@@ -210,6 +225,10 @@ namespace asmio {
 
 	const std::vector<ExportSymbol>& SegmentedBuffer::exports() const {
 		return exported_symbols;
+	}
+
+	void SegmentedBuffer::add_external(const Label& name) {
+		external_symbols.insert(name);
 	}
 
 	void SegmentedBuffer::add_export(const Label& label, ExportSymbol::Type type, size_t size)  {

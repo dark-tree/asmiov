@@ -160,6 +160,17 @@ namespace asmio {
 		}
 
 		/*
+		 * Import statment
+		 */
+
+		if (stream.accept("import")) {
+			auto name = stream.expect(Token::REFERENCE).as_label();
+			stream.terminal();
+			writer.import_symbol(name);
+			return;
+		}
+
+		/*
 		 * Embed statement
 		 */
 

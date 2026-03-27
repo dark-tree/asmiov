@@ -3,7 +3,7 @@
 
 namespace asmio {
 
-	static void encode_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+	static void encode_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
 		BufferMarker src = buffer->get_label(linkage.label);
 		BufferMarker dst = linkage.target;
 
@@ -39,20 +39,20 @@ namespace asmio {
 		*reinterpret_cast<uint32_t*>(buffer->get_pointer(dst)) |= ((util::bit_fill<uint64_t>(bits) & offset) << left_shift);
 	}
 
-	static void encode_26_0_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+	static void encode_26_0_aligned(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
 		encode_shifted_aligned_link(buffer, linkage, 26, 0);
 	}
 
-	static void encode_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+	static void encode_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
 		encode_shifted_aligned_link(buffer, linkage, 19, 5);
 	}
 
-	static void encode_14_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+	static void encode_14_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
 		encode_shifted_aligned_link(buffer, linkage, 14, 5);
 	}
 
-	template <size_t width>
-	static void encode_relative(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+	template <int width>
+	static void encode_relative(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
 		BufferMarker src = buffer->get_label(linkage.label);
 		BufferMarker dst = linkage.target;
 
@@ -63,11 +63,11 @@ namespace asmio {
 		}
 
 		const uint8_t* value_ptr = reinterpret_cast<const uint8_t*>(&value);
-		memcpy(buffer->get_pointer(dst), value_ptr, width);
+		std::memcpy(buffer->get_pointer(dst), value_ptr, width);
 	}
 
 	template <int width>
-	static void encode_absolute(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
+	static void encode_absolute(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
 		BufferMarker src = buffer->get_label(linkage.label);
 		BufferMarker dst = linkage.target;
 
@@ -78,7 +78,7 @@ namespace asmio {
 		}
 
 		const uint8_t* value_ptr = reinterpret_cast<const uint8_t*>(&value);
-		memcpy(buffer->get_pointer(dst), value_ptr, width);
+		std::memcpy(buffer->get_pointer(dst), value_ptr, width);
 	}
 
 	/*

@@ -18,6 +18,11 @@ namespace asmio {
 		return *this;
 	}
 
+	BasicBufferWriter &BasicBufferWriter::import_symbol(const Label& name) {
+		buffer.add_external(name);
+		return *this;
+	}
+
 	BasicBufferWriter& BasicBufferWriter::export_symbol(const Label& label, ExportSymbol::Type type, size_t size) {
 		buffer.add_export(label, type, size);
 		return *this;

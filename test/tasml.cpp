@@ -278,4 +278,49 @@ namespace test {
 
 	};
 
+	TEST (tasml_extern_unused) {
+
+		std::string code = R"(
+			lang x86
+
+			import @bar
+
+			foo:
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		auto program = tasml::assemble(reporter, code);
+		ASSERT(reporter.ok());
+
+		auto unresolved = program.link(0);
+
+		CHECK(unresolved.size(), 0);
+
+	};
+
+	TEST (tasml_extern_unresolved) {
+
+		std::string code = R"(
+			lang x86
+
+			import @bar
+
+			foo:
+				jmp @bar
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		auto program = tasml::assemble(reporter, code);
+		ASSERT(reporter.ok());
+
+		auto unresolved = program.link(0);
+
+		CHECK(unresolved.size(), 1);
+
+		CHECK(unresolved[0].label.string(), "bar");
+		CHECK(unresolved[0].type.relocation, ElfRelocationType::X86_64_PC32);
+
+	};
+
 }

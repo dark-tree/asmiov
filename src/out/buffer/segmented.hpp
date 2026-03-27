@@ -19,7 +19,7 @@ namespace asmio {
 	/// Single link job entry
 	struct Linkage {
 
-		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, size_t mount)>;
+		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, BufferMarker label, size_t mount)>;
 
 		struct Type {
 			ElfRelocationType relocation;
@@ -109,6 +109,7 @@ namespace asmio {
 			LabelMap<BufferMarker> labels;
 			std::vector<Linkage> linkages;
 			std::vector<ExportSymbol> exported_symbols;
+			std::unordered_set<Label, Label::HashFunction> external_symbols;
 
 			std::vector<SourceLocation> source_locations;
 			util::IndexedSet<std::string> source_files;
@@ -135,8 +136,8 @@ namespace asmio {
 			/// Needs to be called before linking, calculates sections start/end offsets
 			void align(size_t page);
 
-			/// Execute all linkages
-			void link(size_t base, const LinkReporter& handler = nullptr);
+			/// Execute all linkages, returns a link of unresolved, external linkages
+			std::vector<Linkage> link(size_t base, const LinkReporter& handler = nullptr);
 
 			/// Insert linker command to be executed once link() is called
 			void add_linkage(const Label& label, const Linkage::Type& linker, int64_t addend = 0);
@@ -179,6 +180,9 @@ namespace asmio {
 
 			/// Get a list of exported symbols
 			const std::vector<ExportSymbol>& exports() const;
+
+			/// Add new external symbol, external symbols are allowed to be missing
+			void add_external(const Label& name);
 
 			/// Add new symbol to the export list
 			void add_export(const Label& label, ExportSymbol::Type type, size_t size);

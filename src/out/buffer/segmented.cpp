@@ -81,21 +81,21 @@ namespace asmio {
 		}
 	}
 
-	void SegmentedBuffer::link(size_t base, const Linkage::Handler& handler) {
+	void SegmentedBuffer::link(size_t base, const LinkReporter& handler) {
 		base_address = base;
 
 		for (const Linkage& linkage : linkages) {
 			try {
-				linkage.linker(this, linkage, base);
+				linkage.type.linker(this, linkage, base);
 			} catch (std::runtime_error& error) {
 				if (handler) handler(linkage, error.what()); else throw;
 			}
 		}
 	}
 
-	void SegmentedBuffer::add_linkage(const Label& label, const Linkage::Linker& linker) {
+	void SegmentedBuffer::add_linkage(const Label& label, const Linkage::Type& linker, int64_t addend) {
 		uint32_t offset = sections[selected].buffer.size();
-		linkages.emplace_back(label, BufferMarker {(uint32_t) selected, offset}, linker);
+		linkages.emplace_back(label, BufferMarker {static_cast<uint32_t>(selected), offset}, linker, addend);
 	}
 
 	BufferMarker SegmentedBuffer::get_label(const Label& label) {

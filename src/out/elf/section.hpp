@@ -53,20 +53,4 @@ namespace asmio {
 		uint64_t entsize;    ///< Size of one entry for sections where the entries have a fixed size, 0 otherwise
 	};
 
-	struct PACKED ElfRelocationInfo {
-		uint32_t sym;
-		uint32_t type;
-	};
-
-	struct PACKED ElfImplicitRelocation {
-		uint64_t offset;
-		ElfRelocationInfo info;
-	};
-
-	struct PACKED ElfExplicitRelocation {
-		uint64_t offset;
-		ElfRelocationInfo info;
-		int64_t addend;
-	};
-
 }

@@ -39,54 +39,6 @@ namespace asmio::arm {
 		put_dword(sf << 31 | opc_from_24 << 24 | uint32_t(shift) << 22 | bit_21 << 21 | m.reg << 16 | imm6 << 10 | n.reg << 5 | dst.reg);
 	}
 
-	void BufferWriter::encode_shifted_aligned_link(SegmentedBuffer* buffer, const Linkage& linkage, int bits, int left_shift) {
-		BufferMarker src = buffer->get_label(linkage.label);
-		BufferMarker dst = linkage.target;
-
-		const int64_t distance = buffer->get_offset(src) - buffer->get_offset(dst);
-
-		if (distance & 0b11) {
-			throw std::runtime_error {"Can't reference label '" + linkage.label.string() + "' (offset " + util::to_hex(distance) + ") into target " + util::to_hex(dst.offset) + ", offset is not aligned!"};
-		}
-
-		const int64_t offset = distance >> 2;
-
-		if (!util::is_signed_encodable(offset, bits)) {
-			throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (offset " + util::to_hex(distance) + ") into target " + util::to_hex(dst.offset) + ", some data would have been truncated!"};
-		}
-
-		*reinterpret_cast<uint32_t*>(buffer->get_pointer(dst)) |= ((util::bit_fill<uint64_t>(bits) & offset) << left_shift);
-	}
-
-	void BufferWriter::link_26_0_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
-		encode_shifted_aligned_link(buffer, linkage, 26, 0);
-	}
-
-	void BufferWriter::link_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
-		encode_shifted_aligned_link(buffer, linkage, 19, 5);
-	}
-
-	void BufferWriter::link_14_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
-		encode_shifted_aligned_link(buffer, linkage, 14, 5);
-	}
-
-	void BufferWriter::link_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
-		BufferMarker src = buffer->get_label(linkage.label);
-		BufferMarker dst = linkage.target;
-
-		const int64_t offset = buffer->get_offset(src) - buffer->get_offset(dst);
-
-		if (!util::is_signed_encodable(offset, 21)) {
-			throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (offset " + util::to_hex(offset) + ") into target " + util::to_hex(dst.offset) + ", some data would have been truncated!"};
-		}
-
-		const uint64_t masked = util::bit_fill<uint64_t>(21) & offset;
-		const uint32_t immlo = masked & 0b11;
-		const uint32_t immhi = masked >> 2;
-
-		*reinterpret_cast<uint32_t*>(buffer->get_pointer(dst)) |= (immlo << 29 | immhi << 5);
-	}
-
 	uint8_t BufferWriter::pack_shift(uint8_t shift, bool wide) {
 		if (shift & 0b0000'1111) throw std::runtime_error {"Invalid shift, only multiples of 16 allowed"};
 		if (shift & 0b1100'0000) throw std::runtime_error {"Invalid shift, the maximum value of 48 exceeded"};

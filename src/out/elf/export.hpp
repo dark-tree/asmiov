@@ -5,7 +5,7 @@
 
 namespace asmio {
 
-	ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const Linkage::Handler& handler = nullptr);
+	ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address = DEFAULT_ELF_MOUNT, const LinkReporter& handler = nullptr);
 
 }
 

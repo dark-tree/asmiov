@@ -1,6 +1,7 @@
 #pragma once
 
 #include <out/elf/header.hpp>
+#include <out/elf/relocation.hpp>
 #include <util/set.hpp>
 
 #include "external.hpp"
@@ -19,13 +20,24 @@ namespace asmio {
 	struct Linkage {
 
 		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, size_t mount)>;
-		using Handler = std::function<void(const Linkage& link, const char* what)>;
+
+		struct Type {
+			ElfRelocationType relocation;
+			Linker linker;
+		};
 
 		Label label;
 		BufferMarker target;
-		Linker linker;
+		Type type;
+		int64_t addend;
+
+		constexpr Linkage(Label label, BufferMarker target, Type type, int64_t addend)
+			: label(label), target(target), type(type), addend(addend) {
+		}
 
 	};
+
+	using LinkReporter = std::function<void(const Linkage& link, const char* what)>;
 
 	/// Single Label export symbol
 	struct ExportSymbol {
@@ -124,10 +136,10 @@ namespace asmio {
 			void align(size_t page);
 
 			/// Execute all linkages
-			void link(size_t base, const Linkage::Handler& handler = nullptr);
+			void link(size_t base, const LinkReporter& handler = nullptr);
 
 			/// Insert linker command to be executed once link() is called
-			void add_linkage(const Label& label, const Linkage::Linker& linker);
+			void add_linkage(const Label& label, const Linkage::Type& linker, int64_t addend = 0);
 
 			/// Get the label value
 			BufferMarker get_label(const Label& label);

@@ -42,16 +42,6 @@ namespace asmio::arm {
 			 */
 			void put_inst_extended_register(uint32_t opcode_from_21, Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags);
 
-		private:
-
-			/// Helper function used by some "link_*" types
-			static void encode_shifted_aligned_link(SegmentedBuffer* buffer, const Linkage& linkage, int bits, int left_shift);
-
-			static void link_26_0_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
-			static void link_14_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
-			static void link_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
-			static void link_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, size_t mount);
-
 		protected:
 
 			static uint8_t pack_shift(uint8_t shift, bool wide);

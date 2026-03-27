@@ -29,7 +29,7 @@ namespace asmio {
 
 	}
 
-	ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address, const Linkage::Handler& handler) {
+	ElfFile to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address, const LinkReporter& handler) {
 
 		struct MappingInfo {
 			int section;

@@ -3,6 +3,8 @@
 // private libs
 #include <iostream>
 
+#include "out/buffer/linkage.hpp"
+
 namespace asmio::x86 {
 
 	/*
@@ -100,28 +102,47 @@ namespace asmio::x86 {
 
 	void BufferWriter::put_linker_command(const Label& label, int32_t addend, uint8_t width, LinkType type) {
 
-		// cap at maximum supported size
-		if (width > QWORD) {
-			width = QWORD;
+		if (type == RELATIVE && width == BYTE) {
+			buffer.add_linkage(label, LinkageType::X86_8_SIGN_RELATIVE, addend);
+			return;
 		}
 
-		buffer.add_linkage(label, [width, type, addend] (SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
-			BufferMarker src = buffer->get_label(linkage.label);
-			BufferMarker dst = linkage.target;
+		if (type == ABSOLUTE && width == BYTE) {
+			buffer.add_linkage(label, LinkageType::X86_8_SIGN_ABSOLUTE, addend);
+			return;
+		}
 
-			const int64_t offset = (type == RELATIVE)
-				? buffer->get_offset(dst)
-				: -mount;
+		if (type == RELATIVE && width == WORD) {
+			buffer.add_linkage(label, LinkageType::X86_16_SIGN_RELATIVE, addend);
+			return;
+		}
 
-			const int64_t value = buffer->get_offset(src) - offset + addend;
+		if (type == ABSOLUTE && width == WORD) {
+			buffer.add_linkage(label, LinkageType::X86_16_ABSOLUTE, addend);
+			return;
+		}
 
-			if (util::min_sign_extended_bytes(value) > width) {
-				throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (" + util::to_hex(value) + ") into target of size " + std::to_string(width) + ", some data would have been truncated!"};
-			}
+		if (type == RELATIVE && width == DWORD) {
+			buffer.add_linkage(label, LinkageType::X86_32_SIGN_RELATIVE, addend);
+			return;
+		}
 
-			const uint8_t* value_ptr = reinterpret_cast<const uint8_t*>(&value);
-			memcpy(buffer->get_pointer(dst), value_ptr, width);
-		});
+		if (type == ABSOLUTE && width == DWORD) {
+			buffer.add_linkage(label, LinkageType::X86_32_ABSOLUTE, addend);
+			return;
+		}
+
+		if (type == RELATIVE && width == QWORD) {
+			buffer.add_linkage(label, LinkageType::X86_64_RELATIVE, addend);
+			return;
+		}
+
+		if (type == ABSOLUTE && width == QWORD) {
+			buffer.add_linkage(label, LinkageType::X86_64_ABSOLUTE, addend);
+			return;
+		}
+
+		throw std::runtime_error {"Unsupported link type!"};
 	}
 
 	void BufferWriter::put_inst_label_imm(Location imm, uint8_t width) {

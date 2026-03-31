@@ -453,4 +453,26 @@ namespace test {
 
 	};
 
+	TEST(elf_relocations) {
+
+		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+
+		int text_idx = file.section(".text", ElfSectionType::PROGBITS, {}).index;
+
+		file.symbol("test", ElfSymbolType::OBJECT, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, text_idx, 10, 0);
+
+		file.relocation(ElfRelocationType::X86_64_32, 1, text_idx, 4, 3);
+
+		util::TempFile object {file, ".o"};
+
+		std::string result = call_shell("readelf -aw " + object.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		ASSERT(result.contains("Relocation section '.rela' at offset 0x220 contains 1 entry:"));
+		ASSERT(result.contains("000000000004  00010000000a R_X86_64_32       000000000000000a test + 3"));
+
+	};
+
 }

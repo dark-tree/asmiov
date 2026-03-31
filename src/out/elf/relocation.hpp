@@ -233,8 +233,8 @@ namespace asmio {
 	};
 
 	struct PACKED ElfRelocationInfo {
-		uint32_t sym;
 		ElfRelocationType type;
+		uint32_t sym;
 	};
 
 	struct PACKED ElfImplicitRelocation {

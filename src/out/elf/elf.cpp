@@ -174,6 +174,8 @@ namespace asmio {
 			other_symbols = symbols.data->chunk();
 			has_symbols = true;
 
+			symbol_table_index = symbols.index;
+
 			// string table must start with \0
 			symbol_strings->put<char>(0);
 
@@ -200,6 +202,32 @@ namespace asmio {
 
 		symbol_strings->write(name);
 
+	}
+
+	void ElfFile::relocation(ElfRelocationType type, int symbol, int target, size_t offset, int64_t addend) {
+		auto it = relocations.find(target);
+
+		if (it == relocations.end()) {
+
+			ElfSectionCreateInfo info {};
+			info.link = [this] noexcept { return symbol_table_index; };
+			info.info = [=] noexcept { return target; };
+			info.entry_size = sizeof(ElfExplicitRelocation);
+			info.alignment = 8;
+
+			// TODO: name?
+			relocations[target] = section(".rela", ElfSectionType::RELA, info).data;
+			it = relocations.find(target);
+
+		}
+
+		ElfExplicitRelocation relocation;
+		relocation.offset = offset;
+		relocation.addend = addend;
+		relocation.info.type = type;
+		relocation.info.sym = symbol;
+
+		it->second->put<ElfExplicitRelocation>(relocation);
 	}
 
 	std::shared_ptr<DwarfLineEmitter> ElfFile::line_emitter() {

@@ -5,6 +5,7 @@
 #include "section.hpp"
 #include "segment.hpp"
 #include "symbol.hpp"
+#include "relocation.hpp"
 #include "dwarf/abbrev.hpp"
 #include "dwarf/info.hpp"
 #include "dwarf/lines.hpp"
@@ -74,6 +75,8 @@ namespace asmio {
 			bool has_segments = false;
 			bool has_symbols = false;
 
+			int symbol_table_index = 0;
+
 			ChunkBuffer::Ptr section_headers;
 			ChunkBuffer::Ptr segment_headers;
 			ChunkBuffer::Ptr segments;
@@ -88,6 +91,7 @@ namespace asmio {
 			std::shared_ptr<DwarfAbbreviations> dwarf_abbrev_emitter = nullptr;
 			std::shared_ptr<DwarfInformation> dwarf_info_emitter = nullptr;
 			std::unordered_map<std::string, IndexedChunk> section_map;
+			std::unordered_map<int, ChunkBuffer::Ptr> relocations;
 
 			int define_section(const std::string& name, const ChunkBuffer::Ptr& section, ElfSectionType type, const ElfSectionCreateInfo& info);
 			int define_segment(ElfSegmentType type, uint32_t flags, const ChunkBuffer::Ptr& segment, uint64_t address, uint64_t tail, uint64_t align);
@@ -113,6 +117,12 @@ namespace asmio {
 			 * local and global symbols can be defined in any order.
 			 */
 			void symbol(const std::string& name, ElfSymbolType type, ElfSymbolBinding binding, ElfSymbolVisibility visibility, int section, size_t offset, size_t size);
+
+			/*
+			 * Define an ELF relocation entry for a specific symbol in the target buffer,
+			 * offset is the section offset in bytes or virutal address for executables and shared objects.
+			 */
+			void relocation(ElfRelocationType type, int symbol, int target, size_t offset, int64_t addend = 0);
 
 			/**
 			 * Get a handle for adding address-line mapping information into the file, this object can be queried

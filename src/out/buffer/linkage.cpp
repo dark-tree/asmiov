@@ -71,7 +71,7 @@ namespace asmio {
 	 */
 
 	Linkage::Type LinkageType::AARCH64_21_5_LO_HI {ElfRelocationType::AARCH64_ADR_PREL_LO21, encode_21_5_lo_hi};
-	Linkage::Type LinkageType::AARCH64_14_5_ALIGNED {ElfRelocationType::AARCH64_TSTBR14, encode_shifted_aligned<14,5>};
+	Linkage::Type LinkageType::AARCH64_14_5_ALIGNED {ElfRelocationType::AARCH64_TSTBR14, encode_shifted_aligned<14, 5>};
 	Linkage::Type LinkageType::AARCH64_19_5_ALIGNED {ElfRelocationType::AARCH64_CONDBR19, encode_shifted_aligned<19, 5>};
 	Linkage::Type LinkageType::AARCH64_26_0_ALIGNED {ElfRelocationType::AARCH64_JUMP26, encode_shifted_aligned<26, 0>};
 

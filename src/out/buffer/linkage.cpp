@@ -3,8 +3,7 @@
 
 namespace asmio {
 
-	static void encode_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
-		BufferMarker src = buffer->get_label(linkage.label);
+	static void encode_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
 		BufferMarker dst = linkage.target;
 
 		const int64_t offset = buffer->get_offset(src) - buffer->get_offset(dst);
@@ -20,8 +19,8 @@ namespace asmio {
 		*reinterpret_cast<uint32_t*>(buffer->get_pointer(dst)) |= (immlo << 29 | immhi << 5);
 	}
 
-	static void encode_shifted_aligned_link(SegmentedBuffer* buffer, const Linkage& linkage, int bits, int left_shift) {
-		BufferMarker src = buffer->get_label(linkage.label);
+	template <int bits, int left_shift>
+	static void encode_shifted_aligned(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
 		BufferMarker dst = linkage.target;
 
 		const int64_t distance = buffer->get_offset(src) - buffer->get_offset(dst) + linkage.addend;
@@ -39,21 +38,8 @@ namespace asmio {
 		*reinterpret_cast<uint32_t*>(buffer->get_pointer(dst)) |= ((util::bit_fill<uint64_t>(bits) & offset) << left_shift);
 	}
 
-	static void encode_26_0_aligned(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
-		encode_shifted_aligned_link(buffer, linkage, 26, 0);
-	}
-
-	static void encode_19_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
-		encode_shifted_aligned_link(buffer, linkage, 19, 5);
-	}
-
-	static void encode_14_5_aligned(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
-		encode_shifted_aligned_link(buffer, linkage, 14, 5);
-	}
-
 	template <int width>
-	static void encode_relative(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
-		BufferMarker src = buffer->get_label(linkage.label);
+	static void encode_relative(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
 		BufferMarker dst = linkage.target;
 
 		const int64_t value = buffer->get_offset(src) - buffer->get_offset(dst) + linkage.addend;
@@ -67,8 +53,7 @@ namespace asmio {
 	}
 
 	template <int width>
-	static void encode_absolute(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker label, size_t mount) {
-		BufferMarker src = buffer->get_label(linkage.label);
+	static void encode_absolute(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
 		BufferMarker dst = linkage.target;
 
 		const int64_t value = buffer->get_offset(src) + mount + linkage.addend;
@@ -86,9 +71,9 @@ namespace asmio {
 	 */
 
 	Linkage::Type LinkageType::AARCH64_21_5_LO_HI {ElfRelocationType::AARCH64_ADR_PREL_LO21, encode_21_5_lo_hi};
-	Linkage::Type LinkageType::AARCH64_14_5_ALIGNED {ElfRelocationType::AARCH64_TSTBR14, encode_14_5_aligned};
-	Linkage::Type LinkageType::AARCH64_19_5_ALIGNED {ElfRelocationType::AARCH64_CONDBR19, encode_19_5_aligned};
-	Linkage::Type LinkageType::AARCH64_26_0_ALIGNED {ElfRelocationType::AARCH64_JUMP26, encode_26_0_aligned};
+	Linkage::Type LinkageType::AARCH64_14_5_ALIGNED {ElfRelocationType::AARCH64_TSTBR14, encode_shifted_aligned<14,5>};
+	Linkage::Type LinkageType::AARCH64_19_5_ALIGNED {ElfRelocationType::AARCH64_CONDBR19, encode_shifted_aligned<19, 5>};
+	Linkage::Type LinkageType::AARCH64_26_0_ALIGNED {ElfRelocationType::AARCH64_JUMP26, encode_shifted_aligned<26, 0>};
 
 	Linkage::Type LinkageType::X86_64_ABSOLUTE {ElfRelocationType::X86_64_64, encode_absolute<8>};
 	Linkage::Type LinkageType::X86_64_RELATIVE {ElfRelocationType::X86_64_PC64, encode_relative<8>};

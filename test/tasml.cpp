@@ -177,7 +177,7 @@ namespace test {
 			FAIL("Errors generated");
 		}
 
-		ElfFile file = to_elf(buffer, "strlen");
+		ObjectFile file = to_elf(buffer, "strlen").bake();
 		util::TempFile temp {file};
 
 		std::string result = call_shell("readelf -a " + temp.path());
@@ -214,7 +214,7 @@ namespace test {
 			FAIL("Errors generated");
 		}
 
-		ElfFile file = to_elf(buffer, Label::UNSET);
+		ObjectFile file = to_elf(buffer, Label::UNSET).bake();
 		util::TempFile temp {file};
 
 		std::string result = call_shell("readelf -a " + temp.path());

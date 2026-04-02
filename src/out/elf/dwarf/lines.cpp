@@ -178,15 +178,15 @@ namespace asmio {
 		}
 
 		// (0, 0) will still emit a valid opcode here, but it would have been confusing.
-		// also do not that above we tried only encoding if we fall outside special range
-		// to try to always use a special opcode if possible (even for only once "channel")
+		// also do note that above we tried only encoding if we fall outside special range
+		// to try to always use a special opcode if possible (even for only one "channel")
 		if (try_emit_special_opcode(line - state.line, address - state.address)) {
 			state.line = line;
 			state.address = address;
 			return;
 		}
 
-		// fallback if we fall at those few addresses the above doesn't cover
+		// fallback if we fall at those few addresses the above doesn't fully cover
 		// See table in DWARF specification v5 section D.5.2, page 322 - the last row is not full
 		if (address != state.address) {
 			emit_address_advance(address - state.address);

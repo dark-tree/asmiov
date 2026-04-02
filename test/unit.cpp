@@ -8,6 +8,7 @@
 #include <out/buffer/segmented.hpp>
 #include <out/chunk/buffer.hpp>
 #include <out/chunk/codecs.hpp>
+#include <util/pool.hpp>
 
 #include "vstl.hpp"
 
@@ -377,6 +378,97 @@ namespace test {
 		CHECK(buffer[3], 23);
 
 		ASSERT(ref_free(buffer));
+
+	};
+
+	TEST (util_empty_block_pool) {
+
+		struct Foo {
+			int a;
+			int b;
+		};
+
+		Pool<Foo> pool {128};
+
+		CHECK(pool.blocks(), 1);
+		CHECK(pool.empty(), true);
+		CHECK(pool.size(), 0);
+
+		for (const Foo* foo : pool) {
+			(void) foo;
+			ASSERT_MSG(false, "Iterator invoked for empty pool!");
+		}
+
+	};
+
+	TEST (util_block_pool) {
+
+		struct Foo {
+			int a;
+			int b;
+		};
+
+		Pool<Foo> pool {2};
+
+		CHECK(pool.blocks(), 1);
+		CHECK(pool.empty(), true);
+		CHECK(pool.size(), 0);
+
+		Foo* a = pool.push({11, 7});
+		Foo* b = pool.push({3, 5});
+
+		CHECK(pool.blocks(), 1);
+		CHECK(pool.empty(), false);
+		CHECK(pool.size(), 2);
+
+		int aa = 0;
+		int bb = 0;
+
+		for (const Foo* foo : pool) {
+			aa += foo->a;
+			bb += foo->b;
+		}
+
+		CHECK(aa, 14);
+		CHECK(bb, 12);
+
+		Pool pool2 {std::move(pool)};
+
+		Foo* c1 = pool2.push({6, 9});
+		Foo* c2 = pool2.push({4, 2});
+		Foo* c3 = pool2.push({2, 1});
+
+		ASSERT(c1 != c2);
+		CHECK(pool.empty(), true);
+
+		CHECK(pool2.blocks(), 2);
+		CHECK(pool2.empty(), false);
+		CHECK(pool2.size(), 5);
+
+		bb = 0;
+		int i = 0;
+
+		int expected[] {
+			11, 3, 6, 4, 2
+		};
+
+		for (const Foo* foo : pool2) {
+			bb += foo->b;
+
+			CHECK(foo->a, expected[i]);
+
+			i ++;
+		}
+
+		CHECK(i, 5);
+		CHECK(bb, 12+12);
+
+		CHECK(a->a, 11);
+		CHECK(a->b, 7);
+		CHECK(b->a, 3);
+		CHECK(b->b, 5);
+		CHECK(c3->a, 2);
+		CHECK(c3->b, 1);
 
 	};
 

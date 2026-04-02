@@ -68,33 +68,6 @@ namespace asmio {
 				: Label() {
 			}
 
-			constexpr Label(const char* str)
-			: str(str), allocated(false) {
-				if (str == nullptr) {
-					length = 0;
-					hash = 0;
-					return;
-				}
-
-				length = strlen(str);
-				hash = util::hash_djb2(str, length);
-
-				if (length == 0) {
-					throw std::runtime_error {"Label text can't be empty!"};
-				}
-			}
-
-			constexpr Label(const std::string_view& view)
-			: allocated(false) {
-				str = view.data();
-				length = view.length();
-				hash = util::hash_djb2(str, length);
-
-				if (length == 0) {
-					throw std::runtime_error {"Label text can't be empty!"};
-				}
-			}
-
 			constexpr Label(Label&& label) noexcept
 				: id(label.id), allocated(label.allocated), length(label.length), hash(label.hash) {
 				label.allocated = false;
@@ -109,8 +82,16 @@ namespace asmio {
 				}
 			}
 
+			Label(const char* str);
+			Label(const std::string_view& view);
 			Label(const std::string& str);
 			~Label();
+
+			/// Create a non-owning label of the given string
+			static Label of(const char* str);
+
+			/// Create a non-owning label of the given string
+			static Label of(const std::string_view& view);
 
 			/// Compare two labels
 			constexpr bool operator == (const Label& label) const {

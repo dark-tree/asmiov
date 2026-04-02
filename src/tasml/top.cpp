@@ -1,7 +1,7 @@
 #include "top.hpp"
 
 #include <asm/module.hpp>
-#include <out/elf/elf.hpp>
+#include <out/elf/object.hpp>
 
 #include "tokenizer.hpp"
 

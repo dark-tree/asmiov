@@ -107,9 +107,9 @@ int main(int argc, char** argv) {
 		asmio::SegmentedBuffer buffer = tasml::assemble(handler, assembly);
 
 		// link and create the final ELF file
-		asmio::ElfFile elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
+		asmio::ObjectFile elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
 			handler.link(link.target, what);
-		});
+		}).bake();
 
 		if (!handler.ok()) {
 			throw std::runtime_error {"Failed to link executable"};

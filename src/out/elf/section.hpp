@@ -8,17 +8,6 @@ namespace asmio {
 
 	constexpr uint32_t UNDEFINED_SECTION = 0;
 
-	struct ElfSectionCreateInfo {
-		std::function<uint32_t()> link = [] () noexcept { return 0; };
-		std::function<uint32_t()> info = [] () noexcept { return 0; };
-		ChunkBuffer::Ptr segment = nullptr;
-
-		uint64_t address = 0;
-		uint64_t alignment = 1;
-		uint64_t entry_size = 0;
-		uint64_t flags = 0;
-	};
-
 	struct ElfSectionFlags {
 		static constexpr uint32_t W = 0b001; ///< Writable section
 		static constexpr uint32_t R = 0b010; ///< Readable section

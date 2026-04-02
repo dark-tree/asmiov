@@ -6,6 +6,8 @@
 #include <vstl.hpp>
 #include <out/buffer/writer.hpp>
 #include <out/elf/dwarf/encoding.hpp>
+#include <out/elf/dwarf/info.hpp>
+#include <out/elf/dwarf/lines.hpp>
 #include <tasml/top.hpp>
 
 #include "util/tmp.hpp"
@@ -18,12 +20,14 @@ namespace test {
 
 	TEST(elf_segments) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+		ElfModel model {};
+		model.type = ElfType::EXEC;
+		model.machine = ElfMachine::X86_64;
 
-		auto segment = file.segment(ElfSegmentType::LOAD, ElfSegmentFlags::R | ElfSegmentFlags::W, 0x42);
-		segment.data->write("1234"); // 5 bytes
+		auto* segment = model.segment(ElfSegmentType::LOAD, ElfSegmentFlags::R | ElfSegmentFlags::W, 0x42);
+		segment->buffer->write("1234"); // 5 bytes
 
-		util::TempFile temp {file};
+		util::TempFile temp {model.bake()};
 		std::string result = call_shell("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
@@ -42,12 +46,14 @@ namespace test {
 
 	TEST(elf_sections) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+		ElfModel model {};
+		model.type = ElfType::EXEC;
+		model.machine = ElfMachine::X86_64;
 
-		file.section(".text", ElfSectionType::PROGBITS, {});
-		file.section(".data", ElfSectionType::PROGBITS, {});
+		model.section(ElfSectionType::PROGBITS, ".text", nullptr, {});
+		model.section(ElfSectionType::PROGBITS, ".data", nullptr, {});
 
-		util::TempFile temp {file};
+		util::TempFile temp {model.bake()};
 		std::string result = call_shell("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
@@ -65,16 +71,18 @@ namespace test {
 
 	TEST(elf_symbols) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+		ElfModel model {};
+		model.type = ElfType::EXEC;
+		model.machine = ElfMachine::X86_64;
 
-		auto executable = file.segment(ElfSegmentType::LOAD, ElfSegmentFlags::R | ElfSegmentFlags::X, 0);
-		auto text = file.section(".text", ElfSectionType::PROGBITS, { .segment = executable.data }).index;
+		auto executable = model.segment(ElfSegmentType::LOAD, ElfSegmentFlags::R | ElfSegmentFlags::X, 0);
+		auto text = model.section(ElfSectionType::PROGBITS, ".text", executable, {});
 
-		file.symbol("iluvatar", ElfSymbolType::FUNC, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, text, 0xca, 0);
-		file.symbol("arda", ElfSymbolType::OBJECT, ElfSymbolBinding::LOCAL, ElfSymbolVisibility::DEFAULT, text, 0xdb, 1);
-		file.symbol("melkor", ElfSymbolType::OBJECT, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::HIDDEN, text, 0xec, 44);
+		model.symbol(ElfSymbolType::FUNC, "iluvatar", ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, text, 0xca, 0);
+		model.symbol(ElfSymbolType::OBJECT, "arda", ElfSymbolBinding::LOCAL, ElfSymbolVisibility::DEFAULT, text, 0xdb, 1);
+		model.symbol(ElfSymbolType::OBJECT, "melkor", ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::HIDDEN, text, 0xec, 44);
 
-		util::TempFile temp {file};
+		util::TempFile temp {model.bake()};
 		std::string result = call_shell("readelf -a " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
@@ -103,7 +111,7 @@ namespace test {
 		writer.label("dddd");
 		writer.put_dword(0xDDDDDDDD);
 
-		ElfFile file = to_elf(buffer, "dddd");
+		ObjectFile file = to_elf(buffer, "dddd").bake();
 		util::TempFile temp {file};
 
 		std::string result = call_shell("readelf -a " + temp.path());
@@ -142,7 +150,7 @@ namespace test {
 		writer.label("dddd");
 		writer.put_dword(0xDDDDDDDD);
 
-		ElfFile file = to_elf(buffer, "dddd");
+		ObjectFile file = to_elf(buffer, "dddd").bake();
 		util::TempFile temp {file};
 
 		std::string result = call_shell("readelf -a " + temp.path());
@@ -176,7 +184,7 @@ namespace test {
 		writer.section(MemoryFlag::R | MemoryFlag::W);
 		writer.put_dword(0);
 
-		ElfFile file = to_elf(buffer, "abc");
+		ObjectFile file = to_elf(buffer, "abc").bake();
 		util::TempFile temp {file};
 
 		std::string result = call_shell("readelf -a " + temp.path());
@@ -210,7 +218,7 @@ namespace test {
 		// override the architecture
 		buffer.elf_machine = ElfMachine::NATIVE;
 
-		ElfFile file = to_elf(buffer, Label::UNSET);
+		ObjectFile file = to_elf(buffer, Label::UNSET).bake();
 		util::TempFile object {file, ".tasml.o"};
 
 		std::string result = call_shell("readelf -a " + object.path());
@@ -245,19 +253,19 @@ namespace test {
 
 	TEST(elf_line_section) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+		ElfModel model {};
+		model.type = ElfType::EXEC;
+		model.machine = ElfMachine::X86_64;
 
-		auto emitter1 = file.line_emitter();
-		auto emitter2 = file.line_emitter();
+		auto section = model.section(ElfSectionType::PROGBITS, ".debug_line", nullptr, {});
+		DwarfLineEmitter emitter {section->buffer, 8};
 
-		CHECK(emitter1, emitter2);
+		DwarfDir d = emitter.add_directory("./");
+		DwarfFile f = emitter.add_file(d, "hate.txt");
+		emitter.set_mapping(0xFFFFFF, f, 1, 1);
+		emitter.end_sequence();
 
-		DwarfDir d = emitter2->add_directory("./");
-		DwarfFile f = emitter2->add_file(d, "hate.txt");
-		emitter2->set_mapping(0xFFFFFF, f, 1, 1);
-		emitter2->end_sequence();
-
-		util::TempFile temp {file};
+		util::TempFile temp {model.bake()};
 		std::string result = call_shell("readelf -aw " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
@@ -281,24 +289,27 @@ namespace test {
 
 	TEST(elf_line_sequence) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+		ElfModel model {};
+		model.type = ElfType::EXEC;
+		model.machine = ElfMachine::X86_64;
 
-		auto emitter = file.line_emitter();
+		auto section = model.section(ElfSectionType::PROGBITS, DwarfLineEmitter::SECTION, nullptr, {});
+		DwarfLineEmitter emitter {section->buffer, 8};
 
-		DwarfDir d = emitter->add_directory("./");
-		DwarfFile f1 = emitter->add_file(d, "caine.txt");
-		DwarfFile f2 = emitter->add_file(d, "abel.txt");
+		DwarfDir d = emitter.add_directory("./");
+		DwarfFile f1 = emitter.add_file(d, "caine.txt");
+		DwarfFile f2 = emitter.add_file(d, "abel.txt");
 
-		emitter->set_mapping(0x20000000, f1, 1, 1);
-		emitter->set_mapping(0x20000004, f1, 2, 1);
-		emitter->set_mapping(0x20000005, f1, 42, 1);
-		emitter->set_mapping(0x20000006, f1, 42, 3);
+		emitter.set_mapping(0x20000000, f1, 1, 1);
+		emitter.set_mapping(0x20000004, f1, 2, 1);
+		emitter.set_mapping(0x20000005, f1, 42, 1);
+		emitter.set_mapping(0x20000006, f1, 42, 3);
 
-		emitter->set_mapping(0x10000000, f2, 1, 1);
-		emitter->set_mapping(0x10000014, f2, 2, 1); // test special case
-		emitter->end_sequence();
+		emitter.set_mapping(0x10000000, f2, 1, 1);
+		emitter.set_mapping(0x10000014, f2, 2, 1); // test special case
+		emitter.end_sequence();
 
-		util::TempFile temp {file};
+		util::TempFile temp {model.bake()};
 		std::string result = call_shell("readelf -aw " + temp.path());
 
 		ASSERT(!result.contains("Warning"));
@@ -345,7 +356,7 @@ namespace test {
 		auto program = tasml::assemble(reporter, code);
 		ASSERT(reporter.ok());
 
-		ElfFile file = to_elf(program, Label::UNSET);
+		ObjectFile file = to_elf(program, Label::UNSET).bake();
 		util::TempFile object {file, ".o"};
 
 		std::string result = call_shell("readelf -aw " + object.path());
@@ -371,8 +382,12 @@ namespace test {
 
 	TEST (elf_dwarf_abbreviations) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
-		auto emitter = file.dwarf_abbrev();
+		ElfModel model {};
+		model.type = ElfType::EXEC;
+		model.machine = ElfMachine::X86_64;
+
+		auto section = model.section(ElfSectionType::PROGBITS, DwarfAbbreviations::SECTION, nullptr, {});
+		DwarfAbbreviations emitter {section->buffer};
 
 		auto t1 = DwarfObjectBuilder::of(DwarfTag::base_type)
 			.add(DwarfAttr::name, DwarfForm::string)
@@ -388,17 +403,17 @@ namespace test {
 			.add(DwarfAttr::encoding, DwarfForm::data1)
 			.add(DwarfAttr::byte_size, DwarfForm::data1);
 
-		int a = emitter->submit(t1);
-		int b = emitter->submit(t1); // excluded
-		int c = emitter->submit(t2);
-		int d = emitter->submit(t3); // excluded
+		int a = emitter.submit(t1);
+		int b = emitter.submit(t1); // excluded
+		int c = emitter.submit(t2);
+		int d = emitter.submit(t3); // excluded
 
 		CHECK(a, 1);
 		CHECK(b, 1);
 		CHECK(c, 2);
 		CHECK(d, 1);
 
-		util::TempFile object {file};
+		util::TempFile object {model.bake()};
 		std::string result = call_shell("readelf -aw " + object.path());
 
 		ASSERT(!result.contains("Warning"));
@@ -416,8 +431,15 @@ namespace test {
 
 	TEST (elf_dwarf_info) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
-		auto emitter = file.dwarf_info();
+		ElfModel model {};
+		model.type = ElfType::EXEC;
+		model.machine = ElfMachine::X86_64;
+
+		auto abbrev_section = model.section(ElfSectionType::PROGBITS, DwarfAbbreviations::SECTION, nullptr, {});
+		auto abbrev = std::make_shared<DwarfAbbreviations>(abbrev_section->buffer);
+
+		auto info_section = model.section(ElfSectionType::PROGBITS, DwarfInformation::SECTION, nullptr, {});
+		DwarfInformation emitter {info_section->buffer, abbrev};
 
 		auto t1 = DwarfObjectBuilder::of(DwarfTag::base_type)
 			.add(DwarfAttr::name, DwarfForm::string)
@@ -427,17 +449,17 @@ namespace test {
 		auto t2 = DwarfObjectBuilder::of(DwarfTag::pointer_type)
 			.add(DwarfAttr::type, DwarfForm::ref4);
 
-		auto unit = emitter->compile_unit("my_unit.s");
+		auto unit = emitter.compile_unit("my_unit.s");
 
-		auto s1 = emitter->submit(t1, unit);
+		auto s1 = emitter.submit(t1, unit);
 		s1->write("test_t");
 		s1->put<uint8_t>(DwarfEncoding::UNSIGNED);
 		s1->put<uint8_t>(4);
 
-		auto s2 = emitter->submit(t2, unit);
+		auto s2 = emitter.submit(t2, unit);
 		s2->put<uint32_t>(s1.offset);
 
-		util::TempFile object {file};
+		util::TempFile object {model.bake()};
 		std::string result = call_shell("readelf -aw " + object.path());
 
 		ASSERT(!result.contains("Warning"));
@@ -455,22 +477,23 @@ namespace test {
 
 	TEST(elf_relocations) {
 
-		ElfFile file {ElfMachine::X86_64, ElfType::EXEC, 0};
+		ElfModel model {};
+		model.type = ElfType::EXEC;
+		model.machine = ElfMachine::X86_64;
 
-		int text_idx = file.section(".text", ElfSectionType::PROGBITS, {}).index;
+		auto* text = model.section(ElfSectionType::PROGBITS, ".text", nullptr, {});
+		auto* symbol = model.symbol(ElfSymbolType::OBJECT, "test", ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, text, 10, 0);
 
-		file.symbol("test", ElfSymbolType::OBJECT, ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, text_idx, 10, 0);
+		model.relocation(ElfRelocationType::X86_64_32, symbol, text, 4, 3);
 
-		file.relocation(ElfRelocationType::X86_64_32, 1, text_idx, 4, 3);
-
-		util::TempFile object {file, ".o"};
+		util::TempFile object {model.bake(), ".o"};
 
 		std::string result = call_shell("readelf -aw " + object.path());
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
 
-		ASSERT(result.contains("Relocation section '.rela' at offset 0x220 contains 1 entry:"));
+		ASSERT(result.contains("Relocation section '.text.rela' at offset 0x228 contains 1 entry:"));
 		ASSERT(result.contains("000000000004  00010000000a R_X86_64_32       000000000000000a test + 3"));
 
 	};

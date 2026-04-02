@@ -65,6 +65,10 @@ namespace asmio {
 	/// Emitter for the DWARF Line Number Program source mapping
 	class DwarfLineEmitter : public DwarfArrayEmitter {
 
+		public:
+
+			static constexpr const char* SECTION = ".debug_line";
+
 		private:
 
 			int directories = 0;

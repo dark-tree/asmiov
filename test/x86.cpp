@@ -3249,7 +3249,7 @@ namespace test {
 		writer.put_int(0x80); // 32 bit syscall
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfFile file = to_elf(segmented, "_start");
+		ObjectFile file = to_elf(segmented, "_start").bake();
 
 		RunResult result = file.execute("memfd-elf-1");
 
@@ -3284,7 +3284,7 @@ namespace test {
 		writer.put_ret();
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfFile file = to_elf(segmented, "_start");
+		ObjectFile file = to_elf(segmented, "_start").bake();
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
@@ -3318,7 +3318,7 @@ namespace test {
 		writer.put_ret();
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfFile file = to_elf(segmented, "_start");
+		ObjectFile file = to_elf(segmented, "_start").bake();
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
@@ -3593,7 +3593,7 @@ namespace test {
 			FAIL("Errors generated");
 		}
 
-		ElfFile file = to_elf(buffer, Label::UNSET);
+		ObjectFile file = to_elf(buffer, Label::UNSET).bake();
 		util::TempFile object {file, ".tasml.o"};
 
 		std::string result = call_shell("readelf -a " + object.path());
@@ -3642,12 +3642,80 @@ namespace test {
 		writer.put_qword(42);
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfFile file = to_elf(segmented, "_start");
-
+		ObjectFile file = to_elf(segmented, "_start").bake();
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 42);
+
+	};
+
+	TEST(gcc_import_export_relocations) {
+
+		std::string code = R"(
+			lang x86
+			section rx
+
+			import @test_value
+
+			export update_text:
+				lea rax, @test_value
+				mov dword [rax], 0x52525546
+				mov dword [rax + 4], 0x00002159
+				ret
+
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+		// override the architecture
+		buffer.elf_machine = ElfMachine::NATIVE;
+
+		ObjectFile file = to_elf(buffer, Label::UNSET).bake();
+		util::TempFile object {file, ".tasml.o"};
+
+		std::string result = call_shell("readelf -a " + object.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		util::TempFile main_src {".main.c"};
+		main_src.write(R"(
+			#include <stdio.h>
+			#include <string.h>
+			#include <stdint.h>
+
+			// exported to asmiov
+			volatile uint64_t test_value = 0;
+
+			// imported from asmiov
+			uint64_t update_text();
+
+			int main() {
+				char* a = (char*) &test_value;
+				memcpy(a, "HELLO ", 6);
+				printf("%s", a);
+
+				update_text();
+
+				char* b = (char*) &test_value;
+				printf("%s", b);
+			}
+		)");
+
+		// link with our object
+		util::TempFile exec {".out"};
+		std::string gcc_output = call_shell("gcc -Wno-format -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		CHECK(gcc_output, "");
+
+		std::string exe_output = call_shell(exec.path());
+		CHECK(exe_output, "HELLO FURRY!");
 
 	};
 

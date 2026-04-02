@@ -160,7 +160,7 @@ namespace asmio {
 		}
 
 		/*
-		 * Import statment
+		 * Import statement
 		 */
 
 		if (stream.accept("import")) {

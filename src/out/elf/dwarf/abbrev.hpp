@@ -95,6 +95,10 @@ namespace asmio {
 
 	class DwarfAbbreviations {
 
+		public:
+
+			static constexpr const char* SECTION = ".debug_abbrev";
+
 		private:
 
 			int id = 1;

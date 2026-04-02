@@ -944,7 +944,7 @@ namespace test {
 		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
-		asmio::ElfFile elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
+		asmio::ElfModel elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
 			reporter.link(link.target, what);
 		});
 
@@ -953,7 +953,7 @@ namespace test {
 			FAIL("Failed to link executable");
 		}
 
-		RunResult result = elf.execute("memfd");
+		RunResult result = elf.bake().execute("memfd");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 100);
@@ -1678,8 +1678,8 @@ namespace test {
 			FAIL("Errors generated");
 		}
 
-		ElfFile file = to_elf(buffer, Label::UNSET);
-		util::TempFile object {file, ".tasml.o"};
+		ElfModel file = to_elf(buffer, Label::UNSET);
+		util::TempFile object {file.bake(), ".tasml.o"};
 
 		std::string result = call_shell("readelf -a " + object.path());
 

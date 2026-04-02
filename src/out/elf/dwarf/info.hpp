@@ -16,6 +16,10 @@ namespace asmio {
 
 	class DwarfInformation {
 
+		public:
+
+			static constexpr const char* SECTION = ".debug_info";
+
 		private:
 
 			ChunkBuffer* m_root;

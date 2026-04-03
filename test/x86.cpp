@@ -325,7 +325,8 @@ namespace test {
 		writer.put_dword(0);
 
 		writer.put_mov(AL, ref("a"));   // valid
-		writer.put_mov(AL, 0xFFFFFFFF); // stupid, but valid
+		writer.put_mov(AL, 0xFFFFFFFF'FFFFFFFF); // stupid, but valid
+		writer.put_mov(AL, -1); // valid
 
 		EXPECT_THROW(std::runtime_error) {
 			writer.put_fst(cast<TWORD>(ref("a")));
@@ -448,12 +449,50 @@ namespace test {
 
 	}
 
+	TEST (writer_check_mov_size) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// can only move a 64 bit immediate into a 64 bit register
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_mov(ref<QWORD>(RAX), 0x1122334455667788);
+		};
+
+	}
+
+	TEST (writer_check_mov_size) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// can only move a 64 bit immediate into a 64 bit register
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_mov(EAX, 0x1122334455667788);
+		};
+
+	}
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for x86
 	 */
 
 	#if ARCH_X86
+
+	TEST (writer_exec_movabs) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RCX, 0x1122334455667788);
+		writer.put_mov(RAX, RCX);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u64(), 0x1122334455667788);
+
+	}
 
 	TEST (writer_exec_no_truncation) {
 
@@ -3660,8 +3699,8 @@ namespace test {
 
 			export update_text:
 				lea rax, @test_value
-				mov dword [rax], 0x52525546
-				mov dword [rax + 4], 0x00002159
+				mov rcx, 0x0000215952525546
+				mov [rax], rcx
 				ret
 
 		)";

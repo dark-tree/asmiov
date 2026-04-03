@@ -97,6 +97,11 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_inst_imm(uint64_t immediate, uint8_t width) {
+
+		if (util::min_optimistic_bytes(immediate) > width) {
+			throw std::runtime_error {"Can't encode value " + util::to_hex(immediate) + " into " + std::to_string(width) + " bytes"};
+		}
+
 		buffer.insert((uint8_t *) &immediate, std::min(width, uint8_t(QWORD)));
 	}
 
@@ -368,7 +373,15 @@ namespace asmio::x86 {
 		put_inst_std_ds(src.is_immediate() ? 0b110001 : 0b100010, dst, src.base.pack(), opr_size, direction);
 
 		if (src.is_immediate()) {
-			put_inst_label_imm(src, opr_size);
+
+			uint8_t imm_size = opr_size;
+
+			// only move with simple destinations can use 64 bit immediates
+			if (!dst.is_simple() && opr_size == QWORD) {
+				imm_size = DWORD;
+			}
+
+			put_inst_label_imm(src, imm_size);
 		}
 	}
 

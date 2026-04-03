@@ -53,24 +53,35 @@ namespace test {
 
 	TEST (unit_min_unsigned_integer_bytes) {
 
-		CHECK(util::min_bytes(0xFF), 1);
-		CHECK(util::min_bytes(0x123456), 4);
-		CHECK(util::min_bytes(0xF000), 2);
-		CHECK(util::min_bytes(0x1888888888), 8);
-		CHECK(util::min_bytes(0), 1);
+		CHECK(util::min_unsigned_bytes(0xFF), 1);
+		CHECK(util::min_unsigned_bytes(0x123456), 4);
+		CHECK(util::min_unsigned_bytes(0xF000), 2);
+		CHECK(util::min_unsigned_bytes(0x1888888888), 8);
+		CHECK(util::min_unsigned_bytes(0), 1);
 
 	};
 
 	TEST (unit_min_extended_integer_bytes) {
 
-		CHECK(util::min_sign_extended_bytes(0), 1);
-		CHECK(util::min_sign_extended_bytes(-0x11), 1);
-		CHECK(util::min_sign_extended_bytes(0x123456), 4);
-		CHECK(util::min_sign_extended_bytes(0x1888888888), 8);
-		CHECK(util::min_sign_extended_bytes(0xFFFF'FF01), 8);
-		CHECK(util::min_sign_extended_bytes(0x7FFF'FF01), 4);
-		CHECK(util::min_sign_extended_bytes(0x80), 2);
-		CHECK(util::min_sign_extended_bytes(0xFFFF), 4);
+		CHECK(util::min_signed_bytes(0), 1);
+		CHECK(util::min_signed_bytes(-0x11), 1);
+		CHECK(util::min_signed_bytes(0x123456), 4);
+		CHECK(util::min_signed_bytes(0x1888888888), 8);
+		CHECK(util::min_signed_bytes(0xFFFF'FF01), 8);
+		CHECK(util::min_signed_bytes(0x7FFF'FF01), 4);
+		CHECK(util::min_signed_bytes(0x80), 2);
+		CHECK(util::min_signed_bytes(0xFFFF), 4);
+
+	};
+
+	TEST (unit_min_optimistic_bytes) {
+
+		CHECK(util::min_optimistic_bytes(0), 1);
+		CHECK(util::min_optimistic_bytes(-0x11), 1);
+		CHECK(util::min_optimistic_bytes(0xFFFF), 2);
+		CHECK(util::min_optimistic_bytes(0x00000000fffffff0), 4);
+		CHECK(util::min_optimistic_bytes(0x0000000080000000), 4);
+		CHECK(util::min_optimistic_bytes(0x000000000000a111), 2);
 
 	};
 

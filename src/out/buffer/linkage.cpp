@@ -44,7 +44,7 @@ namespace asmio {
 
 		const int64_t value = buffer->get_offset(src) - buffer->get_offset(dst) + linkage.addend;
 
-		if (util::min_sign_extended_bytes(value) > width) {
+		if (util::min_signed_bytes(value) > width) {
 			throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (" + util::to_hex(value) + ") into target of size " + std::to_string(width) + ", some data would have been truncated!"};
 		}
 
@@ -58,7 +58,7 @@ namespace asmio {
 
 		const int64_t value = buffer->get_offset(src) + mount + linkage.addend;
 
-		if (util::min_sign_extended_bytes(value) > width) {
+		if (util::min_unsigned_bytes(value) > width) {
 			throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (" + util::to_hex(value) + ") into target of size " + std::to_string(width) + ", some data would have been truncated!"};
 		}
 

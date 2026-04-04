@@ -261,6 +261,7 @@ namespace asmio::x86 {
 			INST put_test(Location src);                ///< Sets flags accordingly to the value of register given, ASMIOV extension
 			INST put_ret();                             ///< Return from procedure
 			INST put_ret(Location bytes);               ///< Return from procedure and pop X bytes
+			INST put_cpuid();                           ///< Return CPU information in EAX, EBX, ECX, and EDX registers
 
 			// i486
 			INST put_xadd(Location dst, Location src);  ///< Exchange and Add

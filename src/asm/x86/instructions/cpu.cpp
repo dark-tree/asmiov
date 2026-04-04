@@ -1446,6 +1446,11 @@ namespace asmio::x86 {
 		throw std::runtime_error {"Invalid operand"};
 	}
 
+	void BufferWriter::put_cpuid() {
+		put_byte(LONG_OPCODE);
+		put_byte(0xA2);
+	}
+
 	void BufferWriter::put_xadd(Location dst, Location src) {
 
 		if (dst.is_memreg() && src.is_simple()) {

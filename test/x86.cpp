@@ -3758,5 +3758,46 @@ namespace test {
 
 	};
 
+	TEST (exec_cpuid) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		struct Result {
+			uint32_t eax;
+			uint32_t ebx;
+			uint32_t ecx;
+			uint32_t edx;
+		};
+
+		writer.label("cpuid");
+		writer.put_mov(RAX, ref(RDI)); // page
+		writer.put_cpuid();
+		writer.put_mov(RDI, ref(RDI + 8)); // result*
+
+		writer.put_mov(ref(RDI), EAX); // result->eax
+		writer.put_mov(ref(RDI + 4), EBX); // result->ebx
+		writer.put_add(RDI, 8);
+		writer.put_mov(ref(RDI), ECX); // result->ecx
+		writer.put_mov(ref(RDI + 4), EDX); // result->edx
+		writer.put_ret();
+
+		Result result {};
+
+		ExecutableBuffer exe = to_executable(buffer);
+
+		// EAX:EDX:ECX should contain vendor name
+		// exe.scall<void>("cpuid", uint64_t(0), &result);
+
+		exe.scall<void>("cpuid", uint64_t(1), &result);
+
+		// check for support of some expected features
+		ASSERT_MSG(result.edx & (1 << 23), "MMX not supprted or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 0), "FPU not supprted or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 15), "CMOV not supprted or CPUID failed!");
+		ASSERT_MSG(result.ecx & (1 << 23), "POPCNT not supprted or CPUID failed!");
+
+	};
+
 #endif
 ;}

@@ -144,7 +144,7 @@ namespace asmio::x86 {
 			constexpr uint8_t get_mod_flag() const {
 				if (!label.empty()) return MOD_QUAD;
 				if (offset == 0) return MOD_NONE;
-				if (util::min_bytes(offset) == BYTE) return MOD_BYTE;
+				if (util::min_unsigned_bytes(offset) == BYTE) return MOD_BYTE;
 				return MOD_QUAD;
 			}
 

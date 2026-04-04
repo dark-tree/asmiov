@@ -21,7 +21,7 @@ namespace asmio::x86 {
 			// this is needed for the x86-64 RIP-relative addressing to work
 			uint32_t suffix = 0;
 
-			void put_linker_command(const Label& label, int32_t addend, int32_t shift, uint8_t width, LinkType type);
+			void put_linker_command(const Label& label, int32_t addend, uint8_t width, LinkType type);
 			void put_inst_rex(bool w, bool r, bool x, bool b);
 			uint8_t pack_opcode_dw(uint8_t opcode, bool d, bool w);
 			void put_inst_mod_reg_rm(uint8_t mod, uint8_t reg, uint8_t r_m);

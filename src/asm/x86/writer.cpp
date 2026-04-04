@@ -3,6 +3,8 @@
 // private libs
 #include <iostream>
 
+#include "out/buffer/linkage.hpp"
+
 namespace asmio::x86 {
 
 	/*
@@ -95,33 +97,57 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_inst_imm(uint64_t immediate, uint8_t width) {
+
+		if (util::min_optimistic_bytes(immediate) > width) {
+			throw std::runtime_error {"Can't encode value " + util::to_hex(immediate) + " into " + std::to_string(width) + " bytes"};
+		}
+
 		buffer.insert((uint8_t *) &immediate, std::min(width, uint8_t(QWORD)));
 	}
 
-	void BufferWriter::put_linker_command(const Label& label, int32_t addend, int32_t shift, uint8_t width, LinkType type) {
+	void BufferWriter::put_linker_command(const Label& label, int32_t addend, uint8_t width, LinkType type) {
 
-		// cap at maximum supported size
-		if (width > QWORD) {
-			width = QWORD;
+		if (type == RELATIVE && width == BYTE) {
+			buffer.add_linkage(label, LinkageType::X86_8_SIGN_RELATIVE, addend);
+			return;
 		}
 
-		buffer.add_linkage(label, shift, [width, type, addend] (SegmentedBuffer* buffer, const Linkage& linkage, size_t mount) {
-			BufferMarker src = buffer->get_label(linkage.label);
-			BufferMarker dst = linkage.target;
+		if (type == ABSOLUTE && width == BYTE) {
+			buffer.add_linkage(label, LinkageType::X86_8_SIGN_ABSOLUTE, addend);
+			return;
+		}
 
-			const int64_t offset = (type == RELATIVE)
-				? buffer->get_offset(dst)
-				: -mount;
+		if (type == RELATIVE && width == WORD) {
+			buffer.add_linkage(label, LinkageType::X86_16_SIGN_RELATIVE, addend);
+			return;
+		}
 
-			const int64_t value = buffer->get_offset(src) - offset + addend;
+		if (type == ABSOLUTE && width == WORD) {
+			buffer.add_linkage(label, LinkageType::X86_16_ABSOLUTE, addend);
+			return;
+		}
 
-			if (util::min_sign_extended_bytes(value) > width) {
-				throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (" + util::to_hex(value) + ") into target of size " + std::to_string(width) + ", some data would have been truncated!"};
-			}
+		if (type == RELATIVE && width == DWORD) {
+			buffer.add_linkage(label, LinkageType::X86_32_SIGN_RELATIVE, addend);
+			return;
+		}
 
-			const uint8_t* value_ptr = reinterpret_cast<const uint8_t*>(&value);
-			memcpy(buffer->get_pointer(dst), value_ptr, width);
-		});
+		if (type == ABSOLUTE && width == DWORD) {
+			buffer.add_linkage(label, LinkageType::X86_32_ABSOLUTE, addend);
+			return;
+		}
+
+		if (type == RELATIVE && width == QWORD) {
+			buffer.add_linkage(label, LinkageType::X86_64_RELATIVE, addend);
+			return;
+		}
+
+		if (type == ABSOLUTE && width == QWORD) {
+			buffer.add_linkage(label, LinkageType::X86_64_ABSOLUTE, addend);
+			return;
+		}
+
+		throw std::runtime_error {"Unsupported link type!"};
 	}
 
 	void BufferWriter::put_inst_label_imm(Location imm, uint8_t width) {
@@ -132,7 +158,7 @@ namespace asmio::x86 {
 		}
 
 		if (imm.is_labeled()) {
-			put_linker_command(imm.label, imm.offset, 0, width, ABSOLUTE);
+			put_linker_command(imm.label, imm.offset, width, ABSOLUTE);
 		}
 
 		put_inst_imm(imm.offset, width);
@@ -347,7 +373,15 @@ namespace asmio::x86 {
 		put_inst_std_ds(src.is_immediate() ? 0b110001 : 0b100010, dst, src.base.pack(), opr_size, direction);
 
 		if (src.is_immediate()) {
-			put_inst_label_imm(src, opr_size);
+
+			uint8_t imm_size = opr_size;
+
+			// only move with simple destinations can use 64 bit immediates
+			if (!dst.is_simple() && opr_size == QWORD) {
+				imm_size = DWORD;
+			}
+
+			put_inst_label_imm(src, imm_size);
 		}
 	}
 
@@ -538,7 +572,7 @@ namespace asmio::x86 {
 	}
 
 	void BufferWriter::put_label(const Label& label, uint8_t size, int64_t addend) {
-		put_linker_command(label, addend - size, 0, size, RELATIVE);
+		put_linker_command(label, addend - size, size, RELATIVE);
 
 		while (size --> 0) {
 			put_byte(0);

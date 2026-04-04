@@ -1,7 +1,10 @@
 #pragma once
 
+#include <util/refcnt.hpp>
+
 #include "external.hpp"
 #include "asm/util.hpp"
+#include "util/refcnt.hpp"
 
 namespace asmio {
 
@@ -10,18 +13,18 @@ namespace asmio {
 
 		private:
 
-			// a Label can exists in one of 4 distinct states, the empty state represents a Label
+			// a Label can exist in one of 4 distinct states, the empty state represents a Label
 			// that will never compare as equal to any other Label, except for the empty Label itself.
 			//
 			// Condition                                  | Union      | Description                            //
 			// ------------------------------------------ + ---------- + -------------------------------------- //
 			// length != 0, hash != 0, allocated == true  | Label::ptr | owns a null-byte terminated c-string   //
-			// length != 0, hash != 0, allocated == false | Label::str | points into a external char span       //
-			// length == 0, hash != 0, allocated == false | Label::id  | 64 bit integer based unique identifier //
+			// length != 0, hash != 0, allocated == false | Label::str | points into an external char span      //
+			// length == 0, hash != 0, allocated == false | Label::id  | 64-bit integer based unique identifier //
 			// length == 0, hash == 0, allocated == false |            | empty, does not contain any reference  //
 
 			union {
-				void* ptr;       // used for allocated labels
+				char* ptr;       // used for allocated labels, points at the string right after the RefHeader
 				const char* str; // used for const strings
 				uint64_t id;     // used for ID only Labels
 			};
@@ -65,33 +68,6 @@ namespace asmio {
 				: Label() {
 			}
 
-			constexpr Label(const char* str)
-			: str(str), allocated(false) {
-				if (str == nullptr) {
-					length = 0;
-					hash = 0;
-					return;
-				}
-
-				length = strlen(str);
-				hash = util::hash_djb2(str, length);
-
-				if (length == 0) {
-					throw std::runtime_error {"Label text can't be empty!"};
-				}
-			}
-
-			constexpr Label(const std::string_view& view)
-			: allocated(false) {
-				str = view.data();
-				length = view.length();
-				hash = util::hash_djb2(str, length);
-
-				if (length == 0) {
-					throw std::runtime_error {"Label text can't be empty!"};
-				}
-			}
-
 			constexpr Label(Label&& label) noexcept
 				: id(label.id), allocated(label.allocated), length(label.length), hash(label.hash) {
 				label.allocated = false;
@@ -100,14 +76,22 @@ namespace asmio {
 			constexpr Label(const Label& label) noexcept
 				: id(label.id), allocated(label.allocated), length(label.length), hash(label.hash) {
 
+				// increase the ref-count
 				if (label.allocated) {
-					ptr = malloc(length);
-					memcpy(ptr, label.ptr, length);
+					ref_increment(ptr);
 				}
 			}
 
+			Label(const char* str);
+			Label(const std::string_view& view);
 			Label(const std::string& str);
 			~Label();
+
+			/// Create a non-owning label of the given string
+			static Label of(const char* str);
+
+			/// Create a non-owning label of the given string
+			static Label of(const std::string_view& view);
 
 			/// Compare two labels
 			constexpr bool operator == (const Label& label) const {

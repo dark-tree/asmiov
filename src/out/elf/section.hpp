@@ -8,17 +8,6 @@ namespace asmio {
 
 	constexpr uint32_t UNDEFINED_SECTION = 0;
 
-	struct ElfSectionCreateInfo {
-		std::function<uint32_t()> link = [] () noexcept { return 0; };
-		std::function<uint32_t()> info = [] () noexcept { return 0; };
-		ChunkBuffer::Ptr segment = nullptr;
-
-		uint64_t address = 0;
-		uint64_t alignment = 1;
-		uint64_t entry_size = 0;
-		uint64_t flags = 0;
-	};
-
 	struct ElfSectionFlags {
 		static constexpr uint32_t W = 0b001; ///< Writable section
 		static constexpr uint32_t R = 0b010; ///< Readable section
@@ -51,22 +40,6 @@ namespace asmio {
 		uint32_t info;       ///< This member holds extra information
 		uint64_t addralign;  ///< Alignment should be a positive, integral power of 2, and address must be congruent to 0, modulo the value of alignment
 		uint64_t entsize;    ///< Size of one entry for sections where the entries have a fixed size, 0 otherwise
-	};
-
-	struct PACKED ElfRelocationInfo {
-		uint32_t sym;
-		uint32_t type;
-	};
-
-	struct PACKED ElfImplicitRelocation {
-		uint64_t offset;
-		ElfRelocationInfo info;
-	};
-
-	struct PACKED ElfExplicitRelocation {
-		uint64_t offset;
-		ElfRelocationInfo info;
-		int64_t addend;
 	};
 
 }

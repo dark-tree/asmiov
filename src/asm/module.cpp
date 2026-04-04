@@ -94,13 +94,13 @@ namespace asmio {
 
 		if (stream.accept("section")) {
 			auto mode = util::to_lower(stream.expect(Token::NAME).raw);
-			uint32_t flags = 0;
+			MemoryFlags flags {};
 			std::string name;
 
 			for (char c : mode) {
-				if (c == 'r') flags |= BufferSegment::R;
-				else if (c == 'w') flags |= BufferSegment::W;
-				else if (c == 'x') flags |= BufferSegment::X;
+				if (c == 'r') flags |= MemoryFlag::R;
+				else if (c == 'w') flags |= MemoryFlag::W;
+				else if (c == 'x') flags |= MemoryFlag::X;
 				else throw std::runtime_error {"Unknown section flag '" + std::to_string(c) + "' in section statement"};
 			}
 
@@ -110,6 +110,20 @@ namespace asmio {
 
 			stream.terminal();
 			writer.section(flags, name);
+			return;
+		}
+
+		/*
+		 * Source mapping definition
+		 */
+
+		if (stream.accept("source")) {
+			const Token& path = stream.expect(Token::STRING);
+			const Token& line = stream.expect(Token::INT);
+			const Token& column = stream.expect(Token::INT);
+
+			stream.terminal();
+			buffer.add_location(path.as_string(), line.as_int(), column.as_int());
 			return;
 		}
 
@@ -143,6 +157,32 @@ namespace asmio {
 			writer.export_symbol(name, type);
 			return;
 
+		}
+
+		/*
+		 * Import statement
+		 */
+
+		if (stream.accept("import")) {
+			auto name = stream.expect(Token::REFERENCE).as_label();
+			stream.terminal();
+			writer.import_symbol(name);
+			return;
+		}
+
+		/*
+		 * Embed statement
+		 */
+
+		if (stream.accept("embed")) {
+			const Token& token = stream.expect(Token::STRING);
+
+			try {
+				auto bytes = util::read_whole(token.as_string());
+				buffer.insert(reinterpret_cast<uint8_t*>(bytes.data()), bytes.size());
+			} catch (const std::exception& e) {
+				reporter.error(token.line, token.column, e.what());
+			}
 		}
 
 		/*

@@ -8,13 +8,18 @@ namespace asmio {
 		: buffer(buffer) {
 	}
 
-	BasicBufferWriter& BasicBufferWriter::section(uint8_t flags, const std::string& name) {
+	BasicBufferWriter& BasicBufferWriter::section(MemoryFlags flags, const std::string& name) {
 		buffer.use_section(flags, name);
 		return *this;
 	}
 
 	BasicBufferWriter& BasicBufferWriter::label(const Label& label) {
 		buffer.add_label(label);
+		return *this;
+	}
+
+	BasicBufferWriter &BasicBufferWriter::import_symbol(const Label& name) {
+		buffer.add_external(name);
 		return *this;
 	}
 

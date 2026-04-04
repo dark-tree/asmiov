@@ -25,4 +25,4 @@ jobs:
         run: cmake --build build
 
       - name: Test x86
-        run: ./build/test
+        run: cd build && ./test

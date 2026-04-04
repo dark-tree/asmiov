@@ -5,7 +5,10 @@
 
 #include <util.hpp>
 #include <out/buffer/label.hpp>
+#include <out/buffer/segmented.hpp>
 #include <out/chunk/buffer.hpp>
+#include <out/chunk/codecs.hpp>
+#include <util/pool.hpp>
 
 #include "vstl.hpp"
 
@@ -50,24 +53,35 @@ namespace test {
 
 	TEST (unit_min_unsigned_integer_bytes) {
 
-		CHECK(util::min_bytes(0xFF), 1);
-		CHECK(util::min_bytes(0x123456), 4);
-		CHECK(util::min_bytes(0xF000), 2);
-		CHECK(util::min_bytes(0x1888888888), 8);
-		CHECK(util::min_bytes(0), 1);
+		CHECK(util::min_unsigned_bytes(0xFF), 1);
+		CHECK(util::min_unsigned_bytes(0x123456), 4);
+		CHECK(util::min_unsigned_bytes(0xF000), 2);
+		CHECK(util::min_unsigned_bytes(0x1888888888), 8);
+		CHECK(util::min_unsigned_bytes(0), 1);
 
 	};
 
 	TEST (unit_min_extended_integer_bytes) {
 
-		CHECK(util::min_sign_extended_bytes(0), 1);
-		CHECK(util::min_sign_extended_bytes(-0x11), 1);
-		CHECK(util::min_sign_extended_bytes(0x123456), 4);
-		CHECK(util::min_sign_extended_bytes(0x1888888888), 8);
-		CHECK(util::min_sign_extended_bytes(0xFFFF'FF01), 8);
-		CHECK(util::min_sign_extended_bytes(0x7FFF'FF01), 4);
-		CHECK(util::min_sign_extended_bytes(0x80), 2);
-		CHECK(util::min_sign_extended_bytes(0xFFFF), 4);
+		CHECK(util::min_signed_bytes(0), 1);
+		CHECK(util::min_signed_bytes(-0x11), 1);
+		CHECK(util::min_signed_bytes(0x123456), 4);
+		CHECK(util::min_signed_bytes(0x1888888888), 8);
+		CHECK(util::min_signed_bytes(0xFFFF'FF01), 8);
+		CHECK(util::min_signed_bytes(0x7FFF'FF01), 4);
+		CHECK(util::min_signed_bytes(0x80), 2);
+		CHECK(util::min_signed_bytes(0xFFFF), 4);
+
+	};
+
+	TEST (unit_min_optimistic_bytes) {
+
+		CHECK(util::min_optimistic_bytes(0), 1);
+		CHECK(util::min_optimistic_bytes(-0x11), 1);
+		CHECK(util::min_optimistic_bytes(0xFFFF), 2);
+		CHECK(util::min_optimistic_bytes(0x00000000fffffff0), 4);
+		CHECK(util::min_optimistic_bytes(0x0000000080000000), 4);
+		CHECK(util::min_optimistic_bytes(0x000000000000a111), 2);
 
 	};
 
@@ -85,7 +99,7 @@ namespace test {
 
 		ChunkBuffer buffer;
 
-		// by default we encode as little-endian
+		// by default, we encode as little-endian
 		buffer.put<uint32_t>(0xA1A2'A3A4);
 		buffer.put<uint8_t>(0xBB);
 		buffer.put<uint8_t>(0xCC);
@@ -226,5 +240,247 @@ namespace test {
 
 	};
 
+	TEST (util_parse_int) {
+
+		CHECK(util::parse_int("0"), 0);
+		CHECK(util::parse_int("+1000"), 1000);
+		CHECK(util::parse_int("-1000"), -1000);
+		CHECK(util::parse_int("0xFEB00000"), 0xFEB00000);
+		CHECK(util::parse_int("0xFAFFFFFFFBFFFFFE"), 0xFAFFFFFFFBFFFFFE);
+		CHECK(util::parse_int("0b1010101"), 0b1010101);
+		CHECK(util::parse_int("-0b1010101"), -0b1010101);
+
+	}
+
+	TEST (util_source_location) {
+
+		SegmentedBuffer program;
+
+		program.add_location("./my/foo.txt", 1, 1);
+		program.push(1);
+		program.push(2);
+		program.push(3);
+		program.push(4);
+
+		program.add_location("./my/bar.txt", 1, 1);
+		program.push(5);
+		program.push(6);
+
+		program.add_location("./my/foo.txt", 2, 10);
+		program.push(7);
+		program.push(8);
+
+		const auto& locations = program.locations();
+		const auto& files = program.files();
+
+		CHECK(files.size(), 2);
+		CHECK(locations.size(), 3);
+
+		CHECK(files[0], "./my/foo.txt");
+		CHECK(files[1], "./my/bar.txt");
+
+		CHECK(locations[0].file, 0);
+		CHECK(locations[1].file, 1);
+		CHECK(locations[2].file, 0);
+
+	};
+
+	TEST (util_codec_uleb128) {
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<UnsignedLeb128>(13);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 1);
+			CHECK(bytes[0], 13);
+		}
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<UnsignedLeb128>(127);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 1);
+			CHECK(bytes[0], 127);
+		}
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<UnsignedLeb128>(128);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 2);
+			CHECK(bytes[0], 128);
+			CHECK(bytes[1], 1);
+		}
+
+		{ // from wikipedia
+			ChunkBuffer buffer {};
+			buffer.put<UnsignedLeb128>(624485);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 3);
+			CHECK(bytes[0], 0xE5);
+			CHECK(bytes[1], 0x8E);
+			CHECK(bytes[2], 0x26);
+		}
+
+	};
+
+	TEST (util_codec_sleb128) {
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<SignedLeb128>(13);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 1);
+			CHECK(bytes[0], 13);
+		}
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<SignedLeb128>(-1);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 1);
+			CHECK(bytes[0], 0x7f);
+		}
+
+		{
+			ChunkBuffer buffer {};
+			buffer.put<SignedLeb128>(128);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 2);
+			CHECK(bytes[0], 128);
+			CHECK(bytes[1], 1);
+		}
+
+		{ // from wikipedia
+			ChunkBuffer buffer {};
+			buffer.put<SignedLeb128>(-123456);
+			auto bytes = buffer.bake();
+			CHECK(bytes.size(), 3);
+			CHECK(bytes[0], 0xC0);
+			CHECK(bytes[1], 0xBB);
+			CHECK(bytes[2], 0x78);
+		}
+
+	};
+
+	TEST (util_refcnt) {
+
+		int* buffer = ref_allocate<int>(4);
+
+		buffer[0] = 21;
+		buffer[1] = 37;
+		buffer[2] = 19;
+		buffer[3] = 23;
+
+		CHECK(ref_count(buffer), 1);
+		CHECK(buffer[0], 21);
+		CHECK(buffer[3], 23);
+
+		ref_increment(buffer);
+
+		CHECK(ref_count(buffer), 2);
+		CHECK(buffer[0], 21);
+		CHECK(buffer[3], 23);
+
+		ASSERT(!ref_free(buffer));
+
+		CHECK(ref_count(buffer), 1);
+		CHECK(buffer[0], 21);
+		CHECK(buffer[3], 23);
+
+		ASSERT(ref_free(buffer));
+
+	};
+
+	TEST (util_empty_block_pool) {
+
+		struct Foo {
+			int a;
+			int b;
+		};
+
+		Pool<Foo> pool {128};
+
+		CHECK(pool.blocks(), 1);
+		CHECK(pool.empty(), true);
+		CHECK(pool.size(), 0);
+
+		for (const Foo* foo : pool) {
+			(void) foo;
+			ASSERT_MSG(false, "Iterator invoked for empty pool!");
+		}
+
+	};
+
+	TEST (util_block_pool) {
+
+		struct Foo {
+			int a;
+			int b;
+		};
+
+		Pool<Foo> pool {2};
+
+		CHECK(pool.blocks(), 1);
+		CHECK(pool.empty(), true);
+		CHECK(pool.size(), 0);
+
+		Foo* a = pool.push({11, 7});
+		Foo* b = pool.push({3, 5});
+
+		CHECK(pool.blocks(), 1);
+		CHECK(pool.empty(), false);
+		CHECK(pool.size(), 2);
+
+		int aa = 0;
+		int bb = 0;
+
+		for (const Foo* foo : pool) {
+			aa += foo->a;
+			bb += foo->b;
+		}
+
+		CHECK(aa, 14);
+		CHECK(bb, 12);
+
+		Pool pool2 {std::move(pool)};
+
+		Foo* c1 = pool2.push({6, 9});
+		Foo* c2 = pool2.push({4, 2});
+		Foo* c3 = pool2.push({2, 1});
+
+		ASSERT(c1 != c2);
+		CHECK(pool.empty(), true);
+
+		CHECK(pool2.blocks(), 2);
+		CHECK(pool2.empty(), false);
+		CHECK(pool2.size(), 5);
+
+		bb = 0;
+		int i = 0;
+
+		int expected[] {
+			11, 3, 6, 4, 2
+		};
+
+		for (const Foo* foo : pool2) {
+			bb += foo->b;
+
+			CHECK(foo->a, expected[i]);
+
+			i ++;
+		}
+
+		CHECK(i, 5);
+		CHECK(bb, 12+12);
+
+		CHECK(a->a, 11);
+		CHECK(a->b, 7);
+		CHECK(b->a, 3);
+		CHECK(b->b, 5);
+		CHECK(c3->a, 2);
+		CHECK(c3->b, 1);
+
+	};
 
 }

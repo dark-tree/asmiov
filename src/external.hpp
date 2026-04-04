@@ -19,6 +19,9 @@
 #include <algorithm>
 #include <limits>
 #include <charconv>
+#include <filesystem>
+#include <fstream>
+#include <unordered_set>
 
 // systems
 #ifdef __linux__

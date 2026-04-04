@@ -6,8 +6,17 @@
 
 namespace asmio {
 
+	template <typename T>
+	concept is_encoding_codec = requires (class ChunkBuffer& buffer) { T::encode(buffer, {}); };
+
 	template <typename T, typename A>
 	concept codec_for = requires (class ChunkBuffer& buffer, const A& arg) { T::encode(buffer, arg); };
+
+	template <typename F, typename T>
+	concept can_static_cast = requires (F from) { static_cast<T>(from); };
+
+	template <typename C>
+	using codec_param_of = util::function_decompose<C>::template arg_type<1>;
 
 	class ChunkBuffer {
 
@@ -26,11 +35,13 @@ namespace asmio {
 				Linker linker;
 			};
 
-			enum CacheState {
+			enum CacheState : uint8_t {
 				MISSING,
 				CACHING,
 				PRESENT,
 			};
+
+			bool has_links = false;
 
 			// cache
 			mutable CacheState state = MISSING;
@@ -56,11 +67,11 @@ namespace asmio {
 				Appender(std::vector<uint8_t>& buffer, uint32_t* size_ptr);
 			};
 
-			enum region_type : uint8_t {
+			enum RegionType : uint8_t {
 				UNSET = 1,
 				ARRAY = 2,
 				SPACE = 4,
-				CHUNK = 48
+				CHUNK = 8
 			};
 
 			struct Array {
@@ -89,7 +100,7 @@ namespace asmio {
 			std::vector<uint8_t> shared_bytes;
 			std::vector<Region> m_regions;
 			std::vector<Link> m_linkers; // only non-empty for root chunks
-			region_type last_region = UNSET;
+			RegionType last_region = UNSET;
 
 		protected:
 
@@ -187,19 +198,21 @@ namespace asmio {
 			 * Align chunk contents to a fixed number of bytes using
 			 * the null byte. This doesn't take absolute alignment into account.
 			 */
-			void align(int bytes) {
+			ChunkBuffer* align(int bytes) {
 				int padding = bytes - (int) shared_bytes.size();
 
 				if (padding > 0) {
 					push(padding, 0);
 				}
+
+				return this;
 			}
 
 			/**
 			 * Write a string to the chunk,
 			 * including the C-String null byte at the end.
 			 */
-			ChunkBuffer& write(const std::string& name) {
+			ChunkBuffer* write(const std::string& name) {
 				return write((void*) name.c_str(), name.size() + 1);
 			}
 
@@ -208,7 +221,7 @@ namespace asmio {
 			 * this will respect the endianness for integer values.
 			 */
 			template <typename T>
-			ChunkBuffer& write(const std::vector<T>& values) {
+			ChunkBuffer* write(const std::vector<T>& values) {
 				if constexpr (sizeof(T) == 1) {
 					return write((void*) values.data(), values.size());
 				}
@@ -217,25 +230,25 @@ namespace asmio {
 					put<T>(value);
 				}
 
-				return *this;
+				return this;
 			}
 
 			/**
 			 * Write a buffer of set number of bytes into the chunk,
 			 * using this method circumvents endianness settings.
 			 */
-			ChunkBuffer& write(void* bytes, size_t size) {
+			ChunkBuffer* write(void* bytes, size_t size) {
 				begin_bytes().write(static_cast<uint8_t*>(bytes), size);
-				return *this;
+				return this;
 			}
 
 			/**
 			 * Write a specific byte to the buffer a set number of times,
 			 * by default a null byte is used.
 			 */
-			ChunkBuffer& push(size_t size, uint8_t value = 0) {
+			ChunkBuffer* push(size_t size, uint8_t value = 0) {
 				begin_bytes().write(value, size);
-				return *this;
+				return this;
 			}
 
 			/**
@@ -243,20 +256,20 @@ namespace asmio {
 			 * consider using the more explicit put<type>() method instead.
 			 */
 			template <typename... T>
-			ChunkBuffer& insert(T... value) {
+			ChunkBuffer* insert(T... value) {
 				(write(reinterpret_cast<void*>(&value), sizeof(T)), ...);
-				return *this;
+				return this;
 			}
 
 			/**
 			 * Put can use a codec to specify how the given value
 			 * should be stored, this is the method used when a codec is used.
 			 */
-			template <typename T, typename... A>
-			requires (codec_for<T, A> && ...)
-			ChunkBuffer& put(const A&... value) {
-				(T::encode(*this, value), ...);
-				return *this;
+			template <is_encoding_codec T, typename... A, typename Encodable = codec_param_of<decltype(T::encode)>>
+			requires (can_static_cast<A, Encodable> && ...)
+			ChunkBuffer* put(const A&... value) {
+				(T::encode(*this, static_cast<Encodable>(value)), ...);
+				return this;
 			}
 
 			/**
@@ -265,7 +278,7 @@ namespace asmio {
 			 */
 			template <trivially_copyable T, trivially_copyable... A>
 			requires ((!codec_for<T, A> && castable<T, A>) && ...)
-			ChunkBuffer& put(const A&... value) {
+			ChunkBuffer* put(const A&... value) {
 				if constexpr (std::is_integral_v<T> && sizeof(T) > 1) {
 					return insert(util::native_to_endian(static_cast<T>(value), endianness)...);
 				}
@@ -278,13 +291,13 @@ namespace asmio {
 			 * a contiguous byte stream. This function respects endianness.
 			 */
 			template <typename T>
-			ChunkBuffer& link(std::function<T()> getter) {
+			ChunkBuffer* link(std::function<T()> getter) {
 				add_link([getter, this] (void* target) {
 					*static_cast<T*>(target) = util::native_to_endian(getter(), endianness);
 				});
 
 				begin_space(sizeof(T));
-				return *this;
+				return this;
 			}
 
 			/**
@@ -292,20 +305,32 @@ namespace asmio {
 			 * a contiguous byte stream. This function DOES NOT respects endianness, unless that is manually implemented by the user.
 			 */
 			template <typename T>
-			ChunkBuffer& link(std::function<void(T&)> linker) {
+			ChunkBuffer* link(std::function<void(T&)> linker) {
 				add_link([linker] (void* target) {
 					linker(*static_cast<T*>(target));
 				});
 
 				begin_space(sizeof(T));
-				return *this;
+				return this;
 			}
 
 			/**
-			 * Adopt a orphan chunk into the tree and assign it this node as a parent,
+			 * Adopt an orphan chunk into the tree and assign it this node as a parent,
 			 * if the chunk already has a parent it will be rejected.
 			 */
-			ChunkBuffer& adopt(const Ptr& orphan);
+			ChunkBuffer* adopt(const Ptr& orphan);
+
+			/**
+			 * Merge an orphan chunk into the tree by serializing it and
+			 * appending to this node as bytes. If the orphan has links it will be adopted instead.
+			 */
+			ChunkBuffer* merge(const Ptr& orphan);
+
+			/**
+			 * Remove all content stored in this buffer,
+			 * and all its children.
+			 */
+			ChunkBuffer* clear();
 
 			/**
 			 * Create a new chunk as the child of this one,

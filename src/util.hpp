@@ -11,6 +11,9 @@ concept trivially_copyable = std::is_trivially_copyable_v<T>;
 template <typename T, typename A>
 concept castable = requires (const A& arg) { static_cast<T>(arg); };
 
+#define ENUM_BEGIN __INTERNAL__ = __LINE__,
+#define ENUM_END ENUM_LENGTH = __LINE__ - __INTERNAL__ - 1,
+
 #define EXIT_OK 0
 #define EXIT_ERROR 1
 
@@ -19,6 +22,126 @@ concept castable = requires (const A& arg) { static_cast<T>(arg); };
 
 namespace asmio::util {
 
+	template <typename T>
+	concept is_enumeration = requires { std::is_enum_v<T>; };
+
+	template <is_enumeration T>
+	constexpr size_t enum_length = static_cast<size_t>(T::ENUM_LENGTH);
+
+	template <typename, typename...>
+	struct function_decompose : std::false_type {};
+
+	template <typename R, typename... A>
+	struct function_decompose<R(A...)> {
+		using return_type = R;
+		using arguments = std::tuple<A...>;
+
+		template <size_t index>
+		using arg_type = std::tuple_element_t<index, arguments>;
+	};
+
+	template <typename F, typename T>
+	struct UniqueHandle {
+
+		private:
+
+			friend F; // wait, you can do that?
+			T m_handle;
+
+			constexpr UniqueHandle(T handle)
+				: m_handle(handle) {
+			}
+
+		public:
+
+			const T& handle() const {
+				return m_handle;
+			}
+
+	};
+
+	// https://stackoverflow.com/a/6500499
+	inline std::string trim(const std::string& str) {
+		std::string copy = str;
+		copy.erase(copy.find_last_not_of(' ') + 1);  // Suffixing spaces
+		copy.erase(0, copy.find_first_not_of(' '));  // Prefixing spaces
+		return copy;
+	}
+
+	// https://stackoverflow.com/a/46931770
+	inline std::vector<std::string> split_string(const std::string& str, const std::string_view& delim) {
+		size_t pos_start = 0, pos_end, delim_len = delim.length();
+		std::string token;
+		std::vector<std::string> res;
+
+		while ((pos_end = str.find(delim, pos_start)) != std::string::npos) {
+			token = str.substr (pos_start, pos_end - pos_start);
+			pos_start = pos_end + delim_len;
+			res.push_back (token);
+		}
+
+		res.push_back(str.substr(pos_start));
+		return res;
+	}
+
+	// https://stackoverflow.com/a/46931770
+	inline std::vector<std::string> split_string(const std::string& str, char delim = '\n') {
+		std::vector<std::string> result;
+		std::stringstream ss (str);
+				size_t count = 0;
+
+		for (char c : str) {
+			if (c == delim) count ++;
+		}
+
+		result.reserve(count);
+		std::string item;
+
+		while (getline(ss, item, delim)) {
+			result.push_back(item);
+		}
+
+		return result;
+	}
+
+	inline std::vector<std::string> normalize_strings(const std::vector<std::string>& strings) {
+		std::vector<std::string> output;
+		output.reserve(strings.size());
+
+		for (auto& string : strings) {
+			if (string.empty()) {
+				continue;
+			}
+
+			output.push_back(trim(string));
+		}
+
+		return output;
+	}
+
+	// https://codereview.stackexchange.com/a/22907
+	inline std::vector<char> read_whole(const std::string& path) {
+		std::ifstream ifs(path, std::ios::binary|std::ios::ate);
+
+		if (!ifs.is_open() || ifs.bad()) {
+			throw std::runtime_error {"Could not open file '" + path + "'"};
+		}
+
+		std::ifstream::pos_type pos = ifs.tellg();
+
+		if (pos == 0) {
+			return {};
+		}
+
+		std::vector<char> result(pos);
+
+		ifs.seekg(0, std::ios::beg);
+		ifs.read(result.data(), pos);
+
+		return result;
+	}
+
+	/// Generate random ASCII string of the given length
 	inline std::string random_string(size_t length) {
 		static const std::string_view alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		static std::uniform_int_distribution dist(0, static_cast<int>(alphabet.size() - 1));
@@ -47,16 +170,16 @@ namespace asmio::util {
 		return (a + b - 1) / b;
 	}
 
-	/// Align 'a' to a multiple of 'alignment'
+	/// Align 'value' to a multiple of 'alignment'
 	template <std::integral T>
-	constexpr auto align_up(T a, T alignment) {
-		return divide_up(a, alignment) * alignment;
+	constexpr auto align_up(T value, T alignment) {
+		return divide_up(value, alignment) * alignment;
 	}
 
-	/// Compute the number that needs to be added to 'a' so that it is a multiple of 'alignment'
+	/// Compute the number that needs to be added to 'value' so that it is a multiple of 'alignment'
 	template <std::integral T>
-	constexpr auto align_padding(T a, T alignment) {
-		return align_up(a, alignment) - a;
+	constexpr auto align_padding(T value, T alignment) {
+		return align_up(value, alignment) - value;
 	}
 
 	/// Convert value to the given endian from the native system alignment
@@ -75,28 +198,7 @@ namespace asmio::util {
 		if constexpr (std::is_pointer_v<T>) return value; else return nullptr;
 	}
 
-	template<typename T>
-	void insert_buffer(std::vector<T>& vec, T* buffer, size_t count) {
-		vec.insert(vec.end(), buffer, buffer + count);
-	}
-
-	template<typename T>
-	size_t insert_padding(std::vector<T>& vec, size_t count) {
-		const size_t length = vec.size();
-		vec.resize(vec.size() + count);
-		return length;
-	}
-
-	template<typename S, typename T>
-	size_t insert_struct(std::vector<T>& vec, size_t count = 1) {
-		return insert_padding(vec, sizeof(S) * count);
-	}
-
-	template<typename S, typename T>
-	S* buffer_view(std::vector<T>& vec, size_t offset) {
-		return (S*) (vec.data() + offset);
-	}
-
+	/// Iterate the container and check if it contains the given value
 	template<typename T>
 	bool contains(const T& container, const auto& value) {
 		for (const auto& element : container) {
@@ -106,12 +208,14 @@ namespace asmio::util {
 		return false;
 	}
 
+	/// Convert string to lower case
 	inline std::string to_lower(std::string s) {
 		std::ranges::transform(s, s.begin(), [] (const int c) noexcept -> int { return std::tolower(c); });
 		return s;
 	}
 
-	constexpr int min_bytes(uint64_t value) {
+	/// Get the minimal number of bytes (in power-of-two increments) needed to encode an unsigned value
+	constexpr int min_unsigned_bytes(uint64_t value) {
 		if (value > 0xFFFFFFFF) return 8;
 		if (value > 0xFFFF) return 4;
 		if (value > 0xFF) return 2;
@@ -143,6 +247,10 @@ namespace asmio::util {
 		return __builtin_ctzll(~value); // ctz(~x) == cto(x)
 	}
 
+	/**
+	 * Create a constant with a specific number of bits set,
+	 * starting on the least-significant side.
+	 */
 	template <std::integral T>
 	constexpr T bit_fill(uint64_t count) {
 		if (count >= sizeof(T) * 8) {
@@ -152,18 +260,25 @@ namespace asmio::util {
 		return (1UL << count) - 1UL;
 	}
 
-	constexpr int min_sign_extended_bytes(int64_t value) {
+	/**
+	 * Get the minimal number of bytes (in power-of-two increments) needed
+	 * to losslessly encode the given signed integer.
+	 */
+	constexpr int min_signed_bytes(int64_t value) {
 		if ((value & 0xFFFF'FFFF'FFFF'FF80) == 0xFFFF'FFFF'FFFF'FF80) return 1; // 1 byte long negative
-		if ((value & 0xFFFF'FFFF'FFFF'FF80) == 0x0000'0000'0000'0080) return 2; // 2 byte long positive
-		if ((value & 0xFFFF'FFFF'FFFF'8000) == 0xFFFF'FFFF'FFFF'8000) return 2; // 2 byte long negative
-		if ((value & 0xFFFF'FFFF'FFFF'8000) == 0x0000'0000'0000'8000) return 4; // 4 byte long positive
-		if ((value & 0xFFFF'FFFF'8000'0000) == 0xFFFF'FFFF'8000'0000) return 4; // 4 byte long negative
-		if ((value & 0xFFFF'FFFF'8000'0000) == 0x0000'0000'8000'0000) return 8; // 8 byte long positive
+		if (value <= 0x0000'0000'0000'007F) return 1; // 1 byte long positive
 
-		// if we reached this point we know the value can't be sign extended
-		// bu we still don't know how long the number is, for example 0 also can't be sign extended
-		// so to fix this we invoke the unsigned version of this function
-		return min_bytes(value);
+		if ((value & 0xFFFF'FFFF'FFFF'8000) == 0xFFFF'FFFF'FFFF'8000) return 2; // 2 byte long negative
+		if (value <= 0x0000'0000'0000'7FFF) return 2; // 2 byte long positive
+
+		if ((value & 0xFFFF'FFFF'8000'0000) == 0xFFFF'FFFF'8000'0000) return 4; // 4 byte long negative
+		if (value <= 0x0000'0000'7FFF'FFFF) return 4; // 4 byte long positive
+
+		return 8;
+	}
+
+	constexpr int min_optimistic_bytes(uint64_t value) {
+		return std::min(min_unsigned_bytes(value), min_signed_bytes(value));
 	}
 
 	/// Convert integer into hex string
@@ -199,6 +314,11 @@ namespace asmio::util {
 		}
 
 		return x;
+	}
+
+	template <typename T>
+	constexpr uint64_t hash_djb2(const std::vector<T>& data) {
+		return hash_djb2(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T));
 	}
 
 	constexpr int digit_value(char c) {

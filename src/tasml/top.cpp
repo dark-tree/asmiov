@@ -1,7 +1,7 @@
 #include "top.hpp"
 
 #include <asm/module.hpp>
-#include <out/elf/buffer.hpp>
+#include <out/elf/object.hpp>
 
 #include "tokenizer.hpp"
 
@@ -55,7 +55,7 @@ namespace tasml {
 		TokenStream stream {tokens};
 
 		if (!reporter.ok()) {
-			throw std::runtime_error {"Failed to tokenize input"};
+			throw std::runtime_error {"Failed to tokenize input, " + reporter.first().str() + "!"};
 		}
 
 		// parse and assemble
@@ -63,7 +63,7 @@ namespace tasml {
 		assemble(reporter, stream, buffer);
 
 		if (!reporter.ok()) {
-			throw std::runtime_error {"Failed to parse input"};
+			throw std::runtime_error {"Failed to parse input, " + reporter.first().str() + "!"};
 		}
 
 		return buffer;

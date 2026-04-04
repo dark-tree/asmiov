@@ -33,12 +33,16 @@ namespace tasml {
 					}
 
 					void dump(bool ansi) const {
+						auto string = str(ansi);
+						printf("%s!\n", string.c_str());
+					}
+
+					std::string str(bool ansi = false) const {
 						if (type == LINK) {
-							printf("%s at %d+0x%08x %s %s!\n", unit.c_str(), line, column, typestr(ansi), message.c_str());
-							return;
+							return unit + " at " + std::to_string(line) + "+" + asmio::util::to_hex(column) + " " + typestr(ansi) + " " + message;
 						}
 
-						printf("%s:%d %s %s!\n", unit.c_str(), line, typestr(ansi), message.c_str());
+						return unit + ":" + std::to_string(line) + " " + typestr(ansi) + " " + message;
 					}
 
 				private:
@@ -75,6 +79,10 @@ namespace tasml {
 				if (failed) {
 					exit(code);
 				}
+			}
+
+			const Report& first() const {
+				return reports.front();
 			}
 
 		public:

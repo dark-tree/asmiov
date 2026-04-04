@@ -1,9 +1,12 @@
 #pragma once
 
 #include <out/elf/header.hpp>
+#include <out/elf/relocation.hpp>
+#include <util/set.hpp>
 
 #include "external.hpp"
 #include "label.hpp"
+#include "memory.hpp"
 
 namespace asmio {
 
@@ -16,14 +19,25 @@ namespace asmio {
 	/// Single link job entry
 	struct Linkage {
 
-		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, size_t mount)>;
-		using Handler = std::function<void(const Linkage& link, const char* what)>;
+		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, BufferMarker label, size_t mount)>;
+
+		struct Type {
+			ElfRelocationType relocation;
+			Linker linker;
+		};
 
 		Label label;
 		BufferMarker target;
-		Linker linker;
+		Type type;
+		int64_t addend;
+
+		constexpr Linkage(Label label, BufferMarker target, Type type, int64_t addend)
+			: label(label), target(target), type(type), addend(addend) {
+		}
 
 	};
+
+	using LinkReporter = std::function<void(const Linkage& link, const char* what)>;
 
 	/// Single Label export symbol
 	struct ExportSymbol {
@@ -40,18 +54,23 @@ namespace asmio {
 
 	};
 
+	struct SourceLocation {
+
+		BufferMarker marker;
+		uint32_t line;
+		uint16_t column;
+		uint16_t file;
+
+	};
+
 	/// One track in the SegmentedBuffer
 	struct BufferSegment {
 
-		constexpr static uint8_t R = 0b001;
-		constexpr static uint8_t W = 0b010;
-		constexpr static uint8_t X = 0b100;
-
 		// by default create a mixed-use section
-		constexpr static uint8_t DEFAULT = R | W | X;
+		constexpr static MemoryFlags DEFAULT = { true, true, true };
 
 		uint16_t index = 0;
-		uint8_t flags = 0;
+		MemoryFlags flags {};
 		uint8_t padder = 0; // byte used to pad the buffer tail
 		std::vector<uint8_t> buffer;
 		std::string name;
@@ -60,7 +79,7 @@ namespace asmio {
 		int64_t start = 0;
 		int64_t tail = 0;
 
-		BufferSegment(uint32_t index, uint8_t flags, std::string name = "") noexcept;
+		BufferSegment(uint32_t index, MemoryFlags flags, std::string name = "") noexcept;
 
 		/// Get size of this buffer, including padding
 		size_t size() const;
@@ -74,11 +93,8 @@ namespace asmio {
 		/// Update internal paddings to ensure page alignment
 		size_t align(size_t start, size_t page);
 
-		/// Convert internal flags to the mprotect() flags set
-		int get_mprot_flags() const;
-
 		/// Compute default name based on assigned flags
-		static const char* default_name(uint64_t flags);
+		static const char* default_name(MemoryFlags flags);
 
 	};
 
@@ -93,6 +109,10 @@ namespace asmio {
 			LabelMap<BufferMarker> labels;
 			std::vector<Linkage> linkages;
 			std::vector<ExportSymbol> exported_symbols;
+			std::unordered_set<Label, Label::HashFunction> external_symbols;
+
+			std::vector<SourceLocation> source_locations;
+			util::IndexedSet<std::string> source_files;
 
 		public:
 
@@ -116,11 +136,11 @@ namespace asmio {
 			/// Needs to be called before linking, calculates sections start/end offsets
 			void align(size_t page);
 
-			/// Execute all linkages
-			void link(size_t base, const Linkage::Handler& handler = nullptr);
+			/// Execute all linkages, returns a link of unresolved, external linkages
+			std::vector<Linkage> link(size_t base, const LinkReporter& handler = nullptr);
 
 			/// Insert linker command to be executed once link() is called
-			void add_linkage(const Label& label, int shift, const Linkage::Linker& linker);
+			void add_linkage(const Label& label, const Linkage::Type& linker, int64_t addend = 0);
 
 			/// Get the label value
 			BufferMarker get_label(const Label& label);
@@ -141,7 +161,7 @@ namespace asmio {
 			void insert(uint8_t* data, size_t bytes);
 
 			/// Select the section to use
-			void use_section(uint8_t flags, const std::string& name = "");
+			void use_section(MemoryFlags flags, const std::string& name = "");
 
 			/// Get section count
 			size_t count() const;
@@ -161,8 +181,20 @@ namespace asmio {
 			/// Get a list of exported symbols
 			const std::vector<ExportSymbol>& exports() const;
 
+			/// Add new external symbol, external symbols are allowed to be missing
+			void add_external(const Label& name);
+
 			/// Add new symbol to the export list
 			void add_export(const Label& label, ExportSymbol::Type type, size_t size);
+
+			/// Add location specifier for the current address
+			void add_location(const std::string& path, uint32_t line, uint32_t column);
+
+			/// Get source location list
+			const std::vector<SourceLocation>& locations() const;
+
+			/// Get source file list
+			const std::vector<std::string>& files() const;
 
 	};
 

@@ -6,6 +6,7 @@
 #include "vstl.hpp"
 #include "asm/aarch64/writer.hpp"
 #include "out/buffer/executable.hpp"
+#include <out/elf/export.hpp>
 #include <tasml/top.hpp>
 #include <util/tmp.hpp>
 
@@ -940,10 +941,10 @@ namespace test {
 				svc 0
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
-		asmio::ElfFile elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
+		asmio::ElfModel elf = asmio::to_elf(buffer, "_start", DEFAULT_ELF_MOUNT, [&] (const auto& link, const char* what) {
 			reporter.link(link.target, what);
 		});
 
@@ -952,7 +953,7 @@ namespace test {
 			FAIL("Failed to link executable");
 		}
 
-		RunResult result = elf.execute("memfd");
+		RunResult result = elf.bake().execute("memfd");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 100);
@@ -987,7 +988,7 @@ namespace test {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer;
 
 		try {
@@ -1027,8 +1028,8 @@ namespace test {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
-		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name(), code);
 
 		uint64_t r0 = to_executable(buffer).call_i64("l_mul_low");
 		CHECK(r0, 0xFBFFFFFE00000000);
@@ -1051,8 +1052,8 @@ namespace test {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
-		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name(), code);
 
 		uint64_t r0 = to_executable(buffer).call_i64("l_div");
 		CHECK(r0, 42);
@@ -1072,8 +1073,8 @@ namespace test {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
-		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name(), code);
 
 		uint64_t r0 = to_executable(buffer).call_i64("l_div");
 		CHECK(r0, -42);
@@ -1640,6 +1641,24 @@ namespace test {
 
 	};
 
+	TEST (exec_scall) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("add");
+		writer.put_ldr(X(1), X(0), 0, Sizing::UX);
+		writer.put_ldr(X(2), X(0), 8, Sizing::UX);
+		writer.put_add(X(0), X(1), X(2));
+		writer.put_ret();
+
+		// check if no segfault occures
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.scall<uint32_t>("add", (uint64_t) 33, (uint64_t) 11), 44);
+		CHECK(buffer.scall<uint32_t>("add", (uint64_t) 7, (uint64_t) 3), 10);
+
+	};
+
 	TEST(elf_gcc_linker_aarch64_function) {
 
 		std::string code = R"(
@@ -1651,7 +1670,7 @@ namespace test {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -1659,8 +1678,8 @@ namespace test {
 			FAIL("Errors generated");
 		}
 
-		ElfFile file = to_elf(buffer, Label::UNSET);
-		util::TempFile object {file, ".tasml.o"};
+		ElfModel file = to_elf(buffer, Label::UNSET);
+		util::TempFile object {file.bake(), ".tasml.o"};
 
 		std::string result = call_shell("readelf -a " + object.path());
 

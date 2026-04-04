@@ -16,15 +16,15 @@ namespace asmio {
 	};
 
 	enum struct ElfMachine : uint16_t {
-		NONE  = 0,     ///< No machine
-		M32   = 1,     ///< AT&T WE 32100
-		SPARC = 2,     ///< SPARC
-		I386  = 3,     ///< Intel 80386
-		M68K  = 4,     ///< Motorola 68000
-		M88K  = 5,     ///< Motorola 88000
-		I860  = 7,     ///< Intel 80860
-		X86_64 = 62,   ///< AMD x86-64 architecture
+		NONE    = 0,   ///< No machine
+		I386    = 3,   ///< Intel 80386
+		I860    = 7,   ///< Intel 80860
+		I960    = 19,  ///< Intel 80960
+		X86_64  = 62,  ///< AMD x86-64 architecture
+		ARM     = 40,  ///< ARM
 		AARCH64 = 183, ///< AArch64
+		RISCV   = 243, ///< RISC-V
+		AVR     = 83,  ///< Atmel AVR 8-bit microcontroller
 
 #if ARCH_AARCH64
 		NATIVE = AARCH64,

@@ -1,6 +1,6 @@
 #pragma once
 #include <out/buffer/segmented.hpp>
-#include <out/elf/buffer.hpp>
+#include <out/elf/object.hpp>
 
 #include "error.hpp"
 #include "stream.hpp"

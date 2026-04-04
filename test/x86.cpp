@@ -2,10 +2,11 @@
 #define DEBUG_MODE false
 #define VSTL_TEST_COUNT 3
 #define VSTL_PRINT_SKIP_REASON true
+#define VSTL_PRINT_MODULES true
 
 #include "vstl.hpp"
 #include "asm/x86/writer.hpp"
-#include "out/elf/buffer.hpp"
+#include <out/elf/export.hpp>
 
 // private libs
 #include <fstream>
@@ -324,7 +325,8 @@ namespace test {
 		writer.put_dword(0);
 
 		writer.put_mov(AL, ref("a"));   // valid
-		writer.put_mov(AL, 0xFFFFFFFF); // stupid, but valid
+		writer.put_mov(AL, 0xFFFFFFFF'FFFFFFFF); // stupid, but valid
+		writer.put_mov(AL, -1); // valid
 
 		EXPECT_THROW(std::runtime_error) {
 			writer.put_fst(cast<TWORD>(ref("a")));
@@ -447,12 +449,50 @@ namespace test {
 
 	}
 
+	TEST (writer_check_mov_size) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// can only move a 64 bit immediate into a 64 bit register
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_mov(ref<QWORD>(RAX), 0x1122334455667788);
+		};
+
+	}
+
+	TEST (writer_check_mov_size) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// can only move a 64 bit immediate into a 64 bit register
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_mov(EAX, 0x1122334455667788);
+		};
+
+	}
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for x86
 	 */
 
 	#if ARCH_X86
+
+	TEST (writer_exec_movabs) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(RCX, 0x1122334455667788);
+		writer.put_mov(RAX, RCX);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.call_u64(), 0x1122334455667788);
+
+	}
 
 	TEST (writer_exec_no_truncation) {
 
@@ -2875,7 +2915,7 @@ namespace test {
 		writer.put_mov(RAX, RDI);
 		writer.put_ret();
 
-		writer.section(BufferSegment::R | BufferSegment::W);
+		writer.section(MemoryFlag::R | MemoryFlag::W);
 		writer.label("src").put_cstr("123456789ABCDEF");
 
 		ExecutableBuffer buffer = to_executable(segmented);
@@ -3242,13 +3282,13 @@ namespace test {
 		BufferWriter writer {segmented};
 
 		writer.label("_start");
-		writer.section(BufferSegment::X | BufferSegment::R);
+		writer.section(MemoryFlag::X | MemoryFlag::R);
 		writer.put_mov(RBX, 42); // exit code
 		writer.put_mov(RAX, 1); // sys_exit
 		writer.put_int(0x80); // 32 bit syscall
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfFile file = to_elf(segmented, "_start");
+		ObjectFile file = to_elf(segmented, "_start").bake();
 
 		RunResult result = file.execute("memfd-elf-1");
 
@@ -3283,7 +3323,7 @@ namespace test {
 		writer.put_ret();
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfFile file = to_elf(segmented, "_start");
+		ObjectFile file = to_elf(segmented, "_start").bake();
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
@@ -3317,7 +3357,7 @@ namespace test {
 		writer.put_ret();
 
 		segmented.elf_machine = ElfMachine::X86_64;
-		ElfFile file = to_elf(segmented, "_start");
+		ObjectFile file = to_elf(segmented, "_start").bake();
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
@@ -3329,11 +3369,11 @@ namespace test {
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
-		writer.section(BufferSegment::R);
+		writer.section(MemoryFlag::R);
 		writer.label("data");
 		writer.put_dword(42);
 
-		writer.section(BufferSegment::X | BufferSegment::R);
+		writer.section(MemoryFlag::X | MemoryFlag::R);
 		writer.label("read");
 		writer.put_mov(EAX, ref("data"));
 		writer.put_ret();
@@ -3429,7 +3469,7 @@ namespace test {
 
 		tasml::ErrorHandler reporter {"tasml_tokenize", true};
 
-		SegmentedBuffer buffer = tasml::assemble(vstl_self.name, code);
+		SegmentedBuffer buffer = tasml::assemble(vstl_self.name(), code);
 		CHECK(to_executable(buffer).call_i32("_start"), 6);
 
 	};
@@ -3452,7 +3492,7 @@ namespace test {
 				ret
 		)";
 
-		SegmentedBuffer segmented = tasml::assemble(vstl_self.name, code);
+		SegmentedBuffer segmented = tasml::assemble(vstl_self.name(), code);
 		ExecutableBuffer buffer = to_executable(segmented);
 
 		buffer.call_i64("_start");
@@ -3515,7 +3555,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer;
-		int size;
+		size_t size;
 
 		{
 			buffer = to_executable(segmented);
@@ -3539,20 +3579,37 @@ namespace test {
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
 
-		writer.section(BufferSegment::R | BufferSegment::X);
+		writer.section(MemoryFlag::R | MemoryFlag::X);
 		writer.put_mov(ref("target"), RAX);
 		writer.put_ret();
 
-		writer.section(0);
+		writer.section(MemoryFlag::NONE);
 		writer.put_space(1024);
 
-		writer.section(BufferSegment::R | BufferSegment::W);
+		writer.section(MemoryFlag::R | MemoryFlag::W);
 		writer.label("target");
 		writer.put_qword(0);
 
 		// check if no segfault occures
 		ExecutableBuffer buffer = to_executable(segmented);
 		buffer.call();
+
+	};
+
+	TEST (exec_scall) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("add");
+		writer.put_mov(RAX, ref(RDI + 0));
+		writer.put_add(RAX, ref(RDI + 8));
+		writer.put_ret();
+
+		// check if no segfault occures
+		ExecutableBuffer buffer = to_executable(segmented);
+		CHECK(buffer.scall<uint32_t>("add", (uint64_t) 33, (uint64_t) 11), 44);
+		CHECK(buffer.scall<uint32_t>("add", (uint64_t) 7, (uint64_t) 3), 10);
 
 	};
 
@@ -3567,7 +3624,7 @@ namespace test {
 				ret
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -3575,7 +3632,7 @@ namespace test {
 			FAIL("Errors generated");
 		}
 
-		ElfFile file = to_elf(buffer, Label::UNSET);
+		ObjectFile file = to_elf(buffer, Label::UNSET).bake();
 		util::TempFile object {file, ".tasml.o"};
 
 		std::string result = call_shell("readelf -a " + object.path());
@@ -3603,7 +3660,103 @@ namespace test {
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "42");
 
-	}
+	};
+
+	TEST (writer_elf_segments) {
+
+		using namespace asmio;
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::X | MemoryFlag::R);
+
+		writer.label("_start");
+		writer.put_mov(RBX, ref("my_data")); // exit code
+		writer.put_mov(RAX, 1); // sys_exit
+		writer.put_int(0x80); // 32 bit syscall
+
+		writer.section(MemoryFlag::R);
+		writer.label("my_data");
+		writer.put_qword(42);
+
+		segmented.elf_machine = ElfMachine::X86_64;
+		ObjectFile file = to_elf(segmented, "_start").bake();
+		RunResult result = file.execute("memfd-elf-1");
+
+		CHECK(result.type, RunStatus::SUCCESS);
+		CHECK(result.status, 42);
+
+	};
+
+	TEST(gcc_import_export_relocations) {
+
+		std::string code = R"(
+			lang x86
+			section rx
+
+			import @test_value
+
+			export update_text:
+				lea rax, @test_value
+				mov rcx, 0x0000215952525546
+				mov [rax], rcx
+				ret
+
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+		// override the architecture
+		buffer.elf_machine = ElfMachine::NATIVE;
+
+		ObjectFile file = to_elf(buffer, Label::UNSET).bake();
+		util::TempFile object {file, ".tasml.o"};
+
+		std::string result = call_shell("readelf -a " + object.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		util::TempFile main_src {".main.c"};
+		main_src.write(R"(
+			#include <stdio.h>
+			#include <string.h>
+			#include <stdint.h>
+
+			// exported to asmiov
+			volatile uint64_t test_value = 0;
+
+			// imported from asmiov
+			uint64_t update_text();
+
+			int main() {
+				char* a = (char*) &test_value;
+				memcpy(a, "HELLO ", 6);
+				printf("%s", a);
+
+				update_text();
+
+				char* b = (char*) &test_value;
+				printf("%s", b);
+			}
+		)");
+
+		// link with our object
+		util::TempFile exec {".out"};
+		std::string gcc_output = call_shell("gcc -Wno-format -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		CHECK(gcc_output, "");
+
+		std::string exe_output = call_shell(exec.path());
+		CHECK(exe_output, "HELLO FURRY!");
+
+	};
 
 #endif
 ;}

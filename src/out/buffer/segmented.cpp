@@ -9,7 +9,7 @@ namespace asmio {
 	 * class BufferSegment
 	 */
 
-	BufferSegment::BufferSegment(uint32_t index, uint8_t flags, std::string name) noexcept
+	BufferSegment::BufferSegment(uint32_t index, MemoryFlags flags, std::string name) noexcept
 		: index(index), flags(flags), name(std::move(name)) {
 	}
 
@@ -35,28 +35,18 @@ namespace asmio {
 		return offset + aligned;
 	}
 
-	int BufferSegment::get_mprot_flags() const {
-		// FIXME this is dumb
-
-		int protect = 0;
-		if (flags & R) protect |= PROT_READ;
-		if (flags & W) protect |= PROT_WRITE;
-		if (flags & X) protect |= PROT_EXEC;
-		return protect;
-	}
-
-	const char* BufferSegment::default_name(uint64_t flags) {
+	const char* BufferSegment::default_name(MemoryFlags flags) {
 
 		// normal sections
-		if (flags == R) return ".rodata";
-		if (flags == (R | X)) return ".text";
-		if (flags == (R | W)) return ".data";
+		if (flags == MemoryFlag::R) return ".rodata";
+		if (flags == (MemoryFlag::R | MemoryFlag::X)) return ".text";
+		if (flags == (MemoryFlag::R | MemoryFlag::W)) return ".data";
 
 		// weird sections
-		if (flags == W) return ".w";
-		if (flags == X) return ".x";
-		if (flags == (W | X)) return ".wx";
-		if (flags == (R | W | X)) return ".rwx";
+		if (flags == MemoryFlag::W) return ".w";
+		if (flags == MemoryFlag::X) return ".x";
+		if (flags == (MemoryFlag::W | MemoryFlag::X)) return ".wx";
+		if (flags == (MemoryFlag::R | MemoryFlag::W | MemoryFlag::X)) return ".rwx";
 
 		// flags == 0
 		return ".nil";
@@ -91,21 +81,36 @@ namespace asmio {
 		}
 	}
 
-	void SegmentedBuffer::link(size_t base, const Linkage::Handler& handler) {
+	std::vector<Linkage> SegmentedBuffer::link(size_t base, const LinkReporter& handler) {
 		base_address = base;
+
+		std::vector<Linkage> external;
 
 		for (const Linkage& linkage : linkages) {
 			try {
-				linkage.linker(this, linkage, base);
-			} catch (std::runtime_error& error) {
+				auto it = labels.find(linkage.label);
+
+				if (it == labels.end()) {
+					if (external_symbols.contains(linkage.label)) {
+						external.push_back(linkage);
+						continue;
+					}
+
+					throw std::runtime_error {"Undefined label '" + linkage.label.string() + "' used"};
+				}
+
+				linkage.type.linker(this, linkage, it->second, base);
+			} catch (const std::runtime_error& error) {
 				if (handler) handler(linkage, error.what()); else throw;
 			}
 		}
+
+		return external;
 	}
 
-	void SegmentedBuffer::add_linkage(const Label& label, int shift, const Linkage::Linker& linker) {
+	void SegmentedBuffer::add_linkage(const Label& label, const Linkage::Type& linker, int64_t addend) {
 		uint32_t offset = sections[selected].buffer.size();
-		linkages.emplace_back(label, BufferMarker {(uint32_t) selected, offset + shift}, linker);
+		linkages.emplace_back(label, BufferMarker {static_cast<uint32_t>(selected), offset}, linker, addend);
 	}
 
 	BufferMarker SegmentedBuffer::get_label(const Label& label) {
@@ -148,7 +153,7 @@ namespace asmio {
 		buffer.insert(buffer.end(), data, data + bytes);
 	}
 
-	void SegmentedBuffer::use_section(uint8_t flags, const std::string& hint) {
+	void SegmentedBuffer::use_section(MemoryFlags flags, const std::string& hint) {
 		int index = -1;
 		const int count = static_cast<int>(sections.size());
 		const std::string name = hint.empty() ? BufferSegment::default_name(flags) : hint;
@@ -186,7 +191,7 @@ namespace asmio {
 		std::cout << "./unasm.sh " << base_address << " \"";
 
 		for (const BufferSegment& segment : sections) {
-			std::cout << "SECTION " << (segment.flags & BufferSegment::X ? ".text" : ".data") << " \\ndb ";
+			std::cout << "SECTION " << (segment.flags.x ? ".text" : ".data") << " \\ndb ";
 			bool first = true;
 
 			for (uint8_t byte : segment.buffer) {
@@ -222,8 +227,28 @@ namespace asmio {
 		return exported_symbols;
 	}
 
+	void SegmentedBuffer::add_external(const Label& name) {
+		external_symbols.insert(name);
+	}
+
 	void SegmentedBuffer::add_export(const Label& label, ExportSymbol::Type type, size_t size)  {
 		exported_symbols.emplace_back(label, size, type);
+	}
+
+	void SegmentedBuffer::add_location(const std::string& path, uint32_t line, uint32_t column) {
+		if (column > 0xFFFF) {
+			column = 0xFFFF;
+		}
+
+		source_locations.emplace_back(current(), line, column, source_files.put(path));
+	}
+
+	const std::vector<SourceLocation>& SegmentedBuffer::locations() const {
+		return source_locations;
+	}
+
+	const std::vector<std::string>& SegmentedBuffer::files() const {
+		return source_files.items();
 	}
 
 }

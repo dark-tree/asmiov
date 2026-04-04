@@ -16,8 +16,16 @@ namespace asmio {
 
 			BasicBufferWriter(SegmentedBuffer& buffer);
 
-			BasicBufferWriter& section(uint8_t flags, const std::string& name = "");
+			/// Begin (or continue) writing to a section with the given memory flags
+			BasicBufferWriter& section(MemoryFlags flags, const std::string& name = "");
+
+			/// Insert label at the current position of the current section
 			BasicBufferWriter& label(const Label& label);
+
+			/// Allow for the given symbol to be missing, create relocations when exporting to an object file
+			BasicBufferWriter& import_symbol(const Label& name);
+
+			/// Exported symbols will be able to be resolved from outside the unit when exporting to an object file
 			BasicBufferWriter& export_symbol(const Label& label, ExportSymbol::Type type = ExportSymbol::PUBLIC, size_t size = 0);
 
 			void put_cstr(const char* str);

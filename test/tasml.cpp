@@ -9,6 +9,7 @@
 #include <regex>
 #include <tasml/top.hpp>
 #include <util/tmp.hpp>
+#include <out/elf/export.hpp>
 
 #include "test.hpp"
 #include "vstl.hpp"
@@ -18,18 +19,6 @@ namespace test {
 
 	using namespace asmio;
 
-	TEST (util_parse_int) {
-
-		CHECK(util::parse_int("0"), 0);
-		CHECK(util::parse_int("+1000"), 1000);
-		CHECK(util::parse_int("-1000"), -1000);
-		CHECK(util::parse_int("0xFEB00000"), 0xFEB00000);
-		CHECK(util::parse_int("0xFAFFFFFFFBFFFFFE"), 0xFAFFFFFFFBFFFFFE);
-		CHECK(util::parse_int("0b1010101"), 0b1010101);
-		CHECK(util::parse_int("-0b1010101"), -0b1010101);
-
-	}
-
 	TEST (tasml_check_basic_error) {
 
 		std::string code = R"(
@@ -37,7 +26,7 @@ namespace test {
 			b 7, @test
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 
 		EXPECT_THROW(std::runtime_error) {
 			tasml::assemble(reporter, code);
@@ -55,7 +44,7 @@ namespace test {
 			mov x2, x1
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		tasml::assemble(reporter, code);
 
 		ASSERT(reporter.ok());
@@ -77,7 +66,7 @@ namespace test {
 			nop
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -102,7 +91,7 @@ namespace test {
 			ret x8
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -123,10 +112,11 @@ namespace test {
 
 		for (const auto& file : files) {
 
-			std::ifstream ifs {file};
+			auto path = std::filesystem::current_path() / ".." / file;
+			std::ifstream ifs {path};
 
 			if (!ifs.is_open()) {
-				FAIL("Failed to read file " + file + ", current working directory is " + std::filesystem::current_path().string());
+				FAIL("Failed to read file: " + path.string());
 			}
 
 			std::string content;
@@ -137,7 +127,7 @@ namespace test {
 
 			while (std::regex_search(it, content.cend(), res, pattern)) {
 
-				tasml::ErrorHandler reporter {std::string(vstl_self.name) + "-" + file + "-" + std::to_string(suffix++), true};
+				tasml::ErrorHandler reporter {std::string(vstl_self.name()) + "-" + file + "-" + std::to_string(suffix++), true};
 
 				try {
 					tasml::assemble(reporter, res.str(1));
@@ -179,7 +169,7 @@ namespace test {
 			export private @pill
 		)";
 
-		tasml::ErrorHandler reporter {vstl_self.name, true};
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
 		SegmentedBuffer buffer = tasml::assemble(reporter, code);
 
 		if (!reporter.ok()) {
@@ -187,7 +177,7 @@ namespace test {
 			FAIL("Errors generated");
 		}
 
-		ElfFile file = to_elf(buffer, "strlen");
+		ObjectFile file = to_elf(buffer, "strlen").bake();
 		util::TempFile temp {file};
 
 		std::string result = call_shell("readelf -a " + temp.path());
@@ -200,6 +190,136 @@ namespace test {
 		ASSERT(result.contains("2: 0000000000000000     0 FUNC    GLOBAL PROTECTED    3 my_strlen"));
 		ASSERT(result.contains("3: 0000000000000000     0 FUNC    WEAK   PROTECTED    3 strlen"));
 		ASSERT(result.contains("4: 0000000000000000     0 OBJECT  GLOBAL PROTECTED    2 tipp"));
+
+	};
+
+	TEST (tasml_embed_statement) {
+
+		std::string embed = "Hello embedded content!\n";
+		util::TempFile embedded {".txt"};
+		embedded.write(embed);
+
+		std::string code = R"(
+			section r
+			export private begin:
+				embed ")" + embedded.path() + R"("
+			export private end:
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		SegmentedBuffer buffer = tasml::assemble(reporter, code);
+
+		if (!reporter.ok()) {
+			reporter.dump();
+			FAIL("Errors generated");
+		}
+
+		ObjectFile file = to_elf(buffer, Label::UNSET).bake();
+		util::TempFile temp {file};
+
+		std::string result = call_shell("readelf -a " + temp.path());
+
+		ASSERT(!result.contains("Warning"));
+		ASSERT(!result.contains("Error"));
+
+		CHECK(embed.size(), 0x18);
+
+		ASSERT(result.contains("0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND"));
+		ASSERT(result.contains("1: 0000000000000000     0 OBJECT  LOCAL  HIDDEN     2 begin"));
+		ASSERT(result.contains("2: 0000000000000018     0 OBJECT  LOCAL  HIDDEN     2 end"));
+
+		// very basic test but it's unlikely thet embed specifically broke ELF itself,
+		// so if the string is in there we can readable assume everything worked.
+		std::string strings = call_shell("strings " + temp.path());
+		ASSERT(strings.contains(embed));
+
+	};
+
+	TEST (tasml_embed_missing_file) {
+
+		std::string code = R"(
+			section r
+			export private begin:
+				embed "missing-file.bin"
+			export private end:
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+
+		EXPECT_THROW(std::runtime_error) {
+			tasml::assemble(reporter, code);
+		};
+
+		CHECK(reporter.ok(), false);
+
+	};
+
+	TEST (tasml_source_mapping) {
+
+		std::string code = R"(
+			source "./test/foo.bar" 21 37
+			byte 1
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		auto program = tasml::assemble(reporter, code);
+		ASSERT(reporter.ok());
+
+		auto& slocs = program.locations();
+		auto& files = program.files();
+
+		CHECK(slocs.size(), 1);
+		CHECK(files.size(), 1);
+
+		CHECK(files[0], "./test/foo.bar");
+		CHECK(slocs[0].file, 0);
+		CHECK(slocs[0].line, 21);
+		CHECK(slocs[0].column, 37);
+
+	};
+
+	TEST (tasml_extern_unused) {
+
+		std::string code = R"(
+			lang x86
+
+			import @bar
+
+			foo:
+				ret
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		auto program = tasml::assemble(reporter, code);
+		ASSERT(reporter.ok());
+
+		auto unresolved = program.link(0);
+
+		CHECK(unresolved.size(), 0);
+
+	};
+
+	TEST (tasml_extern_unresolved) {
+
+		std::string code = R"(
+			lang x86
+
+			import @bar
+
+			foo:
+				jmp @bar
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		auto program = tasml::assemble(reporter, code);
+		ASSERT(reporter.ok());
+
+		auto unresolved = program.link(0);
+
+		CHECK(unresolved.size(), 1);
+
+		CHECK(unresolved[0].label.string(), "bar");
+		CHECK(unresolved[0].type.relocation, ElfRelocationType::X86_64_PC32);
 
 	};
 

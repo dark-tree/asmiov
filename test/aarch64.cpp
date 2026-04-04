@@ -4,11 +4,11 @@
 #define VSTL_SUBMODULE true
 
 #include "vstl.hpp"
-#include "asm/aarch64/writer.hpp"
-#include "out/buffer/executable.hpp"
-#include <out/elf/export.hpp>
+#include <asmio/aarch64/writer.hpp>
+#include <asmio/program/executable.hpp>
+#include <asmio/elf/export.hpp>
+#include <asmio/util/tmp.hpp>
 #include <tasml/top.hpp>
-#include <util/tmp.hpp>
 
 #include "test.hpp"
 

@@ -8,12 +8,12 @@
 #include <fstream>
 #include <regex>
 #include <tasml/top.hpp>
-#include <util/tmp.hpp>
-#include <out/elf/export.hpp>
+#include <asmio/util/tmp.hpp>
+#include <asmio/elf/export.hpp>
 
 #include "test.hpp"
 #include "vstl.hpp"
-#include "out/buffer/executable.hpp"
+#include <asmio/program/executable.hpp>
 
 namespace test {
 

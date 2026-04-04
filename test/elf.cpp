@@ -4,14 +4,14 @@
 #define VSTL_SUBMODULE true
 
 #include <vstl.hpp>
-#include <out/buffer/writer.hpp>
-#include <out/elf/dwarf/encoding.hpp>
-#include <out/elf/dwarf/info.hpp>
-#include <out/elf/dwarf/lines.hpp>
+#include <asmio/program/writer.hpp>
+#include <asmio/elf/dwarf/encoding.hpp>
+#include <asmio/elf/dwarf/info.hpp>
+#include <asmio/elf/dwarf/lines.hpp>
 #include <tasml/top.hpp>
 
-#include "util/tmp.hpp"
-#include "out/elf/export.hpp"
+#include <asmio/util/tmp.hpp>
+#include <asmio/elf/export.hpp>
 #include "test.hpp"
 
 namespace test {

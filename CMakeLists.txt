@@ -30,8 +30,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(vstl)
 
 set(ASMIO_WRITERS
-		src/asm/x86/writer.hpp
-		src/asm/aarch64/writer.hpp
+		src/asmio/x86/writer.hpp
+		src/asmio/aarch64/writer.hpp
 )
 
 set(ASMIO_BRIDGES "${ASMIO_WRITERS}")

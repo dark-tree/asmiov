@@ -3,12 +3,12 @@
 #define VSTL_PRINT_SKIP_REASON true
 #define VSTL_SUBMODULE true
 
-#include <util.hpp>
-#include <out/buffer/label.hpp>
-#include <out/buffer/segmented.hpp>
-#include <out/chunk/buffer.hpp>
-#include <out/chunk/codecs.hpp>
-#include <util/pool.hpp>
+#include <asmio/util.hpp>
+#include <asmio/program/label.hpp>
+#include <asmio/program/segmented.hpp>
+#include <asmio/util/chunk.hpp>
+#include <asmio/util/codecs.hpp>
+#include <asmio/util/pool.hpp>
 
 #include "vstl.hpp"
 

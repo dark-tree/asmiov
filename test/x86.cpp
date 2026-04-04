@@ -5,14 +5,14 @@
 #define VSTL_PRINT_MODULES true
 
 #include "vstl.hpp"
-#include "asm/x86/writer.hpp"
-#include <out/elf/export.hpp>
+#include <asmio/x86/writer.hpp>
+#include <asmio/elf/export.hpp>
 
 // private libs
 #include <fstream>
-#include <out/buffer/executable.hpp>
+#include <asmio/program/executable.hpp>
 #include <tasml/top.hpp>
-#include <util/tmp.hpp>
+#include <asmio/util/tmp.hpp>
 
 #include "test.hpp"
 

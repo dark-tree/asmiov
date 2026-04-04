@@ -1,13 +1,13 @@
-#include "external.hpp"
-#include "util.hpp"
+#include <asmio/external.hpp>
+#include <asmio/util.hpp>
 #include "args.hpp"
 #include "error.hpp"
-#include <out/elf/export.hpp>
+#include <asmio/elf/export.hpp>
 
 // private libs
 #include <iostream>
 #include <fstream>
-#include <asm/module.hpp>
+#include <asmio/module.hpp>
 
 #include "top.hpp"
 

@@ -70,6 +70,8 @@ namespace asmio::x86 {
 			void put_inst_sse_2xmm(uint8_t opcode, Registry dst, Registry src);
 			void put_inst_sse(uint8_t opcode, Registry reg, const Location& loc);
 			void put_inst_sse_sized(uint8_t opcode, Registry reg, const Location& loc, uint8_t size, bool prefix = true);
+			void put_inst_mxcsr(const Location& loc, uint8_t opcode);
+			void put_inst_movxps(Location dst, Location src, uint8_t opcode);
 
 			/// Add the REX.W prefix
 			void put_rex_w();
@@ -367,8 +369,8 @@ namespace asmio::x86 {
 			INST put_movhps(Location dst, Location src); ///< Move two packed single precision floating-point values from m64 to high quadword of dst
 			INST put_movlps(Location dst, Location src); ///< Move two packed single precision floating-point values from m64 to low quadword of dst
 			INST put_movmskps(Registry dst, Registry src); ///< Extract Packed Single Precision Floating-Point Sign Mask
-			// TODO: movss
-			// TODO: movups
+			INST put_movss(Location dst, Location src); ///<
+			INST put_movups(Location dst, Location src); ///<
 			INST put_addps(Registry dst, Location src); ///< Add packed single precision floating-point values
 			INST put_addss(Registry dst, Location src); ///<
 			INST put_divps(Registry dst, Location src); ///< Divide packed single precision floating-point values
@@ -398,14 +400,13 @@ namespace asmio::x86 {
 			INST put_shufps(Registry dst, Location src, uint8_t selector); ///<
 			INST put_unpckhps(Registry dst, Location src); ///<
 			INST put_unpcklps(Registry dst, Location src); ///<
-			// Skipped cvtpi2ps - This uses MMX registers
-			// Skipped cvtps2pi - This uses MMX registers
 			INST put_cvtsi2ss(Registry dst, Location src); ///< Convert Doubleword Integer to Scalar Single Precision Floating-Point Value
 			INST put_cvtss2si(Registry dst, Location src); ///<
-			// Skipped cvttps2pi - This uses MMX registers
-			// TODO: cvttss2si (same as cvtss2si)
+			INST put_cvttss2si(Registry dst, Location src); ///<
 			INST put_ldmxcsr(Location src); ///<
 			INST put_stmxcsr(Location dst); ///<
+			INST put_movntps(Location dst, Registry src); ///<
+			INST put_sfence(); ///<
 
 	};
 

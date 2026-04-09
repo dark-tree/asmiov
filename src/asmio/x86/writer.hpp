@@ -69,7 +69,7 @@ namespace asmio::x86 {
 			/// Put SSE double XMM register operand instruction
 			void put_inst_sse_2xmm(uint8_t opcode, Registry dst, Registry src);
 			void put_inst_sse(uint8_t opcode, Registry reg, const Location& loc);
-			void put_inst_sse_sized(uint8_t opcode, Registry reg, const Location& loc, uint8_t size);
+			void put_inst_sse_sized(uint8_t opcode, Registry reg, const Location& loc, uint8_t size, bool prefix = true);
 
 			/// Add the REX.W prefix
 			void put_rex_w();
@@ -389,20 +389,23 @@ namespace asmio::x86 {
 			INST put_subss(Registry dst, Location src); ///<
 			INST put_cmpps(Registry dst, Location src, SimdCondition cond); ///< Compare packed 32 bit floating point values
 			INST put_cmpss(Registry dst, Location src, SimdCondition cond); ///<
-			// TODO: comiss
-			// TODO: ucomiss
+			INST put_comiss(Registry dst, Location src); ///<
+			INST put_ucomiss(Registry dst, Location src); ///<
 			INST put_andnps(Registry dst, Location src); ///< Bitwise logical AND NOT of packed 32 bit values
 			INST put_andps(Registry dst, Location src); ///< Bitwise logical AND of packed 32 bit values
 			INST put_orps(Registry dst, Location src); ///< Bitwise logical OR of packed 32 bit values
 			INST put_xorps(Registry dst, Location src); ///< Bitwise logical XOR of packed 32 bit values
-			// TODO: shufps
-			// TODO: unpckhps
-			// TODO: unpcklps
-			// TODO: cvtpi2ps
-			// TODO: cvtps2pi
+			INST put_shufps(Registry dst, Location src, uint8_t selector); ///<
+			INST put_unpckhps(Registry dst, Location src); ///<
+			INST put_unpcklps(Registry dst, Location src); ///<
+			// Skipped cvtpi2ps - This uses MMX registers
+			// Skipped cvtps2pi - This uses MMX registers
 			INST put_cvtsi2ss(Registry dst, Location src); ///< Convert Doubleword Integer to Scalar Single Precision Floating-Point Value
-			// TODO: cvtss2si
-
+			INST put_cvtss2si(Registry dst, Location src); ///<
+			// Skipped cvttps2pi - This uses MMX registers
+			// TODO: cvttss2si (same as cvtss2si)
+			INST put_ldmxcsr(Location src); ///<
+			INST put_stmxcsr(Location dst); ///<
 
 	};
 

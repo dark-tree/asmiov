@@ -277,6 +277,10 @@ namespace asmio::x86 {
 
 		if constexpr (std::is_same_v<T, SimdCondition>) {
 			return SimdCondition::NLT;
+		} else
+
+		if constexpr (std::is_same_v<T, uint8_t>) {
+			return 0;
 		}
 
 		else {

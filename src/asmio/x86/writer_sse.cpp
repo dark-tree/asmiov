@@ -24,14 +24,17 @@ namespace asmio::x86 {
 		put_inst_std(opcode, loc, reg.pack(), XMMWORD, true);
 	}
 
-	void BufferWriter::put_inst_sse_sized(uint8_t opcode, Registry reg, const Location& loc, uint8_t size) {
+	void BufferWriter::put_inst_sse_sized(uint8_t opcode, Registry reg, const Location& loc, uint8_t size, bool prefix) {
 
 		if (!reg.is(Registry::XMM)) {
 			throw std::runtime_error {"Invalid operand, expected XMM register"};
 		}
 
 		if ((loc.is_simple() && loc.base.is(Registry::XMM)) || (loc.is_memory() && loc.size == size)) {
-			put_byte(0xF3);
+			if (prefix) {
+				put_byte(0xF3);
+			}
+
 			put_inst_std(opcode, loc, reg.pack(), DWORD, true);
 			return;
 		}
@@ -207,6 +210,14 @@ namespace asmio::x86 {
 		put_byte(static_cast<uint8_t>(cond));
 	}
 
+	void BufferWriter::put_comiss(Registry dst, Location src) {
+		put_inst_sse_sized(0x2F, dst, src, DWORD, false);
+	}
+
+	void BufferWriter::put_ucomiss(Registry dst, Location src) {
+		put_inst_sse_sized(0x2E, dst, src, DWORD, false);
+	}
+
 	void BufferWriter::put_andnps(Registry dst, Location src) {
 		put_inst_sse(0x55, dst, src);
 	}
@@ -223,9 +234,63 @@ namespace asmio::x86 {
 		put_inst_sse(0x57, dst, src);
 	}
 
+	void BufferWriter::put_shufps(Registry dst, Location src, uint8_t selector) {
+		put_inst_sse(0xC6, dst, src);
+		put_byte(selector);
+	}
+
+	void BufferWriter::put_unpckhps(Registry dst, Location src) {
+		put_inst_sse(0x15, dst, src);
+	}
+
+	void BufferWriter::put_unpcklps(Registry dst, Location src) {
+		put_inst_sse(0x14, dst, src);
+	}
+
 	void BufferWriter::put_cvtsi2ss(Registry dst, Location src) {
 		put_byte(0xF3);
 		put_inst_std(0x2A, src, dst.pack(), src.size, true);
+	}
+
+	void BufferWriter::put_cvtss2si(Registry dst, Location src) {
+
+		if (!dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid destination operand, expected general purpose register"};
+		}
+
+		if (dst.size != DWORD && dst.size != QWORD) {
+			throw std::runtime_error {"Invalid destination operand, expected dword or qword register"};
+		}
+
+		if (src.is_simple() && !src.base.is(Registry::XMM)) {
+			throw std::runtime_error {"Invalid source operand, expected XMM register"};
+		}
+
+		if (src.is_memory() && (src.size != VOID && src.size != DWORD)) {
+			throw std::runtime_error {"Invalid source operand, dword memory reference"};
+		}
+
+		put_byte(0xF3);
+		put_inst_std(0x2D, src, dst.pack(), dst.size, true);
+	}
+
+
+	void BufferWriter::put_ldmxcsr(Location src) {
+		if (src.is_memory() && src.size == DWORD) {
+			put_inst_std(0xAE, src, RegInfo::raw(2), DWORD, true);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand, expected memory"};
+	}
+
+	void BufferWriter::put_stmxcsr(Location dst) {
+		if (dst.is_memory() && dst.size == DWORD) {
+			put_inst_std(0xAE, dst, RegInfo::raw(3), DWORD, true);
+			return;
+		}
+
+		throw std::runtime_error {"Invalid operand, expected memory"};
 	}
 
 }

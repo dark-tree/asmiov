@@ -656,7 +656,7 @@ namespace test {
 
 	}
 
-	TEST (check_sse_cmpps_cmpss) {
+	TEST (check_sse_cmpps_cmpss_comiss_ucomiss) {
 
 		SegmentedBuffer buffer;
 		BufferWriter writer {buffer};
@@ -665,12 +665,92 @@ namespace test {
 		writer.put_cmpps(XMM2, XMM3, SimdCondition::LT);
 		writer.put_cmpss(XMM5, XMM8, SimdCondition::RD);
 		writer.put_cmpss(XMM11, XMM1, SimdCondition::NLT);
+		writer.put_comiss(XMM11, ref<DWORD>(RBP));
+		writer.put_comiss(XMM11, XMM1);
+		writer.put_ucomiss(XMM11, XMM1);
+		writer.put_ucomiss(XMM11, ref<DWORD>(RAX));
 
 		buffer.link(0);
-		std::vector<uint8_t> s0 = {0x0f, 0xc2, 0xc9, 0x00, 0x0f, 0xc2, 0xd3, 0x01, 0xf3, 0x41, 0x0f, 0xc2, 0xe8, 0x07, 0xf3, 0x44, 0x0f, 0xc2, 0xd9, 0x05};
+		std::vector<uint8_t> s0 = {0x0f, 0xc2, 0xc9, 0x00, 0x0f, 0xc2, 0xd3, 0x01, 0xf3, 0x41, 0x0f, 0xc2, 0xe8, 0x07, 0xf3, 0x44, 0x0f, 0xc2, 0xd9, 0x05, 0x44, 0x0f, 0x2f, 0x5d, 0x00, 0x44, 0x0f, 0x2f, 0xd9, 0x44, 0x0f, 0x2e, 0xd9, 0x44, 0x0f, 0x2e, 0x18};
 		CHECK(buffer.segments()[0].buffer, s0); // .rwx
 
 	};
+
+	TEST (check_sse_shufps_unpckhps_unpcklps) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_shufps(XMM11, ref<XMMWORD>(RAX + RCX), 0b1011);
+		writer.put_unpckhps(XMM11, ref<XMMWORD>(RAX));
+		writer.put_unpcklps(XMM11, XMM1);
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x44, 0x0f, 0xc6, 0x1c, 0x08, 0x0b, 0x44, 0x0f, 0x15, 0x18, 0x44, 0x0f, 0x14, 0xd9};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_cvtss2si) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_cvtss2si(EAX, XMM1);
+		writer.put_cvtss2si(EAX, ref(RAX));
+		writer.put_cvtss2si(EAX, ref<DWORD>(RAX));
+		writer.put_cvtss2si(RAX, XMM1);
+		writer.put_cvtss2si(RAX, ref(RAX));
+		writer.put_cvtss2si(RAX, ref<DWORD>(RAX));
+		writer.put_cvtss2si(R11, XMM11);
+		writer.put_cvtss2si(R11, ref(R11));
+		writer.put_cvtss2si(R11, ref<DWORD>(R11));
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_cvtss2si(XMM11, XMM11);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_cvtss2si(R11, R11);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_cvtss2si(R11, ref<QWORD>(R11));
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0xf3, 0x0f, 0x2d, 0xc1, 0xf3, 0x0f, 0x2d, 0x00, 0xf3, 0x0f, 0x2d, 0x00, 0xf3, 0x48, 0x0f, 0x2d, 0xc1, 0xf3, 0x48, 0x0f, 0x2d, 0x00, 0xf3, 0x48, 0x0f, 0x2d, 0x00, 0xf3, 0x4d, 0x0f, 0x2d, 0xdb, 0xf3, 0x4d, 0x0f, 0x2d, 0x1b, 0xf3, 0x4d, 0x0f, 0x2d, 0x1b};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_ldmxcsr_stmxcsr) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_ldmxcsr(ref<DWORD>(EAX));
+		writer.put_ldmxcsr(ref<DWORD>(ECX));
+		writer.put_stmxcsr(ref<DWORD>(ESP));
+		writer.put_stmxcsr(ref<DWORD>(ESP));
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldmxcsr(RAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_stmxcsr(EAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_stmxcsr(XMM1);
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x67, 0x0f, 0xae, 0x10, 0x67, 0x0f, 0xae, 0x11, 0x67, 0x0f, 0xae, 0x1c, 0x24, 0x67, 0x0f, 0xae, 0x1c, 0x24};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	}
 
 	/*
 	 * region Executable

@@ -263,9 +263,25 @@ namespace asmio::x86 {
 	}
 
 	template <typename T>
-	Location parse_argument(TokenStream stream) {
-		static_assert(std::is_same_v<T, Location>, "x86 can only accept Location classes as arguments");
-		return parse_location(stream);
+	T parse_argument(TokenStream stream) {
+		// TODO FIXME!
+
+		if constexpr (std::is_same_v<T, Registry>) {
+			const Token& token = stream.expect(Token::NAME);
+			return token_to_register(&token);
+		} else
+
+		if constexpr (std::is_same_v<T, Location>) {
+			return parse_location(stream);
+		} else
+
+		if constexpr (std::is_same_v<T, SimdCondition>) {
+			return SimdCondition::NLT;
+		}
+
+		else {
+			static_assert(false, "x86 can only accept Location classes as arguments");
+		}
 	}
 
 #	include "generated/x86.hpp"

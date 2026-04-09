@@ -4,6 +4,7 @@
 #include <asmio/program/segmented.hpp>
 #include <asmio/program/writer.hpp>
 
+#include "argument/condition.hpp"
 #include "argument/location.hpp"
 
 namespace asmio::x86 {
@@ -64,6 +65,11 @@ namespace asmio::x86 {
 
 			/// Used for constructing the 'set byte' family of instructions
 			void put_inst_setx(const Location& dst, uint8_t lopcode);
+
+			/// Put SSE double XMM register operand instruction
+			void put_inst_sse_2xmm(uint8_t opcode, Registry dst, Registry src);
+			void put_inst_sse(uint8_t opcode, Registry reg, const Location& loc);
+			void put_inst_sse_sized(uint8_t opcode, Registry reg, const Location& loc, uint8_t size);
 
 			/// Add the REX.W prefix
 			void put_rex_w();
@@ -353,6 +359,50 @@ namespace asmio::x86 {
 			INST put_fidivr(Location src);              ///< Divide Memory Integer
 			INST put_fdivr(Location dst, Location src); ///< Reverse Divide
 			INST put_fdivrp(Location dst);              ///< Reverse Divide And Pop
+
+			// sse
+			INST put_movaps(Location dst, Location src); ///< Move Aligned Packed Single Precision Floating-Point Values
+			INST put_movhlps(Registry dst, Registry src); ///< Move Packed Single Precision Floating-Point Values High to Low
+			INST put_movlhps(Registry dst, Registry src); ///< Move Packed Single Precision Floating-Point Values Low to High
+			INST put_movhps(Location dst, Location src); ///< Move two packed single precision floating-point values from m64 to high quadword of dst
+			INST put_movlps(Location dst, Location src); ///< Move two packed single precision floating-point values from m64 to low quadword of dst
+			INST put_movmskps(Registry dst, Registry src); ///< Extract Packed Single Precision Floating-Point Sign Mask
+			// TODO: movss
+			// TODO: movups
+			INST put_addps(Registry dst, Location src); ///< Add packed single precision floating-point values
+			INST put_addss(Registry dst, Location src); ///<
+			INST put_divps(Registry dst, Location src); ///< Divide packed single precision floating-point values
+			INST put_divss(Registry dst, Location src); ///<
+			INST put_maxps(Registry dst, Location src); ///< Maximum packed single precision floating-point values
+			INST put_maxss(Registry dst, Location src); ///<
+			INST put_minps(Registry dst, Location src); ///< Minimum packed single precision floating-point values
+			INST put_minss(Registry dst, Location src); ///<
+			INST put_mulps(Registry dst, Location src); ///< Minimum packed single precision floating-point values
+			INST put_mulss(Registry dst, Location src); ///<
+			INST put_rcpps(Registry dst, Location src); ///< Compute reciprocals of packed single precision floating-point values
+			INST put_rcpss(Registry dst, Location src); ///<
+			INST put_rsqrtps(Registry dst, Location src); ///< Compute reciprocals of square roots of packed single precision floating-point values
+			INST put_rsqrtss(Registry dst, Location src); ///<
+			INST put_sqrtps(Registry dst, Location src); ///< Compute square roots of packed single precision floating-point values
+			INST put_sqrtss(Registry dst, Location src); ///<
+			INST put_subps(Registry dst, Location src); ///< Subtract packed single precision floating-point values
+			INST put_subss(Registry dst, Location src); ///<
+			INST put_cmpps(Registry dst, Location src, SimdCondition cond); ///< Compare packed 32 bit floating point values
+			INST put_cmpss(Registry dst, Location src, SimdCondition cond); ///<
+			// TODO: comiss
+			// TODO: ucomiss
+			INST put_andnps(Registry dst, Location src); ///< Bitwise logical AND NOT of packed 32 bit values
+			INST put_andps(Registry dst, Location src); ///< Bitwise logical AND of packed 32 bit values
+			INST put_orps(Registry dst, Location src); ///< Bitwise logical OR of packed 32 bit values
+			INST put_xorps(Registry dst, Location src); ///< Bitwise logical XOR of packed 32 bit values
+			// TODO: shufps
+			// TODO: unpckhps
+			// TODO: unpcklps
+			// TODO: cvtpi2ps
+			// TODO: cvtps2pi
+			INST put_cvtsi2ss(Registry dst, Location src); ///< Convert Doubleword Integer to Scalar Single Precision Floating-Point Value
+			// TODO: cvtss2si
+
 
 	};
 

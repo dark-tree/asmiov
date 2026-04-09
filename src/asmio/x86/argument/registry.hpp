@@ -43,10 +43,11 @@ namespace asmio::x86 {
 			NONE        = 0b0000000,
 
 			GENERAL     = 0b0000001,
-			FLOATING    = 0b0000010,
+			STANDARD    = 0b0111111,
 			ACCUMULATOR = 0b0000100, // this is the accumulator (RAX/EAX/AX)
 			REX         = 0b0001000, // this registers requires the REX prefix to be encoded
 			HIGH_BYTE   = 0b0010000, // registers that CANT be used with REX prefix present
+			XMM         = 0b0100000, // registers used in the SSE x86 extension
 		};
 
 		const uint8_t size; // size in bytes
@@ -122,7 +123,7 @@ namespace asmio::x86 {
 	constexpr Registry BP    {WORD,  0b0101, Registry::GENERAL};
 	constexpr Registry ESP   {DWORD, 0b0100, Registry::GENERAL};
 	constexpr Registry SP    {WORD,  0b0100, Registry::GENERAL};
-	constexpr Registry ST    {TWORD, 0b0000, Registry::FLOATING};
+	constexpr Registry ST    {TWORD, 0b0000, Registry::NONE};
 
 	/*
 	 * Amd64 surrogates - uniform byte registers
@@ -177,5 +178,26 @@ namespace asmio::x86 {
 	constexpr Registry R15W  {WORD,  0b1111, Registry::GENERAL | Registry::REX};
 	constexpr Registry R15D  {DWORD, 0b1111, Registry::GENERAL | Registry::REX};
 	constexpr Registry R15   {QWORD, 0b1111, Registry::GENERAL | Registry::REX};
+
+	/*
+	 * SSE
+	 */
+
+	constexpr Registry XMM0  {XMMWORD, 0b0000, Registry::XMM};
+	constexpr Registry XMM1  {XMMWORD, 0b0001, Registry::XMM};
+	constexpr Registry XMM2  {XMMWORD, 0b0010, Registry::XMM};
+	constexpr Registry XMM3  {XMMWORD, 0b0011, Registry::XMM};
+	constexpr Registry XMM4  {XMMWORD, 0b0100, Registry::XMM};
+	constexpr Registry XMM5  {XMMWORD, 0b0101, Registry::XMM};
+	constexpr Registry XMM6  {XMMWORD, 0b0110, Registry::XMM};
+	constexpr Registry XMM7  {XMMWORD, 0b0111, Registry::XMM};
+	constexpr Registry XMM8  {XMMWORD, 0b1000, Registry::XMM | Registry::REX};
+	constexpr Registry XMM9  {XMMWORD, 0b1001, Registry::XMM | Registry::REX};
+	constexpr Registry XMM10 {XMMWORD, 0b1010, Registry::XMM | Registry::REX};
+	constexpr Registry XMM11 {XMMWORD, 0b1011, Registry::XMM | Registry::REX};
+	constexpr Registry XMM12 {XMMWORD, 0b1100, Registry::XMM | Registry::REX};
+	constexpr Registry XMM13 {XMMWORD, 0b1101, Registry::XMM | Registry::REX};
+	constexpr Registry XMM14 {XMMWORD, 0b1110, Registry::XMM | Registry::REX};
+	constexpr Registry XMM15 {XMMWORD, 0b1111, Registry::XMM | Registry::REX};
 
 }

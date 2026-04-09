@@ -473,6 +473,205 @@ namespace test {
 
 	}
 
+	TEST (check_sse_cvtsi2ss) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.put_cvtsi2ss(XMM0, EAX);
+		writer.put_cvtsi2ss(XMM1, ref<QWORD>(RAX));
+
+		buffer.link(0);
+		std::vector<uint8_t> s1 = {0xf3, 0x0f, 0x2a, 0xc0, 0xf3, 0x48, 0x0f, 0x2a, 0x08};
+		CHECK(buffer.segments()[1].buffer, s1); // .text
+
+	};
+
+	TEST (check_sse_movaps) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.put_movaps(XMM1, XMM10);
+		writer.put_movaps(XMM15, XMM10);
+		writer.put_movaps(XMM14, XMM1);
+		writer.put_movaps(XMM1, ref<XMMWORD>(RAX));
+		writer.put_movaps(XMM2, ref<XMMWORD>(R12));
+		writer.put_movaps(XMM13, ref<XMMWORD>(R12));
+		writer.put_movaps(ref<XMMWORD>(RAX), XMM1);
+		writer.put_movaps(ref<XMMWORD>(R12), XMM1);
+		writer.put_movaps(ref<XMMWORD>(R12), XMM14);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movaps(ref<XMMWORD>(R12), RAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movaps(XMM1, ref<XMMWORD>(XMM0));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movaps(XMM1, ref<QWORD>(R12));
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s1 = {0x41, 0x0f, 0x28, 0xca, 0x45, 0x0f, 0x28, 0xfa, 0x44, 0x0f, 0x28, 0xf1, 0x0f, 0x28, 0x08, 0x41, 0x0f, 0x28, 0x14, 0x24, 0x45, 0x0f, 0x28, 0x2c, 0x24, 0x0f, 0x29, 0x08, 0x41, 0x0f, 0x29, 0x0c, 0x24, 0x45, 0x0f, 0x29, 0x34, 0x24};
+		CHECK(buffer.segments()[1].buffer, s1); // .text
+
+	};
+
+	TEST (check_sse_movhlps_movlhps_movhps_movlps) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_movhlps(XMM14, XMM1);
+		writer.put_movlhps(XMM14, XMM13);
+		writer.put_movhps(XMM0, ref<QWORD>(RSP));
+		writer.put_movhps(ref<QWORD>(RBP), XMM15);
+		writer.put_movlps(ref<QWORD>(RCX * 2 + 0x100), XMM0);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movhlps(XMM14, RAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movhps(XMM0, ref<DWORD>(R11));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movlps(ref<DWORD>(RCX), XMM0);
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x44, 0x0f, 0x12, 0xf1, 0x45, 0x0f, 0x16, 0xf5, 0x0f, 0x16, 0x04, 0x24, 0x44, 0x0f, 0x17, 0x7d, 0x00, 0x0f, 0x13, 0x04, 0x4d, 0x00, 0x01, 0x00, 0x00};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_movmskps) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_movmskps(RAX, XMM0);
+		writer.put_movmskps(RAX, XMM15);
+		writer.put_movmskps(ECX, XMM11);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movmskps(BX, XMM12);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movmskps(DL, XMM14);
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x48, 0x0f, 0x50, 0xc0, 0x49, 0x0f, 0x50, 0xc7, 0x41, 0x0f, 0x50, 0xcb};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_op_packed) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_addps(XMM1, XMM1);
+		writer.put_divps(XMM11, XMM11);
+		writer.put_maxps(XMM1, XMM11);
+		writer.put_minps(XMM11, ref<XMMWORD>(RAX));
+		writer.put_mulps(XMM1, ref<XMMWORD>(RCX));
+		writer.put_rcpps(XMM11, ref<XMMWORD>(RBP));
+		writer.put_rsqrtps(XMM11, XMM1);
+		writer.put_sqrtps(XMM1, ref<XMMWORD>(RCX * 8));
+		writer.put_subps(XMM11, ref<XMMWORD>(RBP + 0x100));
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addps(XMM11, ref<QWORD>(RAX));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addps(RAX, ref<XMMWORD>(RAX));
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x0f, 0x58, 0xc9, 0x45, 0x0f, 0x5e, 0xdb, 0x41, 0x0f, 0x5f, 0xcb, 0x44, 0x0f, 0x5d, 0x18, 0x0f, 0x59, 0x09, 0x44, 0x0f, 0x53, 0x5d, 0x00, 0x44, 0x0f, 0x52, 0xd9, 0x0f, 0x51, 0x0c, 0xcd, 0x00, 0x00, 0x00, 0x00, 0x44, 0x0f, 0x5c, 0x9d, 0x00, 0x01, 0x00, 0x00};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	}
+
+	TEST (check_sse_op_bitwise) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_andnps(XMM1, XMM1);
+		writer.put_andps(XMM11, XMM11);
+		writer.put_orps(XMM1, XMM11);
+		writer.put_xorps(XMM11, ref<XMMWORD>(RAX));
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x0f, 0x55, 0xc9, 0x45, 0x0f, 0x54, 0xdb, 0x41, 0x0f, 0x56, 0xcb, 0x44, 0x0f, 0x57, 0x18};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	}
+
+	TEST (check_sse_op_scalar) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_addss(XMM1, XMM1);
+		writer.put_divss(XMM11, XMM11);
+		writer.put_maxss(XMM1, XMM11);
+		writer.put_minss(XMM11, ref<DWORD>(RAX));
+		writer.put_mulss(XMM1, ref<DWORD>(RCX));
+		writer.put_rcpss(XMM11, ref<DWORD>(RBP));
+		writer.put_rsqrtss(XMM11, XMM1);
+		writer.put_sqrtss(XMM1, ref<DWORD>(RCX * 8));
+		writer.put_subss(XMM11, ref<DWORD>(RBP + 0x100));
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addss(XMM11, ref<XMMWORD>(RAX));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addss(RAX, ref<DWORD>(RAX));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addss(XMM11, EAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addss(XMM11, RAX);
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0xf3, 0x0f, 0x58, 0xc9, 0xf3, 0x45, 0x0f, 0x5e, 0xdb, 0xf3, 0x41, 0x0f, 0x5f, 0xcb, 0xf3, 0x44, 0x0f, 0x5d, 0x18, 0xf3, 0x0f, 0x59, 0x09, 0xf3, 0x44, 0x0f, 0x53, 0x5d, 0x00, 0xf3, 0x44, 0x0f, 0x52, 0xd9, 0xf3, 0x0f, 0x51, 0x0c, 0xcd, 0x00, 0x00, 0x00, 0x00, 0xf3, 0x44, 0x0f, 0x5c, 0x9d, 0x00, 0x01, 0x00, 0x00};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	}
+
+	TEST (check_sse_cmpps_cmpss) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_cmpps(XMM1, XMM1, SimdCondition::EQ);
+		writer.put_cmpps(XMM2, XMM3, SimdCondition::LT);
+		writer.put_cmpss(XMM5, XMM8, SimdCondition::RD);
+		writer.put_cmpss(XMM11, XMM1, SimdCondition::NLT);
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x0f, 0xc2, 0xc9, 0x00, 0x0f, 0xc2, 0xd3, 0x01, 0xf3, 0x41, 0x0f, 0xc2, 0xe8, 0x07, 0xf3, 0x44, 0x0f, 0xc2, 0xd9, 0x05};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for x86
@@ -3792,10 +3991,25 @@ namespace test {
 		exe.scall<void>("cpuid", uint64_t(1), &result);
 
 		// check for support of some expected features
-		ASSERT_MSG(result.edx & (1 << 23), "MMX not supprted or CPUID failed!");
-		ASSERT_MSG(result.edx & (1 << 0), "FPU not supprted or CPUID failed!");
-		ASSERT_MSG(result.edx & (1 << 15), "CMOV not supprted or CPUID failed!");
-		ASSERT_MSG(result.ecx & (1 << 23), "POPCNT not supprted or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 23), "MMX not supported or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 0), "FPU not supported or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 15), "CMOV not supported or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 25), "SSE not supported or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 26), "SSE2 not supported or CPUID failed!");
+		ASSERT_MSG(result.ecx & (1 << 23), "POPCNT not supported or CPUID failed!");
+
+	};
+
+	TEST (exec_sse) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.put_cvtsi2ss(XMM0, EAX);
+		writer.put_cvtsi2ss(XMM1, ref<QWORD>(RAX));
+
+
 
 	};
 

@@ -50,6 +50,14 @@ namespace asmio::x86 {
 		public:
 
 			Location ref() const {
+				if (base != UNSET && !base.is(Registry::GENERAL)) {
+					throw std::runtime_error {"Can't dereference a non-general purpose base register"};
+				}
+
+				if (index != UNSET && !index.is(Registry::GENERAL)) {
+					throw std::runtime_error {"Can't dereference a non-general purpose index register"};
+				}
+
 				check_non_referential("Can't reference a reference!");
 				return Location {base, index, scale, offset, label, VOID, true};
 			}
@@ -93,8 +101,8 @@ namespace asmio::x86 {
 			}
 
 			/// Checks if this location is a simple un-referenced register
-			constexpr bool is_simple() const {
-				return base.is(Registry::GENERAL) && !is_indexed() && offset == 0 && !reference && !is_labeled();
+			constexpr bool is_simple(Registry::Flag mask = Registry::STANDARD) const {
+				return base.is(mask) && !is_indexed() && offset == 0 && !reference && !is_labeled();
 			}
 
 			/// Checks if this location is a simple un-referenced accumulator, used when encoding short-forms

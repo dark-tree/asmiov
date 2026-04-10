@@ -17,7 +17,7 @@ namespace asmio::x86 {
 			throw std::runtime_error {"Invalid operand, expected XMM register"};
 		}
 
-		if (loc.size != XMMWORD) {
+		if (loc.size != XMMWORD && loc.size != VOID) {
 			throw std::runtime_error {"Invalid operand, expected xmmword register or memory"};
 		}
 

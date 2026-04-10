@@ -4155,11 +4155,43 @@ namespace test {
 
 		ExecutableBuffer exe = to_executable(buffer);
 
-		int res = exe.call_f32("mult");
+		int res = (int) exe.call_f32("mult");
 		CHECK(res, 39);
 
 		float pi = exe.call_f32("pi");
 		CHECK(pi, 3.1415);
+
+	};
+
+	TEST (tasml_exec_string_prefix) {
+
+		std::string code = R"(
+			lang x86
+
+			section r
+			value:
+				dword 3.5
+
+			section rx
+			syntax:
+				cmpps xmm11, xmmword [rax], nrd
+				cmpps xmm11, [rax], nrd
+				shufps xmm1, xmm15, 3
+
+			floats:
+				movss xmm1, dword [@value]
+				mulss xmm1, xmm1
+				movss xmm0, xmm1
+				ret
+		)";
+
+		SegmentedBuffer segmented = tasml::assemble(vstl_self.name(), code);
+		ExecutableBuffer buffer = to_executable(segmented);
+
+		float f = buffer.call_f32("floats");
+
+		ASSERT(f > 12);
+		ASSERT(f < 13);
 
 	};
 

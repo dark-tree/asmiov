@@ -17,6 +17,7 @@ namespace asmio::x86 {
 			{"dword", DWORD},
 			{"qword", QWORD},
 			{"tword", TWORD},
+			{"xmmword", XMMWORD},
 
 			{"float", DWORD},
 			{"double", QWORD},
@@ -105,6 +106,24 @@ namespace asmio::x86 {
 		if (raw == "r15w") return R15W;
 		if (raw == "r15d") return R15D;
 		if (raw == "r15") return R15;
+
+		// sse
+		if (raw == "xmm0") return XMM0;
+		if (raw == "xmm1") return XMM1;
+		if (raw == "xmm2") return XMM2;
+		if (raw == "xmm3") return XMM3;
+		if (raw == "xmm4") return XMM4;
+		if (raw == "xmm5") return XMM5;
+		if (raw == "xmm6") return XMM6;
+		if (raw == "xmm7") return XMM7;
+		if (raw == "xmm8") return XMM8;
+		if (raw == "xmm9") return XMM9;
+		if (raw == "xmm10") return XMM10;
+		if (raw == "xmm11") return XMM11;
+		if (raw == "xmm12") return XMM12;
+		if (raw == "xmm13") return XMM13;
+		if (raw == "xmm14") return XMM14;
+		if (raw == "xmm15") return XMM15;
 
 		throw std::runtime_error {"Unknown registry " + token->quoted()};
 	}
@@ -250,7 +269,22 @@ namespace asmio::x86 {
 		return parse_expression(stream);
 	}
 
-	static Location parse_location(TokenStream stream) {
+	template <typename T>
+	T parse_argument(TokenStream stream);
+
+	template <std::integral T>
+	T parse_argument(TokenStream stream) {
+		return stream.expect(Token::INT).as_int();
+	}
+
+	template <>
+	Registry parse_argument(TokenStream stream) {
+		const Token& name = stream.expect(Token::NAME);
+		return token_to_register(&name);
+	}
+
+	template <>
+	Location parse_argument(TokenStream stream) {
 		const Token* name = &stream.peek();
 		const int size = token_to_sizing(name);
 
@@ -262,30 +296,21 @@ namespace asmio::x86 {
 		return parse_inner(stream);
 	}
 
-	template <typename T>
-	T parse_argument(TokenStream stream) {
-		// TODO FIXME!
+	template <>
+	SimdCondition parse_argument(TokenStream stream) {
+		const Token& token = stream.expect(Token::NAME);
+		std::string raw = util::to_lower(token.raw);
 
-		if constexpr (std::is_same_v<T, Registry>) {
-			const Token& token = stream.expect(Token::NAME);
-			return token_to_register(&token);
-		} else
+		if (raw == "eq") return SimdCondition::EQ;
+		if (raw == "lt")  return SimdCondition::LT;
+		if (raw == "le")  return SimdCondition::LE;
+		if (raw == "rd")  return SimdCondition::RD;
+		if (raw == "neq")  return SimdCondition::NEQ;
+		if (raw == "nlt")  return SimdCondition::NLT;
+		if (raw == "nle")  return SimdCondition::NLE;
+		if (raw == "nrd")  return SimdCondition::NRD;
 
-		if constexpr (std::is_same_v<T, Location>) {
-			return parse_location(stream);
-		} else
-
-		if constexpr (std::is_same_v<T, SimdCondition>) {
-			return SimdCondition::NLT;
-		} else
-
-		if constexpr (std::is_same_v<T, uint8_t>) {
-			return 0;
-		}
-
-		else {
-			static_assert(false, "x86 can only accept Location classes as arguments");
-		}
+		throw std::runtime_error {"Unknown SIMD condition '" + raw + "'"};
 	}
 
 #	include "generated/x86.hpp"

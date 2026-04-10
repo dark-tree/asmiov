@@ -2043,7 +2043,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32(), 1.0f);
+		CHECK(buffer.call_f80(), 1.0f);
 
 	}
 
@@ -2075,7 +2075,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 3.0f);
+		CHECK(buffer.call_f80("main"), 3.0f);
 
 	}
 
@@ -2100,7 +2100,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 2.5f);
+		CHECK(buffer.call_f80("main"), 2.5f);
 
 	}
 
@@ -2132,7 +2132,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 10.75f);
+		CHECK(buffer.call_f80("main"), 10.75f);
 
 	}
 
@@ -2169,7 +2169,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 12.5f);
+		CHECK(buffer.call_f80("main"), 12.5f);
 
 	}
 
@@ -2204,7 +2204,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 6.0f);
+		CHECK(buffer.call_f80("main"), 6.0f);
 
 	}
 
@@ -2249,7 +2249,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 4.5f);
+		CHECK(buffer.call_f80("main"), 4.5f);
 
 	}
 
@@ -2265,7 +2265,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), -1);
+		CHECK(buffer.call_f80("main"), -1);
 
 	}
 
@@ -2294,7 +2294,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 20);
+		CHECK(buffer.call_f80("main"), 20);
 
 	}
 
@@ -2320,7 +2320,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 7);
+		CHECK(buffer.call_f80("main"), 7);
 
 	}
 
@@ -2365,7 +2365,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 1);
+		CHECK(buffer.call_f80("main"), 1);
 
 	}
 
@@ -2381,7 +2381,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32(), 1);
+		CHECK(buffer.call_f80(), 1);
 
 	}
 
@@ -2409,7 +2409,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 6);
+		CHECK(buffer.call_f80("main"), 6);
 
 	}
 
@@ -2444,7 +2444,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("init"), 1.0f);
+		CHECK(buffer.call_f80("init"), 1.0f);
 		CHECK(buffer.call_i32("main"), 6);
 
 	}
@@ -2472,7 +2472,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("init"), 1.0f);
+		CHECK(buffer.call_f80("init"), 1.0f);
 		CHECK(buffer.call_i32("main"), 3);
 
 	}
@@ -2489,7 +2489,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 3.0f);
+		CHECK(buffer.call_f80("main"), 3.0f);
 
 	}
 
@@ -2508,7 +2508,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 4.0f);
+		CHECK(buffer.call_f80("main"), 4.0f);
 
 	}
 
@@ -2563,10 +2563,10 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("set_a"), 2.0f);
-		CHECK(buffer.call_f32("set_b"), 1.0f);
-		CHECK(buffer.call_f32("set_c"), 0.0f);
-		CHECK(buffer.call_f32("ctrl_sum"), 11.0f);
+		CHECK(buffer.call_f80("set_a"), 2.0f);
+		CHECK(buffer.call_f80("set_b"), 1.0f);
+		CHECK(buffer.call_f80("set_c"), 0.0f);
+		CHECK(buffer.call_f80("ctrl_sum"), 11.0f);
 
 	}
 
@@ -4129,16 +4129,37 @@ namespace test {
 
 	};
 
-	TEST (exec_sse) {
+	TEST (exec_sse_generic_floats) {
 
 		SegmentedBuffer buffer;
 		BufferWriter writer {buffer};
 
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("three");
+		writer.put_dword(3);
+
+		writer.label("fraction");
+		writer.put_dword_f(3.1415);
+
 		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("mult");
+		writer.put_mov(EAX, 13);
 		writer.put_cvtsi2ss(XMM0, EAX);
-		writer.put_cvtsi2ss(XMM1, ref<QWORD>(RAX));
+		writer.put_cvtsi2ss(XMM1, ref<DWORD>("three"));
+		writer.put_mulss(XMM0, XMM1);
+		writer.put_ret();
 
+		writer.label("pi");
+		writer.put_movss(XMM0, ref<DWORD>("fraction"));
+		writer.put_ret();
 
+		ExecutableBuffer exe = to_executable(buffer);
+
+		int res = exe.call_f32("mult");
+		CHECK(res, 39);
+
+		float pi = exe.call_f32("pi");
+		CHECK(pi, 3.1415);
 
 	};
 

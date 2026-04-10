@@ -19,7 +19,7 @@ namespace asmio {
 	concept trivially_copyable = std::is_trivially_copyable_v<T>;
 
 	template <typename T>
-	concept integral_or_void = std::is_integral_v<T> || std::is_void_v<T>;
+	concept trivially_returnable = std::is_integral_v<T> || std::is_void_v<T> || std::is_floating_point_v<T>;
 
 	class ExecutableBuffer {
 
@@ -54,7 +54,7 @@ namespace asmio {
 
 		public:
 
-			template <integral_or_void R, trivially_copyable... Args>
+			template <trivially_returnable R, trivially_copyable... Args>
 			R scall(size_t offset, Args... args) {
 
 				// unpack parameter pack
@@ -76,7 +76,7 @@ namespace asmio {
 				return CALL_POINTER(offset, R, params);
 			}
 
-			template <integral_or_void R, trivially_copyable... Args>
+			template <trivially_returnable R, trivially_copyable... Args>
 			R scall(const Label& label, Args... args) {
 				return scall<R>(labels.at(label), args...);
 			}
@@ -105,7 +105,11 @@ namespace asmio {
 				return CALL_POINTER(offset, int32_t, nullptr);
 			}
 
-			float call_f32(uint64_t offset = 0) {
+			float call_f32(uint32_t offset = 0) {
+				return CALL_POINTER(offset, float, nullptr);
+			}
+
+			float call_f80(uint64_t offset = 0) {
 #if ARCH_X86
 				auto function = buffer + offset;
 				volatile float tmp;
@@ -113,7 +117,7 @@ namespace asmio {
 				return tmp;
 #endif
 
-				throw std::runtime_error {"Float calls are unimplemented!"};
+				throw std::runtime_error {"80 bit float calls are not supported!"};
 			}
 
 			/*
@@ -138,6 +142,10 @@ namespace asmio {
 
 			int32_t call_i32(const Label& label) {
 				return call_i32(labels.at(label));
+			}
+
+			float call_f80(const Label& label) {
+				return call_f80(labels.at(label));
 			}
 
 			float call_f32(const Label& label) {

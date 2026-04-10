@@ -169,9 +169,6 @@ namespace asmio {
 			/// Get the total size in bytes of the whole segmented buffer, can be used only after linking
 			size_t total() const;
 
-			/// Print the contests of this buffer for debugging
-			void dump() const;
-
 			/// Get segment list
 			const std::vector<BufferSegment>& segments() const;
 

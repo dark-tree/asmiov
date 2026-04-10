@@ -313,6 +313,45 @@ namespace asmio::x86 {
 		throw std::runtime_error {"Unknown SIMD condition '" + raw + "'"};
 	}
 
+	template <>
+	Condition parse_argument(TokenStream stream) {
+		const Token& token = stream.expect(Token::NAME);
+		std::string raw = util::to_lower(token.raw);
+
+		if (raw == "o") return Condition::O;
+		if (raw == "no") return Condition::NO;
+		if (raw == "b") return Condition::B;
+		if (raw == "c") return Condition::C;
+		if (raw == "nae") return Condition::NAE;
+		if (raw == "nb") return Condition::NB;
+		if (raw == "nc") return Condition::NC;
+		if (raw == "ae") return Condition::AE;
+		if (raw == "e") return Condition::E;
+		if (raw == "z") return Condition::Z;
+		if (raw == "ne") return Condition::NE;
+		if (raw == "nz") return Condition::NZ;
+		if (raw == "be") return Condition::BE;
+		if (raw == "na") return Condition::NA;
+		if (raw == "nbe") return Condition::NBE;
+		if (raw == "a") return Condition::A;
+		if (raw == "s") return Condition::S;
+		if (raw == "ns") return Condition::NS;
+		if (raw == "p") return Condition::P;
+		if (raw == "pe") return Condition::PE;
+		if (raw == "np") return Condition::NP;
+		if (raw == "po") return Condition::PO;
+		if (raw == "l") return Condition::L;
+		if (raw == "nge") return Condition::NGE;
+		if (raw == "nl") return Condition::NL;
+		if (raw == "ge") return Condition::GE;
+		if (raw == "le") return Condition::LE;
+		if (raw == "ng") return Condition::NG;
+		if (raw == "nle") return Condition::NLE;
+		if (raw == "g") return Condition::G;
+
+		throw std::runtime_error {"Unknown condition '" + raw + "'"};
+	}
+
 #	include "generated/x86.hpp"
 
 	/*

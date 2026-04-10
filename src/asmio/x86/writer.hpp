@@ -63,9 +63,6 @@ namespace asmio::x86 {
 			/// Used for constructing the conditional jump family of instructions
 			void put_inst_jx(const Location& label, uint8_t sopcode, uint8_t lopcode);
 
-			/// Used for constructing the 'set byte' family of instructions
-			void put_inst_setx(const Location& dst, uint8_t lopcode);
-
 			/// Put SSE double XMM register operand instruction
 			void put_inst_sse_2xmm(uint8_t opcode, Registry dst, Registry src);
 			void put_inst_sse(uint8_t opcode, Registry reg, const Location& loc);
@@ -162,6 +159,7 @@ namespace asmio::x86 {
 			INST put_shrd(Location dst, Location src, Location cnt); ///< Double Right Shift
 			INST put_jmp(Location dst);                 ///< Unconditional Jump
 			INST put_call(Location dst);                ///< Procedure Call
+			INST put_j(Location label, Condition cond); ///< Jump on Condition
 			INST put_jo(Location label);                ///< Jump on Overflow
 			INST put_jno(Location label);               ///< Jump on Not Overflow
 			INST put_jb(Location label);                ///< Jump on Below
@@ -199,6 +197,7 @@ namespace asmio::x86 {
 			INST put_loopz(Location label);             ///< Loop RCX Times, if zero
 			INST put_loopne(Location label);            ///< Loop RCX Times, if not equal
 			INST put_loopnz(Location label);            ///< Loop RCX Times, if not zero
+			INST put_set(Location dst, Condition cond); /// Set Byte on Condition
 			INST put_seto(Location dst);                ///< Set Byte on Overflow
 			INST put_setno(Location dst);               ///< Set Byte on Not Overflow
 			INST put_setb(Location dst);                ///< Set Byte on Below
@@ -215,28 +214,28 @@ namespace asmio::x86 {
 			INST put_setnl(Location dst);               ///< Set Byte on Not Less
 			INST put_setle(Location dst);               ///< Set Byte on Less or Equal
 			INST put_setnle(Location dst);              ///< Set Byte on Not Less or Equal
-			INST put_setc(Location dst);                ///< Alias to JB, Jump on Carry
-			INST put_setnc(Location dst);               ///< Alias to JNB, Jump on Not Carry
-			INST put_setnae(Location dst);              ///< Alias to JB, Jump on Not Above or Equal
-			INST put_setae(Location dst);               ///< Alias to JNB, Jump on Above or Equal
-			INST put_setz(Location dst);                ///< Alias to JE, Jump on Zero
-			INST put_setnz(Location dst);               ///< Alias to JNE, Jump on Not Zero
-			INST put_setna(Location dst);               ///< Alias to JBE, Jump on Not Above
-			INST put_seta(Location dst);                ///< Alias to JNBE, Jump on Above
-			INST put_setpe(Location dst);               ///< Alias to JP, Jump on Parity Even
-			INST put_setpo(Location dst);               ///< Alias to JNP, Jump on Parity Odd
-			INST put_setnge(Location dst);              ///< Alias to JL, Jump on Not Greater or Equal
-			INST put_setge(Location dst);               ///< Alias to JNL, Jump on Greater or Equal
-			INST put_setng(Location dst);               ///< Alias to JLE, Jump on Not Greater
-			INST put_setg(Location dst);                ///< Alias to JNLE, Jump on Greater
-			INST put_int(Location type);                ///< Interrupt
+			INST put_setc(Location dst);                ///< Alias to SETB, Set Byte on Carry
+			INST put_setnc(Location dst);               ///< Alias to SETNB, Set Byte on Not Carry
+			INST put_setnae(Location dst);              ///< Alias to SETB, Set Byte on Not Above or Equal
+			INST put_setae(Location dst);               ///< Alias to SETNB, Set Byte on Above or Equal
+			INST put_setz(Location dst);                ///< Alias to SETE, Set Byte on Zero
+			INST put_setnz(Location dst);               ///< Alias to SETNE, Set Byte on Not Zero
+			INST put_setna(Location dst);               ///< Alias to SETBE, Set Byte on Not Above
+			INST put_seta(Location dst);                ///< Alias to SETNBE, Set Byte on Above
+			INST put_setpe(Location dst);               ///< Alias to SETP, Set Byte on Parity Even
+			INST put_setpo(Location dst);               ///< Alias to SETNP, Set Byte on Parity Odd
+			INST put_setnge(Location dst);              ///< Alias to SETL, Set Byte on Not Greater or Equal
+			INST put_setge(Location dst);               ///< Alias to SETNL, Set Byte on Greater or Equal
+			INST put_setng(Location dst);               ///< Alias to SETLE, Set Byte on Not Greater
+			INST put_setg(Location dst);                ///< Alias to SETNLE, Set Byte on Greater
+			INST put_int(uint8_t offset);               ///< Interrupt
 			INST put_into();                            ///< Interrupt if Overflow
 			INST put_iret();                            ///< Return from Interrupt
 			INST put_nop();                             ///< No Operation
 			INST put_hlt();                             ///< Halt
 			INST put_wait();                            ///< Wait
 			INST put_ud2();                             ///< Undefined Instruction
-			INST put_enter(Location alc, Location nst); ///< Enter Procedure
+			INST put_enter(uint16_t alc, uint8_t nst);  ///< Enter Procedure
 			INST put_leave();                           ///< Leave Procedure
 			INST put_pusha();                           ///< Push RBX, RBP, R12-R15
 			INST put_popa();                            ///< Pop RBX, RBP, R12-R15
@@ -251,9 +250,9 @@ namespace asmio::x86 {
 			INST put_std();                             ///< Set Direction Flag
 			INST put_cli();                             ///< Clear Interrupt Flag
 			INST put_sti();                             ///< Set Interrupt Flag
-			INST put_scf(Location src);                 ///< Set Carry Flag to Immediate, ASMIOV extension
-			INST put_sdf(Location src);                 ///< Set Direction Flag to Immediate, ASMIOV extension
-			INST put_sif(Location src);                 ///< Set Interrupt Flag to Immediate, ASMIOV extension
+			INST put_scf(bool src);                     ///< Set Carry Flag to Immediate, ASMIOV extension
+			INST put_sdf(bool src);                     ///< Set Direction Flag to Immediate, ASMIOV extension
+			INST put_sif(bool src);                     ///< Set Interrupt Flag to Immediate, ASMIOV extension
 			INST put_sahf();                            ///< Store AH into flags
 			INST put_lahf();                            ///< Load status flags into AH register
 			INST put_aaa();                             ///< ASCII adjust for add
@@ -266,17 +265,17 @@ namespace asmio::x86 {
 			INST put_in(Location dst, Location src);    ///< Input from Port
 			INST put_out(Location dst, Location src);   ///< Output to Port
 			INST put_test(Location dst, Location src);  ///< Test For Bit Pattern
-			INST put_test(Location src);                ///< Sets flags accordingly to the value of register given, ASMIOV extension
+			INST put_test(Registry src);                ///< Sets flags accordingly to the value of register given, ASMIOV extension
 			INST put_ret();                             ///< Return from procedure
-			INST put_ret(Location bytes);               ///< Return from procedure and pop X bytes
+			INST put_ret(uint16_t offset);              ///< Return from procedure and pop X bytes
 			INST put_cpuid();                           ///< Return CPU information in EAX, EBX, ECX, and EDX registers
 
 			// i486
-			INST put_xadd(Location dst, Location src);  ///< Exchange and Add
+			INST put_xadd(Location dst, Registry src);  ///< Exchange and Add
 			INST put_bswap(Location dst);               ///< Byte Swap
 			INST put_invd();                            ///< Invalidate Internal Caches
 			INST put_wbinvd();                          ///< Write Back and Invalidate Cache
-			INST put_cmpxchg(Location dst, Location src); ///< Compare and Exchange
+			INST put_cmpxchg(Location dst, Registry src); ///< Compare and Exchange
 
 			// x86-64
 			INST put_cqo();                             ///< Convert Doubleword to Quadword
@@ -363,50 +362,50 @@ namespace asmio::x86 {
 			INST put_fdivrp(Location dst);              ///< Reverse Divide And Pop
 
 			// sse
-			INST put_movaps(Location dst, Location src); ///< Move Aligned Packed Single Precision Floating-Point Values
-			INST put_movhlps(Registry dst, Registry src); ///< Move Packed Single Precision Floating-Point Values High to Low
-			INST put_movlhps(Registry dst, Registry src); ///< Move Packed Single Precision Floating-Point Values Low to High
-			INST put_movhps(Location dst, Location src); ///< Move two packed single precision floating-point values from m64 to high quadword of dst
-			INST put_movlps(Location dst, Location src); ///< Move two packed single precision floating-point values from m64 to low quadword of dst
-			INST put_movmskps(Registry dst, Registry src); ///< Extract Packed Single Precision Floating-Point Sign Mask
-			INST put_movss(Location dst, Location src); ///<
-			INST put_movups(Location dst, Location src); ///<
-			INST put_addps(Registry dst, Location src); ///< Add packed single precision floating-point values
-			INST put_addss(Registry dst, Location src); ///<
-			INST put_divps(Registry dst, Location src); ///< Divide packed single precision floating-point values
-			INST put_divss(Registry dst, Location src); ///<
-			INST put_maxps(Registry dst, Location src); ///< Maximum packed single precision floating-point values
-			INST put_maxss(Registry dst, Location src); ///<
-			INST put_minps(Registry dst, Location src); ///< Minimum packed single precision floating-point values
-			INST put_minss(Registry dst, Location src); ///<
-			INST put_mulps(Registry dst, Location src); ///< Minimum packed single precision floating-point values
-			INST put_mulss(Registry dst, Location src); ///<
-			INST put_rcpps(Registry dst, Location src); ///< Compute reciprocals of packed single precision floating-point values
-			INST put_rcpss(Registry dst, Location src); ///<
-			INST put_rsqrtps(Registry dst, Location src); ///< Compute reciprocals of square roots of packed single precision floating-point values
-			INST put_rsqrtss(Registry dst, Location src); ///<
-			INST put_sqrtps(Registry dst, Location src); ///< Compute square roots of packed single precision floating-point values
-			INST put_sqrtss(Registry dst, Location src); ///<
-			INST put_subps(Registry dst, Location src); ///< Subtract packed single precision floating-point values
-			INST put_subss(Registry dst, Location src); ///<
-			INST put_cmpps(Registry dst, Location src, SimdCondition cond); ///< Compare packed 32 bit floating point values
-			INST put_cmpss(Registry dst, Location src, SimdCondition cond); ///<
-			INST put_comiss(Registry dst, Location src); ///<
-			INST put_ucomiss(Registry dst, Location src); ///<
-			INST put_andnps(Registry dst, Location src); ///< Bitwise logical AND NOT of packed 32 bit values
-			INST put_andps(Registry dst, Location src); ///< Bitwise logical AND of packed 32 bit values
-			INST put_orps(Registry dst, Location src); ///< Bitwise logical OR of packed 32 bit values
-			INST put_xorps(Registry dst, Location src); ///< Bitwise logical XOR of packed 32 bit values
-			INST put_shufps(Registry dst, Location src, uint8_t selector); ///<
-			INST put_unpckhps(Registry dst, Location src); ///<
-			INST put_unpcklps(Registry dst, Location src); ///<
-			INST put_cvtsi2ss(Registry dst, Location src); ///< Convert Doubleword Integer to Scalar Single Precision Floating-Point Value
-			INST put_cvtss2si(Registry dst, Location src); ///<
-			INST put_cvttss2si(Registry dst, Location src); ///<
-			INST put_ldmxcsr(Location src); ///<
-			INST put_stmxcsr(Location dst); ///<
-			INST put_movntps(Location dst, Registry src); ///<
-			INST put_sfence(); ///<
+			INST put_movaps(Location dst, Location src);    ///< Move Aligned Packed f32 Values
+			INST put_movhlps(Registry dst, Registry src);   ///< Move Packed f32 Values High to Low
+			INST put_movlhps(Registry dst, Registry src);   ///< Move Packed f32 Values Low to High
+			INST put_movhps(Location dst, Location src);    ///< Move two packed f32 values from m64 to high quadword of dst
+			INST put_movlps(Location dst, Location src);    ///< Move two packed f32 values from m64 to low quadword of dst
+			INST put_movmskps(Registry dst, Registry src);  ///< Extract Packed f32 Sign Mask
+			INST put_movss(Location dst, Location src);     ///< Move or Merge Scalar f32 Value
+			INST put_movups(Location dst, Location src);    ///< Move Unaligned Packed f32 Values
+			INST put_addps(Registry dst, Location src);     ///< Add Packed f32 values
+			INST put_addss(Registry dst, Location src);     ///< Add Scalar f32 Values
+			INST put_divps(Registry dst, Location src);     ///< Divide Packed f32 values
+			INST put_divss(Registry dst, Location src);     ///< Divide Scalar f32 values
+			INST put_maxps(Registry dst, Location src);     ///< Compute Maximum of packed f32 values
+			INST put_maxss(Registry dst, Location src);     ///< Compute Maximum of Scalar f32 values
+			INST put_minps(Registry dst, Location src);     ///< Compute Minimum of packed f32 values
+			INST put_minss(Registry dst, Location src);     ///< Compute Minimum of Scalar f32 values
+			INST put_mulps(Registry dst, Location src);     ///< Multiply Packed f32 Values
+			INST put_mulss(Registry dst, Location src);     ///< Multiply Scalar f32 Values
+			INST put_rcpps(Registry dst, Location src);     ///< Compute Reciprocals of Packed f32 values
+			INST put_rcpss(Registry dst, Location src);     ///< Compute Reciprocals of Scalar f32 values
+			INST put_rsqrtps(Registry dst, Location src);   ///< Compute Square Root Reciprocals of Packed f32 values
+			INST put_rsqrtss(Registry dst, Location src);   ///< Compute Square Root Reciprocals of Scalar f32 values
+			INST put_sqrtps(Registry dst, Location src);    ///< Compute Square Roots of Packed f32 values
+			INST put_sqrtss(Registry dst, Location src);    ///< Compute Square Roots of Scalar f32 values
+			INST put_subps(Registry dst, Location src);     ///< Subtract Packed f32 values
+			INST put_subss(Registry dst, Location src);     ///< Subtract Scalar f32 values
+			INST put_cmpps(Registry dst, Location src, SimdCondition cond); ///< Compare Packed f32 values
+			INST put_cmpss(Registry dst, Location src, SimdCondition cond); ///< Compare Scalar f32 values
+			INST put_comiss(Registry dst, Location src);    ///< Compare Scalar Ordered f32 Values and Set EFLAGS
+			INST put_ucomiss(Registry dst, Location src);   ///< Compare Scalar Unordered f32 Values and Set EFLAGS
+			INST put_andnps(Registry dst, Location src);    ///< Bitwise logical AND NOT of packed dword values
+			INST put_andps(Registry dst, Location src);     ///< Bitwise logical AND of packed dword values
+			INST put_orps(Registry dst, Location src);      ///< Bitwise logical OR of packed dword values
+			INST put_xorps(Registry dst, Location src);     ///< Bitwise logical XOR of packed dword values
+			INST put_shufps(Registry dst, Location src, uint8_t selector); ///< Packed Interleave Shuffle of Quadruplets of f32 Values
+			INST put_unpckhps(Registry dst, Location src);  ///< Unpack and Interleave High Packed f32 Values
+			INST put_unpcklps(Registry dst, Location src);  ///< Unpack and Interleave Low Packed f32 Values
+			INST put_cvtsi2ss(Registry dst, Location src);  ///< Convert Doubleword Integer to Scalar f32 Value
+			INST put_cvtss2si(Registry dst, Location src);  ///< Convert Scalar f32 Value to Doubleword Integer
+			INST put_cvttss2si(Registry dst, Location src); ///< Convert With Truncation Scalar f32 Value to Integer
+			INST put_ldmxcsr(Location src);                 ///< Load MXCSR Register from src
+			INST put_stmxcsr(Location dst);                 ///< Store MXCSR Register into dst
+			INST put_movntps(Location dst, Registry src);   ///< Store Packed f32 Values Using Non-Temporal Hint
+			INST put_sfence();                              ///< Store Fence
 
 	};
 

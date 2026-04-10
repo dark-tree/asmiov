@@ -505,6 +505,7 @@ namespace asmio::x86 {
 			put_inst_std_dw(0b011010, src, dst.base.pack(), pair_size(src, dst), true /* TODO: sign flag */, true);
 
 			// not sure why but it looks like IMUL uses 8bit immediate values
+			// TODO: There is a word/dword/qword variant too under a different opcode
 			put_byte(val.offset);
 			return;
 		}
@@ -729,182 +730,189 @@ namespace asmio::x86 {
 		throw std::runtime_error {"Invalid operand"};
 	}
 
+	///< Jump on Condition
+	void BufferWriter::put_j(Location label, Condition cond) {
+		const auto code = static_cast<uint8_t>(cond);
+		put_inst_jx(label, 0b01110000 | code, 0b10000000 | code);
+	}
+
 	/// Jump on Overflow
 	void BufferWriter::put_jo(Location label) {
-		put_inst_jx(label, 0b01110000, 0b10000000);
+		put_j(label, Condition::O);
 	}
 
 	/// Jump on Not Overflow
 	void BufferWriter::put_jno(Location label) {
-		put_inst_jx(label, 0b01110001, 0b10000001);
+		put_j(label, Condition::NO);
 	}
 
 	/// Jump on Below
 	void BufferWriter::put_jb(Location label) {
-		put_inst_jx(label, 0b01110010, 0b10000010);
+		put_j(label, Condition::B);
 	}
 
 	/// Jump on Not Below
 	void BufferWriter::put_jnb(Location label) {
-		put_inst_jx(label, 0b01110011, 0b10000011);
+		put_j(label, Condition::NB);
 	}
 
 	/// Jump on Equal
 	void BufferWriter::put_je(Location label) {
-		put_inst_jx(label, 0b01110100, 0b10000100);
+		put_j(label, Condition::E);
 	}
 
 	/// Jump on Not Equal
 	void BufferWriter::put_jne(Location label) {
-		put_inst_jx(label, 0b01110101, 0b10000101);
+		put_j(label, Condition::NE);
 	}
 
 	/// Jump on Below or Equal
 	void BufferWriter::put_jbe(Location label) {
-		put_inst_jx(label, 0b01110110, 0b10000110);
+		put_j(label, Condition::BE);
 	}
 
 	/// Jump on Not Below or Equal
 	void BufferWriter::put_jnbe(Location label) {
-		put_inst_jx(label, 0b01110111, 0b10000111);
+		put_j(label, Condition::NBE);
 	}
 
 	/// Jump on Sign
 	void BufferWriter::put_js(Location label) {
-		put_inst_jx(label, 0b01111000, 0b10001000);
+		put_j(label, Condition::S);
 	}
 
 	/// Jump on Not Sign
 	void BufferWriter::put_jns(Location label) {
-		put_inst_jx(label, 0b01111001, 0b10001001);
+		put_j(label, Condition::NS);
 	}
 
 	/// Jump on Parity
 	void BufferWriter::put_jp(Location label) {
-		put_inst_jx(label, 0b01111010, 0b10001010);
+		put_j(label, Condition::P);
 	}
 
 	/// Jump on Not Parity
 	void BufferWriter::put_jnp(Location label) {
-		put_inst_jx(label, 0b01111011, 0b10001011);
+		put_j(label, Condition::NP);
 	}
 
 	/// Jump on Less
 	void BufferWriter::put_jl(Location label) {
-		put_inst_jx(label, 0b01111100, 0b10001100);
+		put_j(label, Condition::L);
 	}
 
 	/// Jump on Not Less
 	void BufferWriter::put_jnl(Location label) {
-		put_inst_jx(label, 0b01111101, 0b10001101);
+		put_j(label, Condition::NL);
 	}
 
 	/// Jump on Less or Equal
 	void BufferWriter::put_jle(Location label) {
-		put_inst_jx(label, 0b01111110, 0b10001110);
+		put_j(label, Condition::LE);
 	}
 
 	/// Jump on Not Less or Equal
 	void BufferWriter::put_jnle(Location label) {
-		put_inst_jx(label, 0b01111111, 0b10001111);
+		put_j(label, Condition::NLE);
+	}
+
+	/// Set Byte on Condition
+	void BufferWriter::put_set(Location dst, Condition cond) {
+		put_inst_std_as(0b1001'0000 | static_cast<uint8_t>(cond), dst, RegInfo::raw(0), true);
 	}
 
 	/// Set Byte on Overflow
 	void BufferWriter::put_seto(Location dst) {
-		put_inst_setx(dst, 0);
+		put_set(dst, Condition::O);
 	}
 
 	/// Set Byte on Not Overflow
 	void BufferWriter::put_setno(Location dst) {
-		put_inst_setx(dst, 1);
+		put_set(dst, Condition::NO);
 	}
 
 	/// Set Byte on Below
 	void BufferWriter::put_setb(Location dst) {
-		put_inst_setx(dst, 2);
+		put_set(dst, Condition::B);
 	}
 
 	/// Set Byte on Not Below
 	void BufferWriter::put_setnb(Location dst) {
-		put_inst_setx(dst, 3);
+		put_set(dst, Condition::NB);
 	}
 
 	/// Set Byte on Equal
 	void BufferWriter::put_sete(Location dst) {
-		put_inst_setx(dst, 4);
+		put_set(dst, Condition::E);
 	}
 
 	/// Set Byte on Not Equal
 	void BufferWriter::put_setne(Location dst) {
-		put_inst_setx(dst, 5);
+		put_set(dst, Condition::NE);
 	}
 
 	/// Set Byte on Below or Equal
 	void BufferWriter::put_setbe(Location dst) {
-		put_inst_setx(dst, 6);
+		put_set(dst, Condition::BE);
 	}
 
 	/// Set Byte on Not Below or Equal
 	void BufferWriter::put_setnbe(Location dst) {
-		put_inst_setx(dst, 7);
+		put_set(dst, Condition::NBE);
 	}
 
 	/// Set Byte on Sign
 	void BufferWriter::put_sets(Location dst) {
-		put_inst_setx(dst, 8);
+		put_set(dst, Condition::S);
 	}
 
 	/// Set Byte on Not Sign
 	void BufferWriter::put_setns(Location dst) {
-		put_inst_setx(dst, 9);
+		put_set(dst, Condition::NS);
 	}
 
 	/// Set Byte on Parity
 	void BufferWriter::put_setp(Location dst) {
-		put_inst_setx(dst, 10);
+		put_set(dst, Condition::P);
 	}
 
 	/// Set Byte on Not Parity
 	void BufferWriter::put_setnp(Location dst) {
-		put_inst_setx(dst, 11);
+		put_set(dst, Condition::NP);
 	}
 
 	/// Set Byte on Less
 	void BufferWriter::put_setl(Location dst) {
-		put_inst_setx(dst, 12);
+		put_set(dst, Condition::L);
 	}
 
 	/// Set Byte on Not Less
 	void BufferWriter::put_setnl(Location dst) {
-		put_inst_setx(dst, 13);
+		put_set(dst, Condition::NL);
 	}
 
 	/// Set Byte on Less or Equal
 	void BufferWriter::put_setle(Location dst) {
-		put_inst_setx(dst, 14);
+		put_set(dst, Condition::LE);
 	}
 
 	/// Set Byte on Not Less or Equal
 	void BufferWriter::put_setnle(Location dst) {
-		put_inst_setx(dst, 15);
+		put_set(dst, Condition::NLE);
 	}
 
 	/// Interrupt
-	void BufferWriter::put_int(Location type) {
-
-		if (!type.is_immediate()) {
-			throw std::runtime_error {"Invalid operand"};
-		}
+	void BufferWriter::put_int(uint8_t offset) {
 
 		// short form
-		if (type.offset == 3) {
+		if (offset == 3) {
 			put_byte(0xCC);
 			return;
 		}
 
 		// standard form
 		put_byte(0b11001101);
-		put_byte(type.offset);
+		put_byte(offset);
 
 	}
 
@@ -940,15 +948,10 @@ namespace asmio::x86 {
 	}
 
 	/// Enter Procedure
-	void BufferWriter::put_enter(Location alc, Location nst) {
-		if (alc.is_immediate() && nst.is_immediate()) {
-			put_byte(0b11001000);
-			put_word(alc.offset);
-			put_byte(nst.offset);
-			return;
-		}
-
-		throw std::runtime_error {"Invalid operands, immediate value expected"};
+	void BufferWriter::put_enter(uint16_t alc, uint8_t nst) {
+		put_byte(0b11001000);
+		put_word(alc);
+		put_byte(nst);
 	}
 
 	/// Leave Procedure
@@ -1034,30 +1037,18 @@ namespace asmio::x86 {
 	}
 
 	/// Set Interrupt Flag to Immediate, ASMIOV extension
-	void BufferWriter::put_sif(Location src) {
-		if (!src.is_immediate()) {
-			throw std::runtime_error {"Invalid operand"};
-		}
-
-		if (src.offset == 0) put_cli(); else put_sti();
+	void BufferWriter::put_sif(bool src) {
+		if (src == false) put_cli(); else put_sti();
 	}
 
 	/// Set Carry Flag to Immediate, ASMIOV extension
-	void BufferWriter::put_scf(Location src) {
-		if (!src.is_immediate()) {
-			throw std::runtime_error {"Invalid operand"};
-		}
-
-		if (src.offset == 0) put_clc(); else put_stc();
+	void BufferWriter::put_scf(bool src) {
+		if (src == false) put_clc(); else put_stc();
 	}
 
 	/// Set Direction Flag to Immediate, ASMIOV extension
-	void BufferWriter::put_sdf(Location src) {
-		if (!src.is_immediate()) {
-			throw std::runtime_error {"Invalid operand"};
-		}
-
-		if (src.offset == 0) put_cld(); else put_std();
+	void BufferWriter::put_sdf(bool src) {
+		if (src == false) put_cld(); else put_std();
 	}
 
 	/// Store AH into flags
@@ -1414,14 +1405,8 @@ namespace asmio::x86 {
 	}
 
 	/// Sets flags accordingly to the value of register given, ASMIOV extension
-	void BufferWriter::put_test(Location src) {
-
-		if (src.is_simple()) {
-			put_test(src, src);
-			return;
-		}
-
-		throw std::runtime_error {"Invalid operand, register expected"};
+	void BufferWriter::put_test(Registry src) {
+		put_test(src, src);
 	}
 
 	/// Return from procedure
@@ -1430,20 +1415,14 @@ namespace asmio::x86 {
 	}
 
 	/// Return from procedure and pop X bytes
-	void BufferWriter::put_ret(Location loc) {
-		if (loc.is_immediate()) {
-			uint32_t loc_val = loc.offset;
-
-			if (loc_val != 0) {
-				put_byte(0b11000010);
-				put_word(loc_val);
-				return;
-			}
-
-			return put_ret();
+	void BufferWriter::put_ret(uint16_t offset) {
+		if (offset != 0) {
+			put_byte(0b11000010);
+			put_word(offset);
+			return;
 		}
 
-		throw std::runtime_error {"Invalid operand"};
+		return put_ret();
 	}
 
 	void BufferWriter::put_cpuid() {
@@ -1451,10 +1430,10 @@ namespace asmio::x86 {
 		put_byte(0xA2);
 	}
 
-	void BufferWriter::put_xadd(Location dst, Location src) {
+	void BufferWriter::put_xadd(Location dst, Registry src) {
 
-		if (dst.is_memreg() && src.is_simple()) {
-			put_inst_std_ds(0xC0 >> 2, dst, src.base.pack(), pair_size(dst, src), false, true);
+		if (dst.is_memreg()) {
+			put_inst_std_ds(0xC0 >> 2, dst, src.pack(), pair_size(dst, src), false, true);
 			return;
 		}
 
@@ -1493,10 +1472,10 @@ namespace asmio::x86 {
 		put_byte(0x09);
 	}
 
-	void BufferWriter::put_cmpxchg(Location dst, Location src) {
+	void BufferWriter::put_cmpxchg(Location dst, Registry src) {
 
-		if (dst.is_memreg() && src.is_simple()) {
-			put_inst_std_ds(0xB0 >> 2, dst, src.base.pack(), pair_size(dst, src), false, true);
+		if (dst.is_memreg()) {
+			put_inst_std_ds(0xB0 >> 2, dst, src.pack(), pair_size(dst, src), false, true);
 			return;
 		}
 

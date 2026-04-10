@@ -187,28 +187,6 @@ namespace asmio {
 		return last.start + last.buffer.size() + last.tail;
 	}
 
-	void SegmentedBuffer::dump() const {
-		std::cout << "./unasm.sh " << base_address << " \"";
-
-		for (const BufferSegment& segment : sections) {
-			std::cout << "SECTION " << (segment.flags.x ? ".text" : ".data") << " \\ndb ";
-			bool first = true;
-
-			for (uint8_t byte : segment.buffer) {
-				if (!first) {
-					std::cout << ", ";
-				}
-
-				first = false;
-				std::cout << '0' << std::setfill('0') << std::setw(2) << std::hex << ((int) byte) << "h";
-			}
-
-			std::cout << "\\n";
-		}
-
-		std::cout << "\\n\"" << std::endl;
-	}
-
 	const std::vector<BufferSegment>& SegmentedBuffer::segments() const {
 		return sections;
 	}

@@ -155,6 +155,20 @@ namespace test {
 
 #if ARCH_AARCH64
 
+	TEST (check_no_f80) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		writer.put_ret();
+
+		auto exe = to_executable(segmented);
+
+		EXPECT_THROW(std::runtime_error) {
+			exe.call_f80();
+		};
+
+	}
+
 	TEST (writer_exec_nop_ret) {
 
 		SegmentedBuffer segmented;

@@ -521,7 +521,7 @@ namespace asmio::x86 {
 		long addend = dst.offset;
 
 		if (!dst.is_jump_label()) {
-			throw std::runtime_error {"Invalid operand"};
+			throw std::runtime_error {"Invalid operand, expected label"};
 		}
 
 		if (buffer.has_label(label)) {
@@ -547,13 +547,6 @@ namespace asmio::x86 {
 		put_byte(lopcode);
 		put_label(label, DWORD, addend);
 
-	}
-
-	/**
-	 * Used for constructing the 'set byte' family of instructions
-	 */
-	void BufferWriter::put_inst_setx(const Location& dst, uint8_t lopcode) {
-		put_inst_std_as(0b1001'0000 | lopcode, dst, RegInfo::raw(0), true);
 	}
 
 	void BufferWriter::put_rex_w() {

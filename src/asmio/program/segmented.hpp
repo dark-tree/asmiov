@@ -158,7 +158,7 @@ namespace asmio {
 			void fill(int64_t bytes, uint8_t value);
 
 			/// Append arbitrary data into the current section
-			void insert(uint8_t* data, size_t bytes);
+			void insert(const uint8_t* data, size_t bytes);
 
 			/// Select the section to use
 			void use_section(MemoryFlags flags, const std::string& name = "");

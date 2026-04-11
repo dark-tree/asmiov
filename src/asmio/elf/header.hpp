@@ -46,13 +46,32 @@ namespace asmio {
 		LSB  = 1,   // Two's complement, little-endian.
 		MSB  = 2,   // Two's complement, big-endian.
 	};
+	
+	enum struct ElfAbi : uint8_t {
+		NONE       = 0,   ///< UNIX System V ABI
+		SYSV       = 0,   ///< Alias.
+		HPUX       = 1,   ///< HP-UX
+		NETBSD     = 2,   ///< NetBSD.
+		GNU        = 3,   ///< Object uses GNU ELF extensions.
+		LINUX      = 3,   ///< Compatibility alias.
+		SOLARIS    = 6,   ///< Sun Solaris.
+		AIX        = 7,   ///< IBM AIX.
+		IRIX       = 8,   ///< SGI Irix.
+		FREEBSD    = 9,   ///< FreeBSD.
+		TRU64      = 10,  ///< Compaq TRU64 UNIX.
+		MODESTO    = 11,  ///< Novell Modesto.
+		OPENBSD    = 12,  ///< OpenBSD.
+		ARM_AEABI  = 64,  ///< ARM EABI
+		ARM        = 97,  ///< ARM
+		STANDALONE = 255, ///< Standalone (embedded) application
+	};
 
 	struct PACKED ElfIdentification {
 		uint8_t magic[4];    ///< Magic number identifying the file as an ELF object file
 		ElfClass clazz;      ///< Size of basic data types
 		ElfData data;        ///< Endianness
 		uint8_t version;     ///< Same as FileHeader->version
-		uint8_t abi;         ///< Target operating system
+		ElfAbi abi;         ///< Target operating system
 		uint8_t abi_version; ///< Version of the ABI to which the object is targeted
 		uint8_t pad[7];      ///< Must all be 0
 	};

@@ -88,8 +88,8 @@ namespace asmio {
 		buffer.insert((uint8_t*) std::data(dwords), QWORD * dwords.size());
 	}
 
-	void BasicBufferWriter::put_data(size_t bytes, void* date) {
-		buffer.insert((uint8_t*) date, bytes);
+	void BasicBufferWriter::put_data(size_t bytes, const void* data) {
+		buffer.insert((const uint8_t*) data, bytes);
 	}
 
 	void BasicBufferWriter::put_space(size_t bytes, uint8_t value) {

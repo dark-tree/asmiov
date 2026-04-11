@@ -502,12 +502,25 @@ namespace asmio::x86 {
 		}
 
 		if (dst.is_simple() && src.is_memreg() && val.is_immediate()) {
-			put_inst_std_dw(0b011010, src, dst.base.pack(), pair_size(src, dst), true /* TODO: sign flag */, true);
+			const uint64_t imm = val.offset;
+			const uint8_t bytes = util::min_signed_bytes(imm);
+			const uint8_t size = pair_size(src, dst);
 
-			// not sure why but it looks like IMUL uses 8bit immediate values
-			// TODO: There is a word/dword/qword variant too under a different opcode
-			put_byte(val.offset);
-			return;
+			if (bytes == BYTE) {
+				put_inst_std(0x6B, src, dst.base.pack(), size);
+				put_byte(val.offset);
+				return;
+			}
+
+			const uint8_t limit = std::min(static_cast<uint8_t>(DWORD), size);
+
+			if (bytes <= limit) {
+				put_inst_std(0x69, src, dst.base.pack(), size);
+				put_data(limit, &val.offset);
+				return;
+			}
+
+			throw std::runtime_error {"Invalid immediate operand, value too long"};
 		}
 
 		throw std::runtime_error {"Invalid operands"};

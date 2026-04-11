@@ -262,14 +262,16 @@ namespace asmio::util {
 	 * to losslessly encode the given signed integer.
 	 */
 	constexpr int min_signed_bytes(int64_t value) {
+		const uint64_t uval = static_cast<uint64_t>(value);
+
 		if ((value & 0xFFFF'FFFF'FFFF'FF80) == 0xFFFF'FFFF'FFFF'FF80) return 1; // 1 byte long negative
-		if (value <= 0x0000'0000'0000'007F) return 1; // 1 byte long positive
+		if (uval <= 0x0000'0000'0000'007F) return 1; // 1 byte long positive
 
 		if ((value & 0xFFFF'FFFF'FFFF'8000) == 0xFFFF'FFFF'FFFF'8000) return 2; // 2 byte long negative
-		if (value <= 0x0000'0000'0000'7FFF) return 2; // 2 byte long positive
+		if (uval <= 0x0000'0000'0000'7FFF) return 2; // 2 byte long positive
 
 		if ((value & 0xFFFF'FFFF'8000'0000) == 0xFFFF'FFFF'8000'0000) return 4; // 4 byte long negative
-		if (value <= 0x0000'0000'7FFF'FFFF) return 4; // 4 byte long positive
+		if (uval <= 0x0000'0000'7FFF'FFFF) return 4; // 4 byte long positive
 
 		return 8;
 	}

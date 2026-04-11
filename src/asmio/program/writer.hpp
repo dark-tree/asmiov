@@ -42,7 +42,7 @@ namespace asmio {
 			void put_qword(std::initializer_list<uint64_t> dword);
 			void put_qword_f(double dword);
 			void put_qword_f(std::initializer_list<double> dword);
-			void put_data(size_t bytes, void* date);
+			void put_data(size_t bytes, const void* data);
 			void put_space(size_t bytes, uint8_t value = 0);
 
 	};

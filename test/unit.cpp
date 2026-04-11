@@ -71,6 +71,7 @@ namespace test {
 		CHECK(util::min_signed_bytes(0x7FFF'FF01), 4);
 		CHECK(util::min_signed_bytes(0x80), 2);
 		CHECK(util::min_signed_bytes(0xFFFF), 4);
+		CHECK(util::min_signed_bytes(-1000), 2);
 
 	};
 

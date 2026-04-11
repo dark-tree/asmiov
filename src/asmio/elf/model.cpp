@@ -190,7 +190,7 @@ namespace asmio {
 			ident.clazz = ElfClass::BIT_64;
 			ident.data = ElfData::LSB;
 			ident.version = ELF_VERSION;
-			ident.abi = 0; // TODO: move to enum
+			ident.abi = ElfAbi::SYSV;
 			ident.abi_version = 0;
 			memset(ident.pad, 0, sizeof(ident.pad));
 

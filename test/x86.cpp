@@ -801,6 +801,28 @@ namespace test {
 
 	};
 
+	TEST (check_imul) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		// byte register not allowed
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_imul(AL, AL, 1);
+		};
+
+		// can't encode 64 bit immediate
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_imul(RAX, RAX, 10'000'000'000);
+		};
+
+		// can't encode 32 bit immediate for 16 operation
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_imul(AX, AX, 100'000);
+		};
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for x86
@@ -1418,6 +1440,47 @@ namespace test {
 		int output = buffer.call_i32();
 
 		CHECK(output, 7 * 5 * 3 * 2 * 11);
+
+	}
+
+	TEST(writer_exec_mul_imul_longer) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("imul_2");
+		writer.put_mov(RAX, 2);
+		writer.put_imul(AX, AX, 1000);
+		writer.put_ret();
+
+		writer.label("imul_3");
+		writer.put_mov(RAX, 3);
+		writer.put_imul(RAX, RAX, 1000);
+		writer.put_ret();
+
+		writer.label("imul_4");
+		writer.put_mov(RAX, 4);
+		writer.put_imul(EAX, EAX, 1000000);
+		writer.put_ret();
+
+		writer.label("imul_5");
+		writer.put_mov(RAX, 5);
+		writer.put_imul(RAX, RAX, 1000000000);
+		writer.put_ret();
+
+		writer.label("imul_6");
+		writer.put_mov(EAX, 6);
+		writer.put_imul(AX, AX, -1000);
+		writer.put_movsx(RAX, AX);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+
+		CHECK(buffer.call_i32("imul_2"), 2000);
+		CHECK(buffer.call_i32("imul_3"), 3000);
+		CHECK(buffer.call_u32("imul_4"), 4000000);
+		CHECK(buffer.call_u64("imul_5"), 5000000000);
+		CHECK(buffer.call_i32("imul_6"), -6000);
 
 	}
 

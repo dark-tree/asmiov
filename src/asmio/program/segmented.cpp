@@ -148,7 +148,7 @@ namespace asmio {
 		buffer.resize(buffer.size() + bytes, value);
 	}
 
-	void SegmentedBuffer::insert(uint8_t* data, size_t bytes) {
+	void SegmentedBuffer::insert(const uint8_t* data, size_t bytes) {
 		auto& buffer = sections[selected].buffer;
 		buffer.insert(buffer.end(), data, data + bytes);
 	}

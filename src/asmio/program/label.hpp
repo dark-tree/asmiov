@@ -62,8 +62,9 @@ namespace asmio {
 				: id(0), allocated(false), length(0), hash(0) {
 			}
 
-			constexpr Label(nullptr_t)
+			constexpr Label(std::nullptr_t ignored)
 				: Label() {
+				(void) ignored;
 			}
 
 			constexpr Label(Label&& label) noexcept

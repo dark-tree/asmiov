@@ -2,6 +2,7 @@
 
 #include "dwarf/lines.hpp"
 #include <asmio/program/segmented.hpp>
+#include <asmio/util/platform.hpp>
 
 namespace asmio {
 
@@ -83,7 +84,7 @@ namespace asmio {
 	ElfModel to_elf(SegmentedBuffer& segmented, const Label& entry, uint64_t address, const LinkReporter& handler) {
 
 		// after alignment, we will know how big the buffer needs to be
-		const size_t page = getpagesize();
+		const size_t page = page_size();
 		segmented.align(page);
 		auto unresolved = segmented.link(address, handler);
 

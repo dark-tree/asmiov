@@ -11,6 +11,7 @@
 // private libs
 #include <fstream>
 #include <asmio/program/executable.hpp>
+#include <asmio/util/platform.hpp>
 #include <tasml/top.hpp>
 #include <asmio/util/tmp.hpp>
 
@@ -2712,6 +2713,7 @@ namespace test {
 	}
 
 	TEST (writer_exec_int_0x80) {
+#if _POSIX_C_SOURCE >= 200112L
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
@@ -2723,6 +2725,9 @@ namespace test {
 		const uint32_t pid = to_executable(segmented).call_u32();
 		CHECK(pid, getpid());
 
+#else
+		SKIP ("_POSIX_C_SOURCE < 200112L")
+#endif
 	}
 
 	TEST (writer_exec_long_back_jmp) {
@@ -3774,7 +3779,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.size(), getpagesize() * 2); // expect there to be two pages
+		CHECK(buffer.size(), page_size() * 2); // expect there to be two pages
 		CHECK(buffer.call_u32("read"), 42);
 
 		EXPECT_SIGNAL(SIGSEGV) {

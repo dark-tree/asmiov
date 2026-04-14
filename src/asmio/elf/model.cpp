@@ -1,5 +1,7 @@
 #include "model.hpp"
 
+#include <asmio/util/platform.hpp>
+
 namespace asmio {
 
 	/*
@@ -58,7 +60,7 @@ namespace asmio {
 	}
 
 	ElfModel::Segment* ElfModel::segment(ElfSegmentType type, uint32_t flags, uint64_t address, uint64_t tail) {
-		const int alignment = getpagesize();
+		const int alignment = page_size();
 
 		Segment segment {};
 		segment.type = type;

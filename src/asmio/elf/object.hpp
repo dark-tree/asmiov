@@ -7,28 +7,24 @@
 
 namespace asmio {
 
-	template <auto V>
-	constexpr static auto supply = [] noexcept { return V; };
-
 	enum struct RunStatus {
-		SUCCESS,     ///< elf file was executed
-		ARGS_ERROR,  ///< the given arguments are invalid
-		MEMFD_ERROR, ///< memfd failed
-		MMAP_ERROR,  ///< mmap failed
-		SEAL_ERROR,  ///< fcntl failed
-		STAT_ERROR,  ///< fstat failed
-		FORK_ERROR,  ///< fork failed
-		EXEC_ERROR,  ///< file not executable
-		WAIT_ERROR,  ///< waitpid failed
+		SUCCESS,
+		ERROR,
 	};
 
 	struct RunResult {
-		RunResult(RunStatus type)
-			: type(type), status(0) {
+		constexpr RunResult(RunStatus type, int status)
+			: type(type), status(status) {
 		}
 
-		RunResult(int status)
-			: type(RunStatus::SUCCESS), status(status) {
+		/// Create result with a specific error code
+		constexpr static RunResult error(int error_status) {
+			return {RunStatus::ERROR, error_status};
+		}
+
+		/// Create a result with a specific return code
+		constexpr static RunResult success(int return_status) {
+			return {RunStatus::SUCCESS, return_status};
 		}
 
 		const RunStatus type;

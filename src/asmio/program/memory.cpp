@@ -11,9 +11,9 @@ namespace asmio {
 
 	int MemoryFlags::to_mprotect() const {
 		int protect = 0;
-		if (r) protect |= PROT_READ;
-		if (w) protect |= PROT_WRITE;
-		if (x) protect |= PROT_EXEC;
+		if (r) protect |= 0x1; // PROT_READ
+		if (w) protect |= 0x2; // PROT_WRITE
+		if (x) protect |= 0x4; // PROT_EXEC
 		return protect;
 	}
 

@@ -29,7 +29,7 @@ namespace asmio::util {
 	}
 
 	std::string TempFile::path() const {
-		return m_path;
+		return m_path.string();
 	}
 
 }

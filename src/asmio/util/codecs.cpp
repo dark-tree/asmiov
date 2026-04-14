@@ -27,7 +27,7 @@ namespace asmio {
 	void SignedLeb128::encode(ChunkBuffer& buffer, int64_t signed_value) {
 		auto value = std::bit_cast<uint64_t>(signed_value);
 
-		const auto minus_one = std::bit_cast<uint64_t>(-1L);
+		constexpr auto minus_one = static_cast<uint64_t>(-1L);
 		const bool negative = signed_value < 0;
 		bool next = true;
 

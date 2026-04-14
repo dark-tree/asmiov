@@ -3,7 +3,6 @@
 #define VSTL_PRINT_SKIP_REASON true
 #define VSTL_SUBMODULE true
 
-#include "vstl.hpp"
 #include <asmio/aarch64/writer.hpp>
 #include <asmio/program/executable.hpp>
 #include <asmio/elf/export.hpp>
@@ -11,6 +10,7 @@
 #include <tasml/top.hpp>
 
 #include "test.hpp"
+#include "vstl.hpp"
 
 namespace test {
 

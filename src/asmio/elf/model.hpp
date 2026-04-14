@@ -85,7 +85,7 @@ namespace asmio {
 
 		private:
 
-			static constexpr int ELF_VERSION = 1;
+			constexpr static int ELF_VERSION = 1;
 
 			Indexer<int> section_indexer;
 

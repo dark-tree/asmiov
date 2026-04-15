@@ -1,7 +1,3 @@
-#define DEBUG_MODE false
-#define VSTL_TEST_COUNT 3
-#define VSTL_PRINT_SKIP_REASON true
-#define VSTL_SUBMODULE true
 
 #include <asmio/util.hpp>
 #include <asmio/program/label.hpp>

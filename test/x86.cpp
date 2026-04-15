@@ -1,9 +1,4 @@
 
-#define DEBUG_MODE false
-#define VSTL_TEST_COUNT 3
-#define VSTL_PRINT_SKIP_REASON true
-#define VSTL_PRINT_MODULES true
-
 #include "vstl.hpp"
 #include <asmio/x86/writer.hpp>
 #include <asmio/elf/export.hpp>
@@ -16,6 +11,9 @@
 #include <asmio/util/tmp.hpp>
 
 #include "test.hpp"
+
+VCONF(repeats, 3);
+VCONF(print_modules, true);
 
 namespace test {
 

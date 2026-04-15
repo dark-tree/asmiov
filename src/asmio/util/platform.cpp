@@ -138,3 +138,38 @@ namespace asmio {
 
 #endif
 
+#ifdef _WIN32
+#include <sysinfoapi.h>
+#include <memoryapi.h>
+
+namespace asmio {
+
+	uint32_t page_size() {
+		SYSTEM_INFO info;
+		GetSystemInfo(&info);
+		return info.dwPageSize;
+	}
+
+	void* allocate_pages(uint64_t bytes, MemoryFlags initial) {
+		return VirtualAlloc(nullptr, bytes, MEM_COMMIT, PAGE_READWRITE);
+	}
+
+	void protect_pages(void* page, uint64_t bytes, MemoryFlags flags) {
+		VirtualProtect(page, bytes, PAGE_EXECUTE, nullptr);
+	}
+
+	void free_pages(void* page, uint64_t bytes) {
+		VirtualFree(page, 0, MEM_RELEASE);
+	}
+
+	RunResult run_file_image(const void* image, size_t bytes, const char** argv, const char** envp) {
+		throw std::runtime_error {"Operation not supported on this platform!"};
+	}
+
+	std::string call_shell(std::string cmd, const std::string& input) {
+		throw std::runtime_error {"Operation not supported on this platform!"};
+	}
+
+}
+
+#endif

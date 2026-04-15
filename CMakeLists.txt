@@ -24,7 +24,7 @@ endif()
 FetchContent_Declare(
 		vstl
 		GIT_REPOSITORY https://github.com/magistermaks/lib-vstl
-		GIT_TAG 8e590538f66e21aca2558c3029a275725a8f2be3
+		GIT_TAG 59cd364e60cab2d7fc546551756dd3c40e82f59b
 )
 
 FetchContent_MakeAvailable(vstl)
@@ -70,7 +70,8 @@ add_executable(test
 		test/elf.cpp
 )
 target_link_libraries(test PRIVATE asmiov)
-target_include_directories(test PRIVATE ${ASMIOV_INCLUDE_DIRS} ${vstl_SOURCE_DIR})
+target_include_directories(test PRIVATE ${ASMIOV_INCLUDE_DIRS})
+target_link_libraries(test PRIVATE vstl)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	target_compile_options(asmiov PUBLIC

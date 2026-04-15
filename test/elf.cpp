@@ -1,8 +1,4 @@
 
-#define VSTL_TEST_COUNT 3
-#define VSTL_PRINT_SKIP_REASON true
-#define VSTL_SUBMODULE true
-
 #include <vstl.hpp>
 #include <asmio/program/writer.hpp>
 #include <asmio/elf/dwarf/encoding.hpp>

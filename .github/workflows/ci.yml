@@ -2,10 +2,10 @@ name: ci.yml
 
 on:
   push:
-    branches:
-      - master
+    branches: ['master', 'next']
   pull_request:
     types: [ opened, synchronize, reopened ]
+    branches: ['master', 'next']
 
 jobs:
   linux-x86:
@@ -25,4 +25,23 @@ jobs:
         run: cmake --build build
 
       - name: Test x86
+        run: cd build && ./test
+
+  linux-aarch64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++
+
+      - name: Configure
+        run: cmake . -B build
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test AArch64
         run: cd build && ./test

@@ -34,6 +34,9 @@ namespace asmio {
 		/// Convert to mprotect() flags
 		int to_mprotect() const;
 
+		/// Convert to the Windows Memory Protection Constants
+		uint32_t to_win32() const;
+
 		/// Convert to ElfSegmentFlags flags
 		uint32_t to_elf_segment() const;
 

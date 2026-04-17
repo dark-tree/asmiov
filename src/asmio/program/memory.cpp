@@ -17,6 +17,19 @@ namespace asmio {
 		return protect;
 	}
 
+	uint32_t MemoryFlags::to_win32() const {
+		// this gotta be the dumbest way to implement memory permissions...
+		if (x && !r && !w) return 0x10; // PAGE_EXECUTE
+		if (x && r && !w) return 0x20; // PAGE_EXECUTE_READ
+		if (x && w) return 0x40; // PAGE_EXECUTE_READWRITE (write implies read)
+		if (!x && !r && !w) return 0x01; // PAGE_NOACCESS
+		if (!x && r && !w) return 0x02; // PAGE_READONLY
+		if (!x && w) return 0x04; // PAGE_READWRITE (write implies read)
+
+		// unreachable
+		return 0;
+	}
+
 	uint32_t MemoryFlags::to_elf_segment() const {
 		uint32_t flags = 0;
 		if (r) flags |= ElfSegmentFlags::R;

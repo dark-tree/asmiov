@@ -151,12 +151,12 @@ namespace asmio {
 	}
 
 	void* allocate_pages(uint64_t bytes, MemoryFlags initial) {
-		return VirtualAlloc(nullptr, bytes, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+		return VirtualAlloc(nullptr, bytes, MEM_RESERVE | MEM_COMMIT, initial.to_win32());
 	}
 
 	void protect_pages(void* page, uint64_t bytes, MemoryFlags flags) {
 		DWORD unused;
-		VirtualProtect(page, bytes, PAGE_EXECUTE_READWRITE, &unused);
+		VirtualProtect(page, bytes, flags.to_win32(), &unused);
 	}
 
 	void free_pages(void* page, uint64_t bytes) {
@@ -164,11 +164,11 @@ namespace asmio {
 	}
 
 	RunResult run_file_image(const void* image, size_t bytes, const char** argv, const char** envp) {
-		throw std::runtime_error {"Operation not supported on this platform!"};
+		throw std::runtime_error {"Operation run_file_image() not supported on this platform!"};
 	}
 
 	std::string call_shell(std::string cmd, const std::string& input) {
-		throw std::runtime_error {"Operation not supported on this platform!"};
+		throw std::runtime_error {"Operation call_shell() not supported on this platform!"};
 	}
 
 }

@@ -194,10 +194,13 @@ namespace test {
 		util::TempFile embedded {".txt"};
 		embedded.write(embed);
 
+		// escape Windows path separators, replaces '\' with '\\'
+		auto escaped_path = std::regex_replace(embedded.path(),std::regex("\\\\"),"\\\\");
+
 		std::string code = R"(
 			section r
 			export private begin:
-				embed ")" + embedded.path() + R"("
+				embed ")" + escaped_path + R"("
 			export private end:
 		)";
 

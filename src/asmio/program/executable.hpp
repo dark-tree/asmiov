@@ -13,6 +13,15 @@
 	"mm0","mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm6",                               \
 	"st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
 
+#if ARCH_X86
+#	ifdef _WIN32
+#		define SCALL_REG RCX
+#	endif
+#	ifdef __linux__
+#		define SCALL_REG RDI
+#	endif
+#endif
+
 namespace asmio {
 
 	template <typename T>

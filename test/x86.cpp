@@ -3903,8 +3903,8 @@ namespace test {
 
 		writer.label("simple_add");
 		writer.put_push(RBX);
-		writer.put_mov(RBX, ref(RAX));
-		writer.put_add(RBX, ref(RAX + 8));
+		writer.put_mov(RBX, ref(SCALL_REG));
+		writer.put_add(RBX, ref(SCALL_REG + 8));
 		writer.put_mov(RAX, RBX);
 		writer.put_pop(RBX);
 		writer.put_ret();
@@ -3922,7 +3922,7 @@ namespace test {
 		BufferWriter writer {segmented};
 
 		writer.label("main");
-		writer.put_mov(RCX, ref<QWORD>(RAX));
+		writer.put_mov(RCX, ref<QWORD>(SCALL_REG));
 		writer.put_mov(ref<QWORD>(RCX), 42);
 		writer.put_ret();
 
@@ -3996,8 +3996,8 @@ namespace test {
 		BufferWriter writer {segmented};
 
 		writer.label("add");
-		writer.put_mov(RAX, ref(RDI + 0));
-		writer.put_add(RAX, ref(RDI + 8));
+		writer.put_mov(RAX, ref(SCALL_REG + 0));
+		writer.put_add(RAX, ref(SCALL_REG + 8));
 		writer.put_ret();
 
 		// check if no segfault occures
@@ -4154,10 +4154,6 @@ namespace test {
 
 	TEST (exec_cpuid) {
 
-#ifdef _WIN32
-		FAIL("This test bricks VSTL on Windows");
-#endif
-
 		SegmentedBuffer buffer;
 		BufferWriter writer {buffer};
 
@@ -4169,15 +4165,20 @@ namespace test {
 		};
 
 		writer.label("cpuid");
+		writer.put_push(RBX);
+		writer.put_push(RDI);
+		writer.put_mov(RDI, SCALL_REG);
 		writer.put_mov(RAX, ref(RDI)); // page
 		writer.put_cpuid();
-		writer.put_mov(RDI, ref(RDI + 8)); // result*
+		writer.put_mov(R8, ref(RDI + 8)); // result*
 
-		writer.put_mov(ref(RDI), EAX); // result->eax
-		writer.put_mov(ref(RDI + 4), EBX); // result->ebx
-		writer.put_add(RDI, 8);
-		writer.put_mov(ref(RDI), ECX); // result->ecx
-		writer.put_mov(ref(RDI + 4), EDX); // result->edx
+		writer.put_mov(ref(R8), EAX); // result->eax
+		writer.put_mov(ref(R8 + 4), EBX); // result->ebx
+		writer.put_add(R8, 8);
+		writer.put_mov(ref(R8), ECX); // result->ecx
+		writer.put_mov(ref(R8 + 4), EDX); // result->edx
+		writer.put_pop(RDI);
+		writer.put_pop(RBX);
 		writer.put_ret();
 
 		Result result {};

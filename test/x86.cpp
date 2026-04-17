@@ -4154,6 +4154,10 @@ namespace test {
 
 	TEST (exec_cpuid) {
 
+#ifdef _WIN32
+		FAIL("This test bricks VSTL on Windows");
+#endif
+
 		SegmentedBuffer buffer;
 		BufferWriter writer {buffer};
 

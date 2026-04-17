@@ -254,7 +254,7 @@ namespace asmio::util {
 			return std::numeric_limits<T>::max();
 		}
 
-		return (1UL << count) - 1UL;
+		return (T(1) << count) - T(1);
 	}
 
 	/**

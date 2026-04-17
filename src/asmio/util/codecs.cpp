@@ -35,14 +35,14 @@ namespace asmio {
 			uint8_t byte = value & 0x7F;
 			value >>= 7;
 
-			// this is only neccecary if the implementation of >>=
+			// this is only necessary if the implementation of >>=
 			// uses a logical shift, in practice most C++ implementations
-			// would (hopefully) use a arythmetic shift when the shifted value is
-			// of a signed type, however, this behaviour is not well defined and
-			// relies on undefined behaviour. To avoit it, we explicitly use a
-			// non-singed type here and implements arythmetic shift ourselves.
+			// would (hopefully) use an arithmetic shift when the shifted value is
+			// of a signed type, however, this behavior is not well-defined and
+			// relies on undefined behavior. To avoid it, we explicitly use a
+			// non-singed type here and implements arithmetic shift ourselves.
 			if (negative) {
-				value |= ~0UL << (sizeof(signed_value) * 8 - 7); // sign extend
+				value |= ~uint64_t(0) << (sizeof(signed_value) * 8 - 7); // sign extend
 			}
 
 			// sign bit of byte is second high-order bit

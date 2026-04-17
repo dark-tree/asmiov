@@ -151,11 +151,12 @@ namespace asmio {
 	}
 
 	void* allocate_pages(uint64_t bytes, MemoryFlags initial) {
-		return VirtualAlloc(nullptr, bytes, MEM_COMMIT, PAGE_READWRITE);
+		return VirtualAlloc(nullptr, bytes, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	}
 
 	void protect_pages(void* page, uint64_t bytes, MemoryFlags flags) {
-		VirtualProtect(page, bytes, PAGE_EXECUTE, nullptr);
+		DWORD unused;
+		VirtualProtect(page, bytes, PAGE_EXECUTE_READWRITE, &unused);
 	}
 
 	void free_pages(void* page, uint64_t bytes) {

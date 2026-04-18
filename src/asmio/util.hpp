@@ -59,10 +59,32 @@ namespace asmio::util {
 
 	// https://stackoverflow.com/a/6500499
 	inline std::string trim(const std::string& str) {
-		std::string copy = str;
-		copy.erase(copy.find_last_not_of(' ') + 1);  // Suffixing spaces
-		copy.erase(0, copy.find_first_not_of(' '));  // Prefixing spaces
-		return copy;
+		int prefix = 0; // will point to the first non-space char
+		int suffix = str.length() - 1;
+
+		while (prefix < static_cast<int>(str.length())) {
+			if (!std::isspace(str[prefix])) {
+				break;
+			}
+
+			prefix ++;
+		}
+
+		while (suffix > 0) {
+			if (!std::isspace(str[suffix])) {
+				break;
+			}
+
+			suffix --;
+		}
+
+		int count = suffix - prefix + 1;
+
+		if (count < 0) {
+			count = 0;
+		}
+
+		return str.substr(prefix, count);
 	}
 
 	// https://stackoverflow.com/a/46931770

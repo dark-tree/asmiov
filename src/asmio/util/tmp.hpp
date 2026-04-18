@@ -28,6 +28,12 @@ namespace asmio::util {
 				out.close();
 			}
 
+			void write(const uint8_t* data, size_t bytes) {
+				std::fstream out(path(), std::ios::out | std::ios::trunc | std::ios::binary);
+				out.write((char*) data, bytes);
+				out.close();
+			}
+
 			TempFile(const char* extension = "");
 			~TempFile();
 

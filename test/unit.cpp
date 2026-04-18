@@ -488,4 +488,17 @@ namespace test {
 
 	};
 
+	TEST (util_string_trim) {
+
+		CHECK(util::trim("  abc    "), "abc");
+		CHECK(util::trim("\tdef\n"), "def");
+		CHECK(util::trim("\t \t ghi\r\n"), "ghi");
+
+		CHECK(util::trim("foo"), "foo");
+		CHECK(util::trim(" bar"), "bar");
+		CHECK(util::trim("    "), "");
+		CHECK(util::trim(""), "");
+
+	};
+
 }

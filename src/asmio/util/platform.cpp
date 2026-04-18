@@ -1,6 +1,8 @@
 #include "platform.hpp"
 #include <asmio/elf/object.hpp>
 
+#include "tmp.hpp"
+
 #ifdef __linux__
 
 #include <unistd.h>
@@ -163,7 +165,68 @@ namespace asmio {
 	}
 
 	RunResult run_file_image(const void* image, size_t bytes, const char** argv, const char** envp) {
-		throw std::runtime_error {"Operation run_file_image() not supported on this platform!"};
+
+		// TODO implement, an actual, in-memory CreateProcess()
+		// this is done in a non-perfect way, by first copying the image to a file
+		// there is a way to do this correctly, but it is convoluted
+		// https://groups.google.com/g/comp.os.ms-windows.programmer.win32/c/Md3GKPc279A/m/Ax3bYgXhpD8J
+		// https://web.archive.org/web/20131115160730/http://www.security.org.sg/code/loadexe.html
+
+		// TODO don't ignore environ
+		(void) envp;
+
+		util::TempFile temp;
+		temp.write((uint8_t*) image, bytes);
+
+		PROCESS_INFORMATION process_info;
+		STARTUPINFO startup_info;
+
+		ZeroMemory(&process_info, sizeof(PROCESS_INFORMATION));
+		ZeroMemory(&startup_info, sizeof(STARTUPINFO));
+
+		startup_info.cb = sizeof(STARTUPINFO);
+
+		std::string command = temp.path() + " ";
+
+		// start at 1 to ignore name
+		for (int i = 1; true; i++) {
+			const char* part = argv[i];
+
+			if (part == nullptr) {
+				break;
+			}
+
+			command += part;
+		}
+
+		if (!CreateProcess(
+			nullptr,
+			(TCHAR*) command.c_str(),
+			nullptr,
+			nullptr,
+			true, // inherit handles
+			0,
+			nullptr, // use parent's environment
+			nullptr, // use parent's current directory
+			&startup_info,
+			&process_info
+		)) {
+			return RunResult::error(1);
+		}
+
+		DWORD exit_code = 1;
+
+		if (WaitForSingleObject(process_info.hProcess, 10000) == WAIT_TIMEOUT) {
+			return RunResult::error(2);
+		}
+
+		GetExitCodeProcess(process_info.hProcess, &exit_code);
+
+		CloseHandle(process_info.hProcess);
+		CloseHandle(process_info.hThread);
+
+		return RunResult::success(exit_code);
+
 	}
 
 	std::string call_shell(std::string cmd, const std::string& input) {

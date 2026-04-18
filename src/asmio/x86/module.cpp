@@ -133,7 +133,7 @@ namespace asmio::x86 {
 		const Token* index = nullptr;
 		const Token* scale = nullptr;
 		const Token* label = nullptr;
-		long offset = 0;
+		int64_t offset = 0;
 
 		// the next token MUST be this, else parse throws
 		const char* expect = nullptr;

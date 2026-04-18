@@ -3684,10 +3684,14 @@ namespace test {
 		segmented.elf_machine = ElfMachine::X86_64;
 		ObjectFile file = to_elf(segmented, "_start").bake();
 
+#ifdef __linux__
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 42);
+#else
+		SKIP("ELF execution not supported in this environment")
+#endif
 
 	}
 
@@ -3718,10 +3722,15 @@ namespace test {
 
 		segmented.elf_machine = ElfMachine::X86_64;
 		ObjectFile file = to_elf(segmented, "_start").bake();
+
+#ifdef __linux__
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 13);
+#else
+		SKIP("ELF execution not supported in this environment")
+#endif
 
 	}
 
@@ -3752,10 +3761,15 @@ namespace test {
 
 		segmented.elf_machine = ElfMachine::X86_64;
 		ObjectFile file = to_elf(segmented, "_start").bake();
+
+#ifdef __linux__
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 20);
+#else
+		SKIP("ELF execution not supported in this environment")
+#endif
 
 	}
 
@@ -4076,10 +4090,15 @@ namespace test {
 
 		segmented.elf_machine = ElfMachine::X86_64;
 		ObjectFile file = to_elf(segmented, "_start").bake();
+
+#ifdef __linux__
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 42);
+#else
+		SKIP("ELF execution not supported in this environment")
+#endif
 
 	};
 
@@ -4128,7 +4147,7 @@ namespace test {
 			volatile uint64_t test_value = 0;
 
 			// imported from asmiov
-			uint64_t update_text();
+			void update_text();
 
 			int main() {
 				char* a = (char*) &test_value;

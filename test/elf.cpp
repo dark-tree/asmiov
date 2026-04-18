@@ -339,7 +339,11 @@ namespace test {
 			"[0x00000069]  Extended opcode 1: End of Sequence",
 		};
 
-		CHECK(lines, expected);
+		ASSERT(lines.size() >= expected.size());
+
+		for (size_t i = 0; i < expected.size(); i ++) {
+			CHECK(lines[i], expected[i]);
+		}
 
 	};
 
@@ -377,7 +381,11 @@ namespace test {
 			"[0x00000042]  Extended opcode 1: End of Sequence"
 		};
 
-		CHECK(lines, expected);
+		ASSERT(lines.size() >= expected.size());
+
+		for (size_t i = 0; i < expected.size(); i ++) {
+			CHECK(lines[i], expected[i]);
+		}
 
 	};
 

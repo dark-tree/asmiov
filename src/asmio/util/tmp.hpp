@@ -23,7 +23,7 @@ namespace asmio::util {
 			}
 
 			void write(const std::string& content) {
-				std::ofstream out(path());
+				std::fstream out(path(), std::ios::out | std::ios::trunc | std::ios::binary);
 				out << content;
 				out.close();
 			}

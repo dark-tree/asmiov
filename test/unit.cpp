@@ -5,6 +5,7 @@
 #include <asmio/util/chunk.hpp>
 #include <asmio/util/codecs.hpp>
 #include <asmio/util/pool.hpp>
+#include <asmio/util/platform.hpp>
 
 #include "vstl.hpp"
 
@@ -477,6 +478,13 @@ namespace test {
 		CHECK(b->b, 5);
 		CHECK(c3->a, 2);
 		CHECK(c3->b, 1);
+
+	};
+
+	TEST (util_call_shell) {
+
+		std::string output = call_shell("echo hello", "");
+		ASSERT(output.contains("hello"));
 
 	};
 

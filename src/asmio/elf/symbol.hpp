@@ -34,3 +34,5 @@ struct PACKED ElfSymbol {
 	uint64_t value = 0;             ///< Value (e.g. address, offset) of a symbol
 	uint64_t ssize = 0;             ///< Size of the symbol, or zero if not applicable
 };
+
+static_assert(sizeof(ElfSymbol) == 3*8);

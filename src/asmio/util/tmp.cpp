@@ -25,7 +25,7 @@ namespace asmio::util {
 	}
 
 	void TempFile::dump() const {
-		printf("Using temporary file: \"%s\"\n", m_path.c_str());
+		printf("Using temporary file: \"%s\"\n", (const char*) m_path.u8string().c_str());
 	}
 
 	std::string TempFile::path() const {

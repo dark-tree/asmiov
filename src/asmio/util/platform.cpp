@@ -139,8 +139,7 @@ namespace asmio {
 #endif
 
 #ifdef _WIN32
-#include <sysinfoapi.h>
-#include <memoryapi.h>
+#include <windows.h>
 
 namespace asmio {
 
@@ -168,7 +167,110 @@ namespace asmio {
 	}
 
 	std::string call_shell(std::string cmd, const std::string& input) {
-		throw std::runtime_error {"Operation call_shell() not supported on this platform!"};
+
+		// https://learn.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output
+		// https://www.mirabulus.com/it/blog/2021/05/16/hidden-issues-with-inheritable-handles-in-windows
+
+		SECURITY_ATTRIBUTES security_attr;
+		security_attr.nLength = sizeof(SECURITY_ATTRIBUTES);
+		security_attr.bInheritHandle = TRUE;
+		security_attr.lpSecurityDescriptor = nullptr;
+
+		HANDLE child_stdin_read = nullptr;
+		HANDLE child_stdin_write = nullptr;
+		HANDLE child_stdout_read = nullptr;
+		HANDLE child_stdout_write = nullptr;
+
+		CreatePipe(&child_stdout_read, &child_stdout_write, &security_attr, 0);
+		SetHandleInformation(child_stdout_read, HANDLE_FLAG_INHERIT, 0);
+
+		CreatePipe(&child_stdin_read, &child_stdin_write, &security_attr, 0);
+		SetHandleInformation(child_stdin_write, HANDLE_FLAG_INHERIT, 0);
+
+		PROCESS_INFORMATION process_info;
+		STARTUPINFO startup_info;
+
+		ZeroMemory(&process_info, sizeof(PROCESS_INFORMATION));
+		ZeroMemory(&startup_info, sizeof(STARTUPINFO));
+
+		startup_info.cb = sizeof(STARTUPINFO);
+		startup_info.hStdError = child_stdout_write;
+		startup_info.hStdOutput = child_stdout_write;
+		startup_info.hStdInput = child_stdin_read;
+		startup_info.dwFlags |= STARTF_USESTDHANDLES;
+
+		std::string command = "cmd.exe /C " + cmd;
+
+		if (!CreateProcess(
+			nullptr,
+			(TCHAR*) command.c_str(),
+			nullptr,
+			nullptr,
+			true, // inherit handles
+			CREATE_SUSPENDED,
+			nullptr, // use parent's environment
+			nullptr, // use parent's current directory
+			&startup_info,
+			&process_info
+		)) {
+			throw std::runtime_error {"Failed to create process '" + cmd + "'!"};
+		}
+
+		SetHandleInformation(child_stdout_write, HANDLE_FLAG_INHERIT, 0);
+		SetHandleInformation(child_stdin_read, HANDLE_FLAG_INHERIT, 0);
+
+		// close handles used by the child process
+		CloseHandle(child_stdout_write);
+		CloseHandle(child_stdin_read);
+
+		ResumeThread(process_info.hThread);
+
+		const char* data = input.data();
+		DWORD bytes = input.size();
+		DWORD written = 0;
+
+		while (bytes > 0) {
+			WriteFile(child_stdin_write, data, bytes, &written, nullptr);
+			bytes -= written;
+		}
+
+		CloseHandle(child_stdin_write);
+
+		DWORD exit_code = 1;
+		std::string output;
+
+		WaitForSingleObject(process_info.hProcess, INFINITE);
+		GetExitCodeProcess(process_info.hProcess, &exit_code);
+
+		CloseHandle(process_info.hProcess);
+		CloseHandle(process_info.hThread);
+
+		constexpr DWORD size = 256;
+		char buffer[size];
+		DWORD read = 0;
+
+		while (true) {
+			bool success = ReadFile(child_stdout_read, buffer, size, &read, nullptr);
+
+			if (!success || (read == 0)) {
+				break;
+			}
+
+			output.append(buffer, buffer + read);
+		}
+
+		CloseHandle(child_stdout_read);
+
+		std::string normalized;
+		normalized.reserve(output.size());
+
+		for (char c : output) {
+			if (c != '\r') {
+				normalized.push_back(c);
+			}
+		}
+
+		return normalized;
 	}
 
 }

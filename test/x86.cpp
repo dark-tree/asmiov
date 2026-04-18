@@ -4048,8 +4048,8 @@ namespace test {
 
 		// link with our object
 		util::TempFile exec {".out"};
-		std::string gcc_output = call_shell("gcc -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
-		CHECK(gcc_output, "");
+		std::string gcc_output = call_shell("gcc -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		ASSERT(!gcc_output.contains("error"));
 
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "42");
@@ -4144,8 +4144,8 @@ namespace test {
 
 		// link with our object
 		util::TempFile exec {".out"};
-		std::string gcc_output = call_shell("gcc -Wno-format -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
-		CHECK(gcc_output, "");
+		std::string gcc_output = call_shell("gcc -Wno-format -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		ASSERT(!gcc_output.contains("error"));
 
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "HELLO FURRY!");

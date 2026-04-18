@@ -105,7 +105,7 @@ namespace asmio {
 			strings.type = ElfSectionType::STRTAB;
 			strings.name = section_strings.append(".strtab");
 			strings.alignment = 1;
-			strings.buffer = section_buffer_pool->chunk();
+			strings.buffer = section_buffer_pool->chunk(strings.alignment);
 			symbol_string_table = define_section(strings);
 
 			Section symtab {};
@@ -115,7 +115,7 @@ namespace asmio {
 			symtab.alignment = 8;
 			symtab.link = LinkInfo(symbol_string_table);
 			symtab.info = LinkInfo(); // This is set during baking, when we know how many local symbols are there
-			symtab.buffer = section_buffer_pool->chunk();
+			symtab.buffer = section_buffer_pool->chunk(symtab.alignment);
 			symbol_table = define_section(symtab);
 
 			Symbol symbol {};

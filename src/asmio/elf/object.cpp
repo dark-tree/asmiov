@@ -35,7 +35,7 @@ namespace asmio {
 
 		// if file creation fails return false
 		try {
-			std::ofstream output {path};
+			std::fstream output {path, std::ios::out | std::ios::trunc | std::ios::binary};
 
 			if (output.bad()) {
 				return false;

@@ -493,6 +493,38 @@ namespace asmio::arm {
 		put_inst_bic(dst, a, b, shift, lsl6, true);
 	}
 
+	void BufferWriter::put_inst_cas(Registry ptr, Registry src, Registry cmp, Order order, uint8_t size) {
+		if (!ptr.wide()) {
+			throw std::runtime_error {"Invalid operand, destination register must be wide"};
+		}
+
+		if (ptr.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operand, destination can't be the zero register"};
+		}
+
+		if (!cmp.is(Registry::GENERAL) || !src.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, expected general purpose source and compare register"};
+		}
+
+		put_dword(size << 30 | order_to_dword_mask(order) | 0b001000'101 << 21 | cmp.reg << 16 | 0b11111 << 10 | ptr.reg << 5 | src.reg);
+	}
+
+	void BufferWriter::put_casb(Registry dst, Registry src, Registry cmp, Order order) {
+		put_inst_cas(dst, src, cmp, order, 0b00);
+	}
+
+	void BufferWriter::put_cash(Registry dst, Registry src, Registry cmp, Order order) {
+		put_inst_cas(dst, src, cmp, order, 0b01);
+	}
+
+	void BufferWriter::put_cas(Registry dst, Registry src, Registry cmp, Order order) {
+		if (src.wide() != cmp.wide()) {
+			throw std::runtime_error {"Invalid operands, source and compare registers need to be of the same size"};
+		}
+
+		put_inst_cas(dst, src, cmp, order, 0b10 | (dst.wide() ? 1 : 0));
+	}
+
 	void BufferWriter::put_hint(uint8_t imm7) {
 		put_dword(0b1101010100'0'00'011'0010 << 12 | (0b1111'111 & imm7) << 5 | 0b11111);
 	}

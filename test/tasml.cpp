@@ -46,6 +46,21 @@ namespace test {
 
 	};
 
+	TEST (tasml_check_order_semantics) {
+
+		std::string code = R"(
+			lang aarch64
+			cas x0, x1, x2
+			cas x0, x1, x2, ra
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		tasml::assemble(reporter, code);
+
+		ASSERT(reporter.ok());
+
+	};
+
 	TEST (tasml_emit_x86) {
 
 		std::string code = R"(

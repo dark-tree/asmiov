@@ -5,6 +5,7 @@
 #include "argument/registry.hpp"
 #include "argument/shift.hpp"
 #include "argument/condition.hpp"
+#include "argument/order.hpp"
 #include "argument/pattern.hpp"
 
 namespace asmio::arm {
@@ -45,7 +46,7 @@ namespace asmio::arm {
 		protected:
 
 			static uint8_t pack_shift(uint8_t shift, bool wide);
-			static uint64_t get_size(Size size);
+
 			void assert_register_triplet(Registry a, Registry b, Registry c);
 
 			/// Encode generic, 16 bit, immediate move, used by MOVN, MOVK, MOVZ
@@ -86,6 +87,9 @@ namespace asmio::arm {
 
 			/// Encode "CSINC/CSEL/CSET/CINC" operation
 			void put_inst_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy, bool increment_truth);
+
+			/// Encode "CAS/CAB/CAH" operations
+			void put_inst_cas(Registry dst, Registry src, Registry cmp, Order order, uint8_t size);
 
 		public:
 
@@ -176,6 +180,9 @@ namespace asmio::arm {
 			INST put_bfc(Registry dst, BitPattern pattern);                ///< Bitfield Clear
 			INST put_bic(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise Bit Clear
 			INST put_bics(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise Bit Clear and set flags
+			INST put_casb(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap byte in memory
+			INST put_cash(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap word in memory
+			INST put_cas(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap dword or qword in memory
 
 			// control
 			INST put_svc(uint16_t imm16);                                  ///< Supervisor call

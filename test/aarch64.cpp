@@ -144,6 +144,31 @@ namespace test {
 
 	};
 
+	TEST (writer_check_cas) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// considered valid
+		writer.put_cas(X0, XZR, XZR);
+		writer.put_casb(X0, X1, W2);
+		writer.put_cash(X0, X1, X2, Order::RELEASE);
+		writer.put_cash(X0, X1, X2, Order::ACQUIRE_RELEASE);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_cas(X0, X1, W2);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_casb(XZR, X1, W1);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x1f, 0x7c, 0xbf, 0xc8, 0x01, 0x7c, 0xa2, 0x08, 0x01, 0xfc, 0xa2, 0x48, 0x01, 0xfc, 0xe2, 0x48};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM
@@ -1715,6 +1740,46 @@ namespace test {
 
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "42");
+
+	};
+
+	TEST (writer_exec_cas) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("cell");
+		writer.put_qword(11);
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("a");
+		writer.put_adr(X0, "cell");
+		writer.put_mov(X1, 13);
+		writer.put_mov(X2, 12);
+		writer.put_cas(X0, X1, X2, Order::ACQUIRE); // ordering not actually required
+		writer.put_ldr(X0, "cell");
+		writer.put_ret();
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("b");
+		writer.put_adr(X0, "cell");
+		writer.put_mov(X1, 12);
+		writer.put_mov(X2, 11);
+		writer.put_cas(X0, X1, X2, Order::ACQUIRE_RELEASE); // ordering not actually required
+		writer.put_ldr(X0, "cell");
+		writer.put_ret();
+
+#ifdef __ARM_FEATURE_ATOMICS
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64("a"), 11);
+		CHECK(exec.call_u64("b"), 12);
+		CHECK(exec.call_u64("a"), 13);
+		CHECK(exec.call_u64("b"), 13);
+		CHECK(exec.call_u64("a"), 13);
+#else
+		SKIP("Large System Extensions not supproted")
+#endif
 
 	};
 

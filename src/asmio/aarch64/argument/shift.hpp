@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../asmio/external.hpp"
+#include <asmio/external.hpp>
 
 enum struct ShiftType : uint8_t {
 	LSL = 0b00, ///< shift left

@@ -87,6 +87,19 @@ namespace asmio::arm {
 	}
 
 	template <>
+	Order parse_argument(TokenStream stream) {
+		const Token& token = stream.expect(Token::NAME);
+		std::string raw = util::to_lower(token.raw);
+
+		if (raw == "a") return Order::ACQUIRE;
+		if (raw == "r") return Order::RELEASE;
+		if (raw == "ar") return Order::ACQUIRE_RELEASE;
+		if (raw == "ra") return Order::ACQUIRE_RELEASE;
+
+		throw std::runtime_error {"Invalid argument format, expected order semantics"};
+	}
+
+	template <>
 	Condition parse_argument(TokenStream stream) {
 		const Token& token = stream.expect(Token::NAME);
 		std::string raw = util::to_lower(token.raw);

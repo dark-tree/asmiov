@@ -91,6 +91,9 @@ namespace asmio::arm {
 			/// Encode "CAS/CAB/CAH" operations
 			void put_inst_cas(Registry dst, Registry src, Registry cmp, Order order, uint8_t size);
 
+			/// Encode "LDAR/LDARH/LDARB" operations
+			void put_inst_ldar(Registry dst, Registry src, uint8_t size);
+
 		public:
 
 			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12 = false, bool set_flags = false);
@@ -183,6 +186,9 @@ namespace asmio::arm {
 			INST put_casb(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap byte in memory
 			INST put_cash(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap word in memory
 			INST put_cas(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap dword or qword in memory
+			INST put_ldarb(Registry dst, Registry src);                    ///< Load-Acquire Register byte from memory
+			INST put_ldarh(Registry dst, Registry src);                    ///< Load-Acquire Register word from memory
+			INST put_ldar(Registry dst, Registry src);                     ///< Load-Acquire Register dword or qword from memory
 
 			// control
 			INST put_svc(uint16_t imm16);                                  ///< Supervisor call

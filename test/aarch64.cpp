@@ -169,6 +169,31 @@ namespace test {
 
 	};
 
+	TEST (writer_check_ldar) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// considered valid
+		writer.put_ldarb(X11, SP);
+		writer.put_ldarh(WZR, X10);
+		writer.put_ldar(W10, SP);
+		writer.put_ldar(X10, SP);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldarb(X0, XZR);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldar(X1, W1); // source ptr must be qword
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xeb, 0xff, 0xdf, 0x08, 0x5f, 0xfd, 0xdf, 0x48, 0xea, 0xff, 0xdf, 0x88, 0xea, 0xff, 0xdf, 0xc8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM
@@ -1780,6 +1805,26 @@ namespace test {
 #else
 		SKIP("Large System Extensions not supproted")
 #endif
+
+	};
+
+	TEST (writer_exec_ldar) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("cell");
+		writer.put_byte(42);
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("a");
+		writer.put_adr(X1, "cell");
+		writer.put_ldarb(X0, X1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64("a"), 42);
 
 	};
 

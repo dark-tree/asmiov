@@ -525,6 +525,30 @@ namespace asmio::arm {
 		put_inst_cas(dst, src, cmp, order, 0b10 | (dst.wide() ? 1 : 0));
 	}
 
+	void BufferWriter::put_inst_ldar(Registry dst, Registry src, uint8_t size) {
+		if (!src.wide()) {
+			throw std::runtime_error {"Invalid operand, source register must be wide"};
+		}
+
+		if (src.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
+		}
+
+		put_dword(size << 30 | 0b001000'110'11111'1'11111 << 10 | src.reg << 5 | dst.reg);
+	}
+
+	void BufferWriter::put_ldarb(Registry dst, Registry src) {
+		put_inst_ldar(dst, src, 0b00);
+	}
+
+	void BufferWriter::put_ldarh(Registry dst, Registry src) {
+		put_inst_ldar(dst, src, 0b01);
+	}
+
+	void BufferWriter::put_ldar(Registry dst, Registry src) {
+		put_inst_ldar(dst, src, 0b10 | (dst.wide() ? 1 : 0));
+	}
+
 	void BufferWriter::put_hint(uint8_t imm7) {
 		put_dword(0b1101010100'0'00'011'0010 << 12 | (0b1111'111 & imm7) << 5 | 0b11111);
 	}

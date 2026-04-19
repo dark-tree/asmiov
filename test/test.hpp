@@ -11,10 +11,16 @@ namespace test {
 			buffer.elf_machine = asmio::ElfMachine::NATIVE;
 		}
 
+		std::string extra_flags = "";
+
+		if (buffer.elf_machine == asmio::ElfMachine::X86_64) {
+			extra_flags += " -Mintel";
+		}
+
 		asmio::ObjectFile baked = asmio::to_elf(buffer, asmio::Label::UNSET).bake();
 		asmio::util::TempFile temp {baked};
 
-		std::string out = asmio::call_shell("objdump --visualize-jumps -wxd -Mintel " + temp.path());
+		std::string out = asmio::call_shell("objdump --visualize-jumps -wxd " + extra_flags + temp.path());
 		printf("%s\n", out.c_str());
 
 		printf("\nAuto-generated assertions:\n\n");

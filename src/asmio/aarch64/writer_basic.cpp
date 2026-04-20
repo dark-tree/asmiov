@@ -549,6 +549,36 @@ namespace asmio::arm {
 		put_inst_ldar(dst, src, 0b10 | (dst.wide() ? 1 : 0));
 	}
 
+	void BufferWriter::put_inst_ldadd(Registry val, Registry dst, Registry src, Order order, uint8_t size) {
+		if (!src.wide()) {
+			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};
+		}
+
+		if (src.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
+		}
+
+		uint32_t a = is_order_acquire(order) ? (1 << 23) : 0;
+		uint32_t r = is_order_release(order) ? (1 << 22) : 0;
+		put_dword(size << 30 | 0b111000'00'1 << 21 | val.reg << 16 | src.reg << 5 | dst.reg | a | r);
+	}
+
+	void BufferWriter::put_ldaddb(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldadd(val, dst, src, order, 0b00);
+	}
+
+	void BufferWriter::put_ldaddh(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldadd(val, dst, src, order, 0b01);
+	}
+
+	void BufferWriter::put_ldadd(Registry val, Registry dst, Registry src, Order order) {
+		if (val.wide() != dst.wide()) {
+			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
+		}
+
+		put_inst_ldadd(val, dst, src, order, 0b10 | (val.wide() ? 1 : 0));
+	}
+
 	void BufferWriter::put_hint(uint8_t imm7) {
 		put_dword(0b1101010100'0'00'011'0010 << 12 | (0b1111'111 & imm7) << 5 | 0b11111);
 	}

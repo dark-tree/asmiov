@@ -194,6 +194,33 @@ namespace test {
 
 	};
 
+	TEST (writer_check_ldadd) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldadd(X0, X1, X2);
+		writer.put_ldadd(W11, W1, X2);
+		writer.put_ldaddb(X11, X1, X2);
+		writer.put_ldaddb(W0, X1, X2);
+		writer.put_ldaddb(X11, W0, X2);
+		writer.put_ldaddb(W2, W0, X2);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldadd(X11, W1, X2);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldaddb(X11, X1, W2);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x41, 0x00, 0x20, 0xf8, 0x41, 0x00, 0x2b, 0xb8, 0x41, 0x00, 0x2b, 0x38, 0x41, 0x00, 0x20, 0x38, 0x40, 0x00, 0x2b, 0x38, 0x40, 0x00, 0x22, 0x38};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

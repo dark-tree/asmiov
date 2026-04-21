@@ -534,6 +534,10 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
 		}
 
+		if (!dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, destination must be a general purpose register"};
+		}
+
 		put_dword(size << 30 | 0b001000'110'11111'1'11111 << 10 | src.reg << 5 | dst.reg);
 	}
 
@@ -556,6 +560,10 @@ namespace asmio::arm {
 
 		if (src.is(Registry::ZERO)) {
 			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
+		}
+
+		if (!val.is(Registry::GENERAL) || !dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, value and destination must be general purpose registers"};
 		}
 
 		uint32_t a = is_order_acquire(order) ? (1 << 23) : 0;

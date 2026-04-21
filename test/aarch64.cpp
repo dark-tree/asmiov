@@ -188,6 +188,10 @@ namespace test {
 			writer.put_ldar(X1, W1); // source ptr must be qword
 		};
 
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldar(SP, X10);
+		};
+
 		segmented.link(0);
 		std::vector<uint8_t> s0 = {0xeb, 0xff, 0xdf, 0x08, 0x5f, 0xfd, 0xdf, 0x48, 0xea, 0xff, 0xdf, 0x88, 0xea, 0xff, 0xdf, 0xc8};
 		CHECK(segmented.segments()[0].buffer, s0); // .rwx
@@ -201,7 +205,8 @@ namespace test {
 		segmented.elf_machine = ElfMachine::AARCH64;
 
 		writer.put_ldadd(X0, X1, X2);
-		writer.put_ldadd(W11, W1, X2);
+		writer.put_ldadd(W11, W1, SP);
+		writer.put_ldadd(WZR, WZR, X2);
 		writer.put_ldaddb(X11, X1, X2);
 		writer.put_ldaddb(W0, X1, X2);
 		writer.put_ldaddb(X11, W0, X2);
@@ -215,8 +220,16 @@ namespace test {
 			writer.put_ldaddb(X11, X1, W2);
 		};
 
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldaddb(SP, X1, X1);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldaddb(X1, SP, X1);
+		};
+
 		segmented.link(0);
-		std::vector<uint8_t> s0 = {0x41, 0x00, 0x20, 0xf8, 0x41, 0x00, 0x2b, 0xb8, 0x41, 0x00, 0x2b, 0x38, 0x41, 0x00, 0x20, 0x38, 0x40, 0x00, 0x2b, 0x38, 0x40, 0x00, 0x22, 0x38};
+		std::vector<uint8_t> s0 = {0x41, 0x00, 0x20, 0xf8, 0xe1, 0x03, 0x2b, 0xb8, 0x5f, 0x00, 0x3f, 0xb8, 0x41, 0x00, 0x2b, 0x38, 0x41, 0x00, 0x20, 0x38, 0x40, 0x00, 0x2b, 0x38, 0x40, 0x00, 0x22, 0x38};
 		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
@@ -1830,7 +1843,7 @@ namespace test {
 		CHECK(exec.call_u64("b"), 13);
 		CHECK(exec.call_u64("a"), 13);
 #else
-		SKIP("Large System Extensions not supproted")
+		SKIP("AArch64 LSE not supproted")
 #endif
 
 	};
@@ -1852,6 +1865,33 @@ namespace test {
 
 		auto exec = to_executable(segmented);
 		CHECK(exec.call_u64("a"), 42);
+
+	};
+
+	TEST (writer_exec_ldadd) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("cell");
+		writer.put_dword(0x1234);
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("add");
+		writer.put_adr(X1, "cell");
+		writer.put_mov(X2, 0x1111);
+		writer.put_ldadd(X2, X0, X1);
+		writer.put_ret();
+
+#ifdef __ARM_FEATURE_ATOMICS
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64("add"), 0x2345);
+		CHECK(exec.call_u64("add"), 0x3456);
+		CHECK(exec.call_u64("add"), 0x4567);
+#else
+		SKIP("AArch64 LSE not supproted")
+#endif
 
 	};
 

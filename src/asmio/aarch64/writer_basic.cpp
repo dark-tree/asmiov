@@ -553,6 +553,72 @@ namespace asmio::arm {
 		put_inst_ldar(dst, src, 0b10 | (dst.wide() ? 1 : 0));
 	}
 
+	void BufferWriter::put_inst_ldpx(Registry r1, Registry r2, Registry src, int64_t offset, uint32_t opcode, bool wide) {
+		if (!src.wide()) {
+			throw std::runtime_error {"Invalid operand, source register must be wide"};
+		}
+
+		if (src.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
+		}
+
+		if (r1.wide() != r2.wide()) {
+			throw std::runtime_error {"Invalid operands, both destination registers need to be of the same size"};
+		}
+
+		if (!r1.is(Registry::GENERAL) || !r2.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, both destination registers need to be general purpose"};
+		}
+
+		int32_t size = wide ? QWORD : DWORD;
+		int32_t imm7 = offset / size;
+
+		if (offset % size) {
+			throw std::runtime_error {"Invalid operand, immediate value not divisible by operand size"};
+		}
+
+		if (imm7 < -64 || imm7 > 63) {
+			throw std::runtime_error {"Invalid operand, immediate value out of range"};
+		}
+
+		uint16_t sf = wide ? 1 : 0;
+		put_dword(sf << 31 | opcode | (imm7 & 0x7f) << 15 | r2.reg << 10 | src.reg << 5 | r1.reg);
+	}
+
+	void BufferWriter::put_ldp(Registry r1, Registry r2, Registry src) {
+		put_ldpi(r1, r2, src, 0);
+	}
+
+	void BufferWriter::put_ildp(Registry r1, Registry r2, Registry src, int64_t offset) {
+		put_inst_ldpx(r1, r2, src, offset, 0b101'0'011'1 << 22, r1.wide());
+	}
+
+	void BufferWriter::put_ldpi(Registry r1, Registry r2, Registry src, int64_t offset) {
+		put_inst_ldpx(r1, r2, src, offset, 0b101'0'010'1 << 22, r1.wide());
+	}
+
+	void BufferWriter::put_ldpsw(Registry r1, Registry r2, Registry src) {
+		put_ldpswi(r1, r2, src, 0);
+	}
+
+	void BufferWriter::put_ildpsw(Registry r1, Registry r2, Registry src, int64_t offset) {
+		if (!r1.wide()) {
+			// r2 is handled by put_inst_ldpx()
+			throw std::runtime_error {"Invalid operand, expected qword destination registers"};
+		}
+
+		put_inst_ldpx(r1, r2, src, offset, 0b01'101'0'011'1 << 22, false);
+	}
+
+	void BufferWriter::put_ldpswi(Registry r1, Registry r2, Registry src, int64_t offset) {
+		if (!r1.wide()) {
+			// r2 is handled by put_inst_ldpx()
+			throw std::runtime_error {"Invalid operand, expected qword destination registers"};
+		}
+
+		put_inst_ldpx(r1, r2, src, offset, 0b01'101'0'010'1 << 22, false);
+	}
+
 	void BufferWriter::put_inst_ldadd(Registry val, Registry dst, Registry src, Order order, uint8_t size) {
 		if (!src.wide()) {
 			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};

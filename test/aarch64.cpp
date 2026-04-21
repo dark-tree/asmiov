@@ -234,6 +234,58 @@ namespace test {
 
 	};
 
+	TEST (writer_check_ldp_ldpsw) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		// ldp
+		writer.put_ldp(X2, X3, X0);
+		writer.put_ldp(W2, W3, X0);
+		writer.put_ldp(W2, W3, SP);
+		writer.put_ldpi(W2, W3, X0, 12);
+		writer.put_ildp(X2, X3, X0, -8);
+
+		// ldpsw
+		writer.put_ldpsw(X2, X3, X0);
+		writer.put_ldpswi(X2, X3, X0, 8);
+		writer.put_ildpsw(X2, X3, X0, -8);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldp(W2, X3, X0);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ildp(X3, X3, X0, 12); // 12 is not div by 8
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldp(X2, W3, X0);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldp(X1, X2, W4);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldpi(X1, X2, X4, 512);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldpsw(W2, W3, X0);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ildpsw(W2, W3, X0, 260);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x02, 0x0c, 0x40, 0xa9, 0x02, 0x0c, 0x40, 0x29, 0xe2, 0x0f, 0x40, 0x29, 0x02, 0x8c, 0x41, 0x29, 0x02, 0x8c, 0xff, 0xa9, 0x02, 0x0c, 0x40, 0x69, 0x02, 0x0c, 0x41, 0x69, 0x02, 0x0c, 0xff, 0x69};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM
@@ -1843,7 +1895,7 @@ namespace test {
 		CHECK(exec.call_u64("b"), 13);
 		CHECK(exec.call_u64("a"), 13);
 #else
-		SKIP("AArch64 LSE not supproted")
+		SKIP("AArch64 LSE not supported")
 #endif
 
 	};
@@ -1890,8 +1942,36 @@ namespace test {
 		CHECK(exec.call_u64("add"), 0x3456);
 		CHECK(exec.call_u64("add"), 0x4567);
 #else
-		SKIP("AArch64 LSE not supproted")
+		SKIP("AArch64 LSE not supported")
 #endif
+
+	};
+
+	TEST (writer_exec_ldpsw_ldp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("cell");
+		writer.put_dword(234);
+		writer.put_dword(-312);
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("a");
+		writer.put_adr(X3, "cell");
+		writer.put_ldpsw(X1, X2, X3);
+		writer.put_add(X0, X1, X2);
+		writer.put_ret();
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("b");
+		writer.put_adr(X3, "cell");
+		writer.put_ldp(W1, W0, X3);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64("b"), uint32_t(-312));
 
 	};
 

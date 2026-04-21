@@ -97,6 +97,9 @@ namespace asmio::arm {
 			/// Encode "LDADD/LDADDH/LDADD" operation
 			void put_inst_ldadd(Registry val, Registry dst, Registry src, Order order, uint8_t size);
 
+			/// Encode "LDP/LDPSW" operations
+			void put_inst_ldpx(Registry r1, Registry r2, Registry src, int64_t offset, uint32_t opcode, bool wide);
+
 		public:
 
 			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12 = false, bool set_flags = false);
@@ -186,12 +189,20 @@ namespace asmio::arm {
 			INST put_bfc(Registry dst, BitPattern pattern);                ///< Bitfield Clear
 			INST put_bic(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise Bit Clear
 			INST put_bics(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise Bit Clear and set flags
-			INST put_casb(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap byte in memory
-			INST put_cash(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap word in memory
-			INST put_cas(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap dword or qword in memory
 			INST put_ldarb(Registry dst, Registry src);                    ///< Load-Acquire Register byte from memory
 			INST put_ldarh(Registry dst, Registry src);                    ///< Load-Acquire Register word from memory
 			INST put_ldar(Registry dst, Registry src);                     ///< Load-Acquire Register dword or qword from memory
+			INST put_ldp(Registry r1, Registry r2, Registry src);          ///< Load a Pair of Registers
+			INST put_ildp(Registry r1, Registry r2, Registry src, int64_t offset); ///< Increment src and load value pair from memory
+			INST put_ldpi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Load value pair from memory and increment src
+			INST put_ldpsw(Registry r1, Registry r2, Registry src);        ///< Load and sign-extend a pair of dwords into two Registers
+			INST put_ildpsw(Registry r1, Registry r2, Registry src, int64_t offset); ///< Increment src and load sign-extended dword pair from memory
+			INST put_ldpswi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Load sign-extended dword pair from memory and increment src
+
+			// large system extension
+			INST put_casb(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap byte in memory
+			INST put_cash(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap word in memory
+			INST put_cas(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap dword or qword in memory
 			INST put_ldaddb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic add on byte
 			INST put_ldaddh(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic add on word
 			INST put_ldadd(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic add on dword or qword

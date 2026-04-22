@@ -623,6 +623,28 @@ namespace asmio::arm {
 		put_inst_ldpx(r1, r2, src, offset, 0b101'0'000'1 << 22, r1.wide());
 	}
 
+	void BufferWriter::put_ldxp(Registry r1, Registry r2, Registry src) {
+
+		if (!src.wide()) {
+			throw std::runtime_error {"Invalid operand, source register must be wide"};
+		}
+
+		if (src.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
+		}
+
+		if (r1.wide() != r2.wide()) {
+			throw std::runtime_error {"Invalid operands, both destination registers need to be of the same size"};
+		}
+
+		if (!r1.is(Registry::GENERAL) || !r2.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, both destination registers need to be general purpose"};
+		}
+
+		uint16_t sf = r1.wide() ? 1 : 0;
+		put_dword(1 << 31 | sf << 30 | 0b0010000'11'11111'0 << 15 | r2.reg << 10 | src.reg << 5 | r1.reg);
+	}
+
 	void BufferWriter::put_inst_ldadd(Registry val, Registry dst, Registry src, Order order, uint8_t size) {
 		if (!src.wide()) {
 			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};

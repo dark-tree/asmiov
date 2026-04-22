@@ -198,6 +198,7 @@ namespace asmio::arm {
 			INST put_ldpsw(Registry r1, Registry r2, Registry src);        ///< Load and sign-extend a pair of dwords into two Registers
 			INST put_ildpsw(Registry r1, Registry r2, Registry src, int64_t offset); ///< Increment src and load sign-extended dword pair from memory
 			INST put_ldpswi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Load sign-extended dword pair from memory and increment src
+			INST put_ldnp(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Load a non-temporal Pair of Registers
 
 			// large system extension
 			INST put_casb(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap byte in memory

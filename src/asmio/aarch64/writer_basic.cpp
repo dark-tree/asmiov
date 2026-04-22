@@ -619,6 +619,10 @@ namespace asmio::arm {
 		put_inst_ldpx(r1, r2, src, offset, 0b01'101'0'010'1 << 22, false);
 	}
 
+	void BufferWriter::put_ldnp(Registry r1, Registry r2, Registry src, int64_t offset) {
+		put_inst_ldpx(r1, r2, src, offset, 0b101'0'000'1 << 22, r1.wide());
+	}
+
 	void BufferWriter::put_inst_ldadd(Registry val, Registry dst, Registry src, Order order, uint8_t size) {
 		if (!src.wide()) {
 			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};

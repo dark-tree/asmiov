@@ -286,6 +286,25 @@ namespace test {
 
 	};
 
+	TEST (writer_check_ldnp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldnp(X1, X2, X3, 16);
+		writer.put_ldnp(W1, W2, X3, 12);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldnp(X1, X2, X3, 12);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x61, 0x08, 0x41, 0xa8, 0x61, 0x88, 0x41, 0x28};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

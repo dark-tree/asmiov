@@ -200,6 +200,10 @@ namespace asmio::arm {
 			INST put_ldpswi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Load sign-extended dword pair from memory and increment src
 			INST put_ldnp(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Load a non-temporal Pair of Registers
 			INST put_ldxp(Registry r1, Registry r2, Registry src);         ///< Load exclusive pair of registers
+			INST put_stp(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Store a Pair of Registers
+			INST put_istp(Registry r1, Registry r2, Registry src, int64_t offset); ///< Increment src and store value pair to memory
+			INST put_stpi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Store value pair to memory and increment src
+			INST put_stnp(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Store a non-temporal Pair of Registers
 
 			// large system extension
 			INST put_casb(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap byte in memory

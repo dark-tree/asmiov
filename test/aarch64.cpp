@@ -324,6 +324,24 @@ namespace test {
 
 	};
 
+	TEST (writer_check_stp_stnp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_stp(X1, X2, X3);
+		writer.put_stp(W1, W2, X3, 128);
+		writer.put_stpi(X3, X4, X3, 32);
+		writer.put_istp(W1, W2, X3, 64);
+		writer.put_stnp(X1, X2, X3, 48);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x61, 0x08, 0x00, 0xa9, 0x61, 0x08, 0x10, 0x29, 0x63, 0x10, 0x82, 0xa8, 0x61, 0x08, 0x88, 0x29, 0x61, 0x08, 0x03, 0xa8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

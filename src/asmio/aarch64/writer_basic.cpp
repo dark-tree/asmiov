@@ -652,6 +652,23 @@ namespace asmio::arm {
 		put_dword(1 << 31 | sf << 30 | 0b0010000'11'11111'0 << 15 | r2.reg << 10 | src.reg << 5 | r1.reg);
 	}
 
+	void BufferWriter::put_stp(Registry r1, Registry r2, Registry src, int64_t offset) {
+		put_inst_ldpx(r1, r2, src, offset, OFFSET, r1.size, false, r1.wide() << 1);
+	}
+
+	void BufferWriter::put_istp(Registry r1, Registry r2, Registry src, int64_t offset) {
+		put_inst_ldpx(r1, r2, src, offset, PRE, r1.size, false, r1.wide() << 1);
+	}
+
+	void BufferWriter::put_stpi(Registry r1, Registry r2, Registry src, int64_t offset) {
+		put_inst_ldpx(r1, r2, src, offset, POST, r1.size, false, r1.wide() << 1);
+	}
+
+	void BufferWriter::put_stnp(Registry r1, Registry r2, Registry src, int64_t offset) {
+		// FIXME this cast is an ugly hack, we use this to get bits == 0 in put_inst_ldpx()
+		put_inst_ldpx(r1, r2, src, offset, static_cast<MemoryOperation>(-1), r1.size, false, r1.wide() << 1);
+	}
+
 	void BufferWriter::put_inst_ldadd(Registry val, Registry dst, Registry src, Order order, uint8_t size) {
 		if (!src.wide()) {
 			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};

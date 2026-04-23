@@ -358,6 +358,27 @@ namespace test {
 
 	};
 
+	TEST (writer_check_ldops) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldaddb(W1, W2, X8, Order::ACQUIRE);
+		writer.put_ldclr(X5, X6, X11, Order::RELEASE);
+		writer.put_ldeor(X3, X24, X4, Order::ACQUIRE_RELEASE);
+		writer.put_ldseth(X6, X6, X6, Order::NONE);
+		writer.put_ldsmax(X1, X5, X9, Order::RELEASE);
+		writer.put_ldumax(X2, X6, X10, Order::ACQUIRE);
+		writer.put_ldsmin(X3, X7, X11, Order::NONE);
+		writer.put_ldumin(X4, X8, X12, Order::ACQUIRE_RELEASE);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x02, 0x01, 0xa1, 0x38, 0x66, 0x11, 0x65, 0xf8, 0x98, 0x20, 0xe3, 0xf8, 0xc6, 0x30, 0x26, 0x78, 0x25, 0x41, 0x61, 0xf8, 0x46, 0x61, 0xa2, 0xf8, 0x67, 0x51, 0x23, 0xf8, 0x88, 0x71, 0xe4, 0xf8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

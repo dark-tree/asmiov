@@ -95,7 +95,7 @@ namespace asmio::arm {
 			void put_inst_ldar(Registry dst, Registry src, uint8_t size);
 
 			/// Encode "LDADD/LDADDH/LDADD" operation
-			void put_inst_ldadd(Registry val, Registry dst, Registry src, Order order, uint8_t size);
+			void put_inst_ldop(Registry val, Registry dst, Registry src, Order order, uint8_t size, uint32_t opc);
 
 			/// Encode "LDP/LDPSW" operations
 			void put_inst_ldpx(Registry r1, Registry r2, Registry src, int64_t offset, MemoryOperation op, uint32_t size, bool load, uint32_t opc);
@@ -213,6 +213,27 @@ namespace asmio::arm {
 			INST put_ldaddb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic add on byte
 			INST put_ldaddh(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic add on word
 			INST put_ldadd(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic add on dword or qword
+			INST put_ldclrb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic bit clear on byte
+			INST put_ldclrh(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic bit clear on word
+			INST put_ldclr(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic bit clear on dword or qword
+			INST put_ldeorb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic bitwise xor on byte
+			INST put_ldeorh(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic bitwise xor on word
+			INST put_ldeor(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic bitwise xor on dword or qword
+			INST put_ldsetb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic bit set on byte
+			INST put_ldseth(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic bit set on word
+			INST put_ldset(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic bit set on dword or qword
+			INST put_ldsmaxb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on byte
+			INST put_ldsmaxh(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on word
+			INST put_ldsmax(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
+			INST put_ldumaxb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on byte
+			INST put_ldumaxh(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on word
+			INST put_ldumax(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
+			INST put_ldsminb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on byte
+			INST put_ldsminh(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on word
+			INST put_ldsmin(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
+			INST put_lduminb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on byte
+			INST put_lduminh(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on word
+			INST put_ldumin(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
 
 			// control
 			INST put_svc(uint16_t imm16);                                  ///< Supervisor call

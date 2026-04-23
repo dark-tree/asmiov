@@ -673,7 +673,7 @@ namespace asmio::arm {
 		put_inst_ldpx(r1, r2, src, offset, static_cast<MemoryOperation>(-1), r1.size, false, r1.wide() << 1);
 	}
 
-	void BufferWriter::put_inst_ldadd(Registry val, Registry dst, Registry src, Order order, uint8_t size) {
+	void BufferWriter::put_inst_ldop(Registry val, Registry dst, Registry src, Order order, uint8_t size, uint32_t opc) {
 		if (!src.wide()) {
 			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};
 		}
@@ -688,15 +688,15 @@ namespace asmio::arm {
 
 		uint32_t a = is_order_acquire(order) ? (1 << 23) : 0;
 		uint32_t r = is_order_release(order) ? (1 << 22) : 0;
-		put_dword(size << 30 | 0b111000'00'1 << 21 | val.reg << 16 | src.reg << 5 | dst.reg | a | r);
+		put_dword(size << 30 | 0b111000'00'1 << 21 | val.reg << 16 | opc << 12 | src.reg << 5 | dst.reg | a | r);
 	}
 
 	void BufferWriter::put_ldaddb(Registry val, Registry dst, Registry src, Order order) {
-		put_inst_ldadd(val, dst, src, order, 0b00);
+		put_inst_ldop(val, dst, src, order, 0b00, 0b000);
 	}
 
 	void BufferWriter::put_ldaddh(Registry val, Registry dst, Registry src, Order order) {
-		put_inst_ldadd(val, dst, src, order, 0b01);
+		put_inst_ldop(val, dst, src, order, 0b01, 0b000);
 	}
 
 	void BufferWriter::put_ldadd(Registry val, Registry dst, Registry src, Order order) {
@@ -704,7 +704,119 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
 		}
 
-		put_inst_ldadd(val, dst, src, order, 0b10 | (val.wide() ? 1 : 0));
+		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b000);
+	}
+
+	void BufferWriter::put_ldclrb(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b00, 0b001);
+	}
+
+	void BufferWriter::put_ldclrh(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b01, 0b001);
+	}
+
+	void BufferWriter::put_ldclr(Registry val, Registry dst, Registry src, Order order) {
+		if (val.wide() != dst.wide()) {
+			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
+		}
+
+		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b001);
+	}
+
+	void BufferWriter::put_ldeorb(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b00, 0b010);
+	}
+
+	void BufferWriter::put_ldeorh(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b01, 0b010);
+	}
+
+	void BufferWriter::put_ldeor(Registry val, Registry dst, Registry src, Order order) {
+		if (val.wide() != dst.wide()) {
+			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
+		}
+
+		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b010);
+	}
+
+	void BufferWriter::put_ldsetb(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b00, 0b011);
+	}
+
+	void BufferWriter::put_ldseth(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b01, 0b011);
+	}
+
+	void BufferWriter::put_ldset(Registry val, Registry dst, Registry src, Order order) {
+		if (val.wide() != dst.wide()) {
+			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
+		}
+
+		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b011);
+	}
+
+	void BufferWriter::put_ldsmaxb(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b00, 0b100);
+	}
+
+	void BufferWriter::put_ldsmaxh(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b01, 0b100);
+	}
+
+	void BufferWriter::put_ldsmax(Registry val, Registry dst, Registry src, Order order) {
+		if (val.wide() != dst.wide()) {
+			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
+		}
+
+		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b100);
+	}
+
+	void BufferWriter::put_ldumaxb(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b00, 0b110);
+	}
+
+	void BufferWriter::put_ldumaxh(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b01, 0b110);
+	}
+
+	void BufferWriter::put_ldumax(Registry val, Registry dst, Registry src, Order order) {
+		if (val.wide() != dst.wide()) {
+			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
+		}
+
+		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b110);
+	}
+
+	void BufferWriter::put_ldsminb(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b00, 0b101);
+	}
+
+	void BufferWriter::put_ldsminh(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b01, 0b101);
+	}
+
+	void BufferWriter::put_ldsmin(Registry val, Registry dst, Registry src, Order order) {
+		if (val.wide() != dst.wide()) {
+			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
+		}
+
+		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b101);
+	}
+
+	void BufferWriter::put_lduminb(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b00, 0b111);
+	}
+
+	void BufferWriter::put_lduminh(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b01, 0b111);
+	}
+
+	void BufferWriter::put_ldumin(Registry val, Registry dst, Registry src, Order order) {
+		if (val.wide() != dst.wide()) {
+			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
+		}
+
+		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b111);
 	}
 
 	void BufferWriter::put_hint(uint8_t imm7) {

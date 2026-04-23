@@ -98,7 +98,7 @@ namespace asmio::arm {
 			void put_inst_ldadd(Registry val, Registry dst, Registry src, Order order, uint8_t size);
 
 			/// Encode "LDP/LDPSW" operations
-			void put_inst_ldpx(Registry r1, Registry r2, Registry src, int64_t offset, uint32_t opcode, bool wide);
+			void put_inst_ldpx(Registry r1, Registry r2, Registry src, int64_t offset, MemoryOperation op, uint32_t size, bool load, uint32_t opc);
 
 		public:
 
@@ -192,10 +192,10 @@ namespace asmio::arm {
 			INST put_ldarb(Registry dst, Registry src);                    ///< Load-Acquire Register byte from memory
 			INST put_ldarh(Registry dst, Registry src);                    ///< Load-Acquire Register word from memory
 			INST put_ldar(Registry dst, Registry src);                     ///< Load-Acquire Register dword or qword from memory
-			INST put_ldp(Registry r1, Registry r2, Registry src);          ///< Load a Pair of Registers
+			INST put_ldp(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Load a Pair of Registers
 			INST put_ildp(Registry r1, Registry r2, Registry src, int64_t offset); ///< Increment src and load value pair from memory
 			INST put_ldpi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Load value pair from memory and increment src
-			INST put_ldpsw(Registry r1, Registry r2, Registry src);        ///< Load and sign-extend a pair of dwords into two Registers
+			INST put_ldpsw(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Load and sign-extend a pair of dwords into two Registers
 			INST put_ildpsw(Registry r1, Registry r2, Registry src, int64_t offset); ///< Increment src and load sign-extended dword pair from memory
 			INST put_ldpswi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Load sign-extended dword pair from memory and increment src
 			INST put_ldnp(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Load a non-temporal Pair of Registers

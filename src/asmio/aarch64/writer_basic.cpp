@@ -553,7 +553,7 @@ namespace asmio::arm {
 		put_inst_ldar(dst, src, 0b10 | (dst.wide() ? 1 : 0));
 	}
 
-	void BufferWriter::put_inst_ldpx(Registry r1, Registry r2, Registry src, int64_t offset, uint32_t opcode, bool wide) {
+	void BufferWriter::put_inst_ldpx(Registry r1, Registry r2, Registry src, int64_t offset, MemoryOperation op, uint32_t size, bool load, uint32_t opc) {
 		if (!src.wide()) {
 			throw std::runtime_error {"Invalid operand, source register must be wide"};
 		}
@@ -570,7 +570,6 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operands, both destination registers need to be general purpose"};
 		}
 
-		int32_t size = wide ? QWORD : DWORD;
 		int32_t imm7 = offset / size;
 
 		if (offset % size) {
@@ -581,46 +580,54 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operand, immediate value out of range"};
 		}
 
-		uint16_t sf = wide ? 1 : 0;
-		put_dword(sf << 31 | opcode | (imm7 & 0x7f) << 15 | r2.reg << 10 | src.reg << 5 | r1.reg);
+		// TODO maybe we can find some common bit pattern for this enum?
+		uint32_t bits = 0;
+		if (op == POST) bits = 0b01;
+		else if (op == PRE) bits = 0b11;
+		else if (op == OFFSET) bits = 0b10;
+
+		put_dword(opc << 30 | 0b101 << 27 | bits << 23 | load << 22 | (imm7 & 0x7f) << 15 | r2.reg << 10 | src.reg << 5 | r1.reg);
 	}
 
-	void BufferWriter::put_ldp(Registry r1, Registry r2, Registry src) {
-		put_ldpi(r1, r2, src, 0);
+	void BufferWriter::put_ldp(Registry r1, Registry r2, Registry src, int64_t offset) {
+		put_inst_ldpx(r1, r2, src, offset, OFFSET, r1.size, true, r1.wide() << 1);
 	}
 
 	void BufferWriter::put_ildp(Registry r1, Registry r2, Registry src, int64_t offset) {
-		put_inst_ldpx(r1, r2, src, offset, 0b101'0'011'1 << 22, r1.wide());
+		put_inst_ldpx(r1, r2, src, offset, PRE, r1.size, true, r1.wide() << 1);
 	}
 
 	void BufferWriter::put_ldpi(Registry r1, Registry r2, Registry src, int64_t offset) {
-		put_inst_ldpx(r1, r2, src, offset, 0b101'0'010'1 << 22, r1.wide());
+		put_inst_ldpx(r1, r2, src, offset, POST, r1.size, true, r1.wide() << 1);
 	}
 
-	void BufferWriter::put_ldpsw(Registry r1, Registry r2, Registry src) {
-		put_ldpswi(r1, r2, src, 0);
+	void BufferWriter::put_ldpsw(Registry r1, Registry r2, Registry src, int64_t offset) {
+		if (!r1.wide()) {
+			throw std::runtime_error {"Invalid operand, expected qword destination registers"};
+		}
+
+		put_inst_ldpx(r1, r2, src, offset, OFFSET, DWORD, true, 1);
 	}
 
 	void BufferWriter::put_ildpsw(Registry r1, Registry r2, Registry src, int64_t offset) {
 		if (!r1.wide()) {
-			// r2 is handled by put_inst_ldpx()
 			throw std::runtime_error {"Invalid operand, expected qword destination registers"};
 		}
 
-		put_inst_ldpx(r1, r2, src, offset, 0b01'101'0'011'1 << 22, false);
+		put_inst_ldpx(r1, r2, src, offset, PRE, DWORD, true, 1);
 	}
 
 	void BufferWriter::put_ldpswi(Registry r1, Registry r2, Registry src, int64_t offset) {
 		if (!r1.wide()) {
-			// r2 is handled by put_inst_ldpx()
 			throw std::runtime_error {"Invalid operand, expected qword destination registers"};
 		}
 
-		put_inst_ldpx(r1, r2, src, offset, 0b01'101'0'010'1 << 22, false);
+		put_inst_ldpx(r1, r2, src, offset, POST, DWORD, true, 1);
 	}
 
 	void BufferWriter::put_ldnp(Registry r1, Registry r2, Registry src, int64_t offset) {
-		put_inst_ldpx(r1, r2, src, offset, 0b101'0'000'1 << 22, r1.wide());
+		// FIXME this cast is an ugly hack, we use this to get bits == 0 in put_inst_ldpx()
+		put_inst_ldpx(r1, r2, src, offset, static_cast<MemoryOperation>(-1), r1.size, true, r1.wide() << 1);
 	}
 
 	void BufferWriter::put_ldxp(Registry r1, Registry r2, Registry src) {

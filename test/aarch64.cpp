@@ -342,6 +342,22 @@ namespace test {
 
 	};
 
+	TEST (writer_check_eret_hlt_hvc) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_eret();
+		writer.put_hlt(0x42);
+		writer.put_hvc(0x69);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xe0, 0x03, 0x9f, 0xd6, 0x40, 0x08, 0x40, 0xd4, 0x22, 0x0d, 0x00, 0xd4};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

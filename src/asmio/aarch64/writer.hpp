@@ -122,6 +122,7 @@ namespace asmio::arm {
 			INST put_mov(Registry dst, uint64_t imm);                      ///< Move immediate into register
 			INST put_mov(Registry dst, Registry src);                      ///< Move value between registers
 			INST put_ret();                                                ///< Return from procedure using link register
+			INST put_eret();                                               ///< Exception return
 			INST put_ret(Registry src);                                    ///< Return from procedure
 			INST put_rbit(Registry dst, Registry src);                     ///< Reverse bits
 			INST put_clz(Registry dst, Registry src);                      ///< Count leading zeros

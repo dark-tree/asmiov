@@ -105,6 +105,10 @@ namespace asmio::arm {
 		put_ret(LR);
 	}
 
+	void BufferWriter::put_eret() {
+		put_dword(0b110'101'1'0100'11111'0000'0'0'11111'00000);
+	}
+
 	void BufferWriter::put_ret(Registry registry) {
 
 		if (!registry.wide()) {

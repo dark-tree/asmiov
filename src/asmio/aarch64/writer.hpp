@@ -205,6 +205,10 @@ namespace asmio::arm {
 			INST put_istp(Registry r1, Registry r2, Registry src, int64_t offset); ///< Increment src and store value pair to memory
 			INST put_stpi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Store value pair to memory and increment src
 			INST put_stnp(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Store a non-temporal Pair of Registers
+			INST put_ccmp(Condition condition, Condition flags, Registry reg, uint8_t imm5); ///< Conditional compare
+			INST put_ccmp(Condition condition, Condition flags, Registry reg, Registry val); ///< Conditional compare
+			INST put_ccmn(Condition condition, Condition flags, Registry reg, uint8_t imm5); ///< Conditional compare negative
+			INST put_ccmn(Condition condition, Condition flags, Registry reg, Registry val); ///< Conditional compare negative
 
 			// large system extension
 			INST put_casb(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap byte in memory

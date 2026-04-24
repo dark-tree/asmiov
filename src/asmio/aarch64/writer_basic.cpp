@@ -673,6 +673,30 @@ namespace asmio::arm {
 		put_inst_ldpx(r1, r2, src, offset, static_cast<MemoryOperation>(-1), r1.size, false, r1.wide() << 1);
 	}
 
+	void BufferWriter::put_ccmp(Condition condition, Condition flags, Registry val, uint8_t imm5) {
+		put_dword(val.wide() << 31 | 0b11'11010010 << 21 | (imm5 & 0b11111) << 16 | uint32_t(condition) << 12 | 0b10 << 10 | val.reg << 5 | uint32_t(flags));
+	}
+
+	void BufferWriter::put_ccmn(Condition condition, Condition flags, Registry val, uint8_t imm5) {
+		put_dword(val.wide() << 31 | 0b01'11010010 << 21 | (imm5 & 0b11111) << 16 | uint32_t(condition) << 12 | 0b10 << 10 | val.reg << 5 | uint32_t(flags));
+	}
+
+	void BufferWriter::put_ccmp(Condition condition, Condition flags, Registry val, Registry second) {
+		if (val.size != second.size) {
+			throw std::runtime_error {"Invalid operands, both registers need to be of the same size"};
+		}
+
+		put_dword(val.wide() << 31 | 0b11'11010010 << 21 | second.reg << 16 | uint32_t(condition) << 12 | 0b00 << 10 | val.reg << 5 | uint32_t(flags));
+	}
+
+	void BufferWriter::put_ccmn(Condition condition, Condition flags, Registry val, Registry second) {
+		if (val.size != second.size) {
+			throw std::runtime_error {"Invalid operands, both registers need to be of the same size"};
+		}
+
+		put_dword(val.wide() << 31 | 0b01'11010010 << 21 | second.reg << 16 | uint32_t(condition) << 12 | 0b00 << 10 | val.reg << 5 | uint32_t(flags));
+	}
+
 	void BufferWriter::put_inst_ldop(Registry val, Registry dst, Registry src, Order order, uint8_t size, uint32_t opc) {
 		if (!src.wide()) {
 			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};

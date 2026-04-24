@@ -379,6 +379,33 @@ namespace test {
 
 	};
 
+	TEST (writer_check_ccmp_ccmn) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ccmp(Condition::LE, Condition::NE, X2, X7);
+		writer.put_ccmn(Condition::GE, Condition::CC, X5, X3);
+		writer.put_ccmp(Condition::LE, Condition::NE, X2, 15);
+		writer.put_ccmn(Condition::CC, Condition::CC, X5, 3);
+
+		// check overflow
+		writer.put_ccmn(Condition::CC, Condition::CC, X5, 0xff);
+		writer.put_ccmp(Condition::CC, Condition::CC, X5, 0xff);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ccmp(Condition::LE, Condition::NE, X2, W7);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ccmn(Condition::GE, Condition::CC, W5, X3);
+		};
+
+		dump(segmented);
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

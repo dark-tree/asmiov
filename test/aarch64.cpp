@@ -379,6 +379,23 @@ namespace test {
 
 	};
 
+	TEST (writer_check_swp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_swpb(W1, W2, X8, Order::ACQUIRE);
+		writer.put_swph(X5, X6, X11, Order::RELEASE);
+		writer.put_swp(X3, X24, X4, Order::ACQUIRE_RELEASE);
+		writer.put_swp(W3, W24, X4, Order::NONE);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x02, 0x81, 0xa1, 0x38, 0x66, 0x81, 0x65, 0x78, 0x98, 0x80, 0xe3, 0xf8, 0x98, 0x80, 0x23, 0xb8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	TEST (writer_check_ccmp_ccmn) {
 
 		SegmentedBuffer segmented;
@@ -402,7 +419,9 @@ namespace test {
 			writer.put_ccmn(Condition::GE, Condition::CC, W5, X3);
 		};
 
-		dump(segmented);
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x41, 0xd0, 0x47, 0xfa, 0xa3, 0xa0, 0x43, 0xba, 0x41, 0xd8, 0x4f, 0xfa, 0xa3, 0x38, 0x43, 0xba, 0xa3, 0x38, 0x5f, 0xba, 0xa3, 0x38, 0x5f, 0xfa};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
 

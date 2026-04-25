@@ -211,6 +211,9 @@ namespace asmio::arm {
 			INST put_ccmn(Condition condition, Condition flags, Registry reg, Registry val); ///< Conditional compare negative
 
 			// large system extension
+			INST put_swpb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap byte from 'src' to memory
+			INST put_swph(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap word from 'src' to memory
+			INST put_swp(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap dword or qword from 'src' to memory
 			INST put_casb(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap byte in memory
 			INST put_cash(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap word in memory
 			INST put_cas(Registry ptr, Registry src, Registry cmp, Order order = Order::NONE); ///< Compare and Swap dword or qword in memory

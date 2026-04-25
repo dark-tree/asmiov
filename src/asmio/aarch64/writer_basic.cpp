@@ -513,6 +513,22 @@ namespace asmio::arm {
 		put_dword(size << 30 | order_to_dword_mask(order) | 0b001000'101 << 21 | cmp.reg << 16 | 0b11111 << 10 | ptr.reg << 5 | src.reg);
 	}
 
+	void BufferWriter::put_swpb(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b00, 0b1000);
+	}
+
+	void BufferWriter::put_swph(Registry val, Registry dst, Registry src, Order order) {
+		put_inst_ldop(val, dst, src, order, 0b01, 0b1000);
+	}
+
+	void BufferWriter::put_swp(Registry val, Registry dst, Registry src, Order order) {
+		if (val.wide() != dst.wide()) {
+			throw std::runtime_error {"Invalid operand, value and destination need to be of the same size"};
+		}
+
+		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b1000);
+	}
+
 	void BufferWriter::put_casb(Registry dst, Registry src, Registry cmp, Order order) {
 		put_inst_cas(dst, src, cmp, order, 0b00);
 	}

@@ -425,7 +425,7 @@ namespace test {
 
 	};
 
-	TEST (writer_check_add_sub) {
+	TEST (writer_check_add_sub_imm) {
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
@@ -437,6 +437,22 @@ namespace test {
 
 		segmented.link(0);
 		std::vector<uint8_t> s0 = {0x01, 0x1d, 0x40, 0x91, 0xe2, 0xfc, 0x3f, 0xb1, 0xc3, 0xf0, 0x0a, 0xd1, 0xa4, 0xfc, 0x7f, 0xf1};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_add_sub_shifted) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_add(X1, X8, X9, ShiftType::LSL, 3);
+		writer.put_adds(X2, X7, X10, ShiftType::ASR, 5);
+		writer.put_sub(X3, X6, X11, ShiftType::LSR, 7);
+		writer.put_subs(X4, X5, X12, ShiftType::LSL, 0);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x01, 0x0d, 0x09, 0x8b, 0xe2, 0x14, 0x8a, 0xab, 0xc3, 0x1c, 0x4b, 0xcb, 0xa4, 0x00, 0x0c, 0xeb};
 		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
@@ -2143,6 +2159,21 @@ namespace test {
 
 		auto exec = to_executable(segmented);
 		CHECK(exec.call_i64(), 30);
+
+	};
+
+	TEST (writer_exec_add_shifted) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0x17);
+		writer.put_mov(X2, 0x03);
+		writer.put_add(X0, X2, X1, ShiftType::LSL, 4);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0x173);
 
 	};
 

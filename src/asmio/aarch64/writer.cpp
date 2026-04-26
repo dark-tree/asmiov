@@ -109,7 +109,7 @@ namespace asmio::arm {
 
 		uint16_t sf = destination.wide() ? 1 : 0;
 		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
-		put_dword(sf << 31 | opcode_from_21 << 21 | fb | b.reg << 16 | uint8_t(add) << 13 | imm3 << 10 | a.reg << 5 | destination.reg);
+		put_dword(sf << 31 | opcode_from_21 << 21 | fb | b.reg << 16 | uint8_t(add) << 13 | (imm3 & 0b111) << 10 | a.reg << 5 | destination.reg);
 	}
 
 	void BufferWriter::put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags) {
@@ -310,16 +310,19 @@ namespace asmio::arm {
 		put_dword(sf << 31 | subtract << 30 | set_flags << 29 | 0b100010 << 23 | lsl_12 << 22 | imm12 << 10 | src.reg << 5 | dst.reg);
 	}
 
-	void BufferWriter::put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags) {
+	void BufferWriter::put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags, bool subtract) {
 		assert_register_triplet(a, b, destination);
+
+		if (!destination.is(Registry::GENERAL) || !a.is(Registry::GENERAL) || !b.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operands, expected general purpose registers"};
+		}
 
 		if (shift == ShiftType::ROR) {
 			throw std::runtime_error {"Invalid shift type, ROR shift type is not allowed here"};
 		}
 
 		uint32_t sf = destination.wide() ? 1 : 0;
-		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
-		put_dword(sf << 31 | 0b0'0'01011 << 24 | fb | uint8_t(shift) << 22 | b.reg << 16 | imm6 << 10 | a.reg << 5 | destination.reg);
+		put_dword(sf << 31 | subtract << 30 | set_flags << 29 | 0b0'0'01011 << 24 | uint8_t(shift) << 22 | b.reg << 16 | (imm6 & 0b111111) << 10 | a.reg << 5 | destination.reg);
 	}
 
 }

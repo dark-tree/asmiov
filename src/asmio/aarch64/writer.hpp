@@ -86,7 +86,7 @@ namespace asmio::arm {
 			void put_inst_shift_v(Registry dst, Registry src, Registry bits, ShiftType shift);
 
 			/// Encode "CSINC/CSEL/CSET/CINC" operation
-			void put_inst_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy, bool increment_truth);
+			void put_inst_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy, bool increment, bool invert);
 
 			/// Encode "CAS/CAB/CAH" operations
 			void put_inst_cas(Registry dst, Registry src, Registry cmp, Order order, uint8_t size);
@@ -218,6 +218,11 @@ namespace asmio::arm {
 			INST put_ccmp(Condition condition, Condition flags, Registry reg, Registry val); ///< Conditional compare
 			INST put_ccmn(Condition condition, Condition flags, Registry reg, uint8_t imm5); ///< Conditional compare negative
 			INST put_ccmn(Condition condition, Condition flags, Registry reg, Registry val); ///< Conditional compare negative
+			INST put_csinv(Condition condition, Registry dst, Registry truthy, Registry falsy); ///< Conditional select truthy or invert falsy
+			INST put_cinv(Condition condition, Registry dst, Registry src); ///< Conditional select or invert
+			INST put_csetm(Condition condition, Registry dst); ///< Conditional set mask
+			INST put_csneg(Condition condition, Registry dst, Registry truthy, Registry falsy); ///< Conditional select truthy or negate falsy
+			INST put_cneg(Condition condition, Registry dst, Registry src); ///< Conditional select or negate
 
 			// large system extension
 			INST put_swpb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap byte from 'src' to memory

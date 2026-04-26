@@ -459,11 +459,11 @@ namespace asmio::arm {
 	}
 
 	void BufferWriter::put_csel(Condition condition, Registry dst, Registry truthy, Registry falsy) {
-		put_inst_csinc(condition, dst, truthy, falsy, false);
+		put_inst_csinc(condition, dst, truthy, falsy, false, false);
 	}
 
 	void BufferWriter::put_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy) {
-		put_inst_csinc(condition, dst, truthy, falsy, true);
+		put_inst_csinc(condition, dst, truthy, falsy, true, false);
 	}
 
 	void BufferWriter::put_cinc(Condition condition, Registry dst, Registry src) {
@@ -743,6 +743,27 @@ namespace asmio::arm {
 		}
 
 		put_dword(val.wide() << 31 | 0b01'11010010 << 21 | second.reg << 16 | uint32_t(condition) << 12 | 0b00 << 10 | val.reg << 5 | uint32_t(flags));
+	}
+
+	void BufferWriter::put_csinv(Condition condition, Registry dst, Registry truthy, Registry falsy) {
+		put_inst_csinc(condition, dst, truthy, falsy, false, true);
+	}
+
+	void BufferWriter::put_cinv(Condition condition, Registry dst, Registry src) {
+		put_inst_csinc(invert(condition), dst, src, src, false, true);
+	}
+
+	void BufferWriter::put_csetm(Condition condition, Registry dst) {
+		Registry zero = dst.wide() ? XZR : WZR;
+		put_inst_csinc(invert(condition), dst, zero, zero, false, true);
+	}
+
+	void BufferWriter::put_csneg(Condition condition, Registry dst, Registry truthy, Registry falsy) {
+		put_inst_csinc(condition, dst, truthy, falsy, true, true);
+	}
+
+	void BufferWriter::put_cneg(Condition condition, Registry dst, Registry src) {
+		put_inst_csinc(condition, dst, src, src, true, true);
 	}
 
 	void BufferWriter::put_inst_ldop(Registry val, Registry dst, Registry src, Order order, uint8_t size, uint32_t opc) {

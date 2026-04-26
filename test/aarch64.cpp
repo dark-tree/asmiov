@@ -457,6 +457,24 @@ namespace test {
 
 	};
 
+	TEST (writer_check_csinv_cinv_csetm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_csinv(Condition::PL, X0, X2, X3);
+		writer.put_csinc(Condition::GE, X6, X7, X8);
+		writer.put_cinv(Condition::HI, X0, X6);
+		writer.put_csetm(Condition::LE, X3);
+		writer.put_csneg(Condition::LE, X0, X2, X3);
+		writer.put_cneg(Condition::LE, X0, X11);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x40, 0x50, 0x83, 0xda, 0xe6, 0xa4, 0x88, 0x9a, 0xc0, 0x90, 0x86, 0xda, 0xe3, 0xc3, 0x9f, 0xda, 0x40, 0xd4, 0x83, 0xda, 0x60, 0xd5, 0x8b, 0xda};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

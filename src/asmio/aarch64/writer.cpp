@@ -282,7 +282,7 @@ namespace asmio::arm {
 		put_dword(sf << 31 | 0b0011010110 << 21 | bits.reg << 16 | 0b0010 << 12 | uint32_t(shift) << 10 | src.reg << 5 | dst.reg);
 	}
 
-	void BufferWriter::put_inst_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy, bool increment_truth) {
+	void BufferWriter::put_inst_csinc(Condition condition, Registry dst, Registry truthy, Registry falsy, bool increment, bool invert) {
 		assert_register_triplet(dst, truthy, falsy);
 
 		if (!dst.is(Registry::GENERAL) || !truthy.is(Registry::GENERAL) || !falsy.is(Registry::GENERAL)) {
@@ -290,7 +290,7 @@ namespace asmio::arm {
 		}
 
 		const uint16_t sf = dst.wide() ? 1 : 0;
-		put_dword(sf << 31 | 0b00'11010100 << 21 | falsy.reg << 16 | uint32_t(condition) << 12 | increment_truth << 10 | truthy.reg << 5 | dst.reg);
+		put_dword(sf << 31 | invert << 30 | 0b11010100 << 21 | falsy.reg << 16 | uint32_t(condition) << 12 | increment << 10 | truthy.reg << 5 | dst.reg);
 	}
 
 	void BufferWriter::put_inst_add_imm(Registry dst, Registry src, uint16_t imm12, bool lsl_12, bool set_flags, bool subtract) {

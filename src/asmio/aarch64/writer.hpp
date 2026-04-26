@@ -257,6 +257,7 @@ namespace asmio::arm {
 			INST put_ldumin(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
 
 			// control
+			INST put_clrex(uint8_t imm4 = 15);                             ///< This instruction clears the local monitor of the executing PE.
 			INST put_svc(uint16_t imm16);                                  ///< Supervisor call
 			INST put_hvc(uint16_t imm16);                                  ///< Hypervisor Call
 			INST put_smc(uint16_t imm16);                                  ///< Secure Monitor Call

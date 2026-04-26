@@ -239,6 +239,10 @@ namespace asmio::arm {
 		put_inst_shifted_register(0b0101010, 0, dst, a, b, imm6, shift);
 	}
 
+	void BufferWriter::put_clrex(uint8_t imm4) {
+		put_dword(0b110'101'01000000110011 << 12 | (imm4 & 0b1111) << 8 | 0b010'11111);
+	}
+
 	void BufferWriter::put_svc(uint16_t imm16) {
 		put_dword(0b11010100000 << 21 | imm16 << 5 | 0b00001);
 	}

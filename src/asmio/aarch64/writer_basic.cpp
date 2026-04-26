@@ -770,6 +770,26 @@ namespace asmio::arm {
 		put_inst_csinc(condition, dst, src, src, true, true);
 	}
 
+	void BufferWriter::put_cmn(Registry src, uint16_t imm12, bool shift_12) {
+		Registry zero = src.wide() ? XZR : WZR;
+		put_adds(zero, src, imm12, shift_12);
+	}
+
+	void BufferWriter::put_cmn(Registry a, Registry b, ShiftType shift, uint8_t imm6) {
+		Registry zero = a.wide() ? XZR : WZR;
+		put_adds(zero, a, b, shift, imm6);
+	}
+
+	void BufferWriter::put_cmp(Registry src, uint16_t imm12, bool shift_12) {
+		Registry zero = src.wide() ? XZR : WZR;
+		put_subs(zero, src, imm12, shift_12);
+	}
+
+	void BufferWriter::put_cmp(Registry a, Registry b, ShiftType shift, uint8_t imm6) {
+		Registry zero = a.wide() ? XZR : WZR;
+		put_subs(zero, a, b, shift, imm6);
+	}
+
 	void BufferWriter::put_inst_ldop(Registry val, Registry dst, Registry src, Order order, uint8_t size, uint32_t opc) {
 		if (!src.wide()) {
 			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};

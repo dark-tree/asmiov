@@ -302,8 +302,12 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width"};
 		}
 
-		if (dst.is(Registry::ZERO) || src.is(Registry::ZERO)) {
-			throw std::runtime_error {"Invalid operands, zero register can't be used here"};
+		if (src.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operand, zero register can't be used as source"};
+		}
+
+		if (!dst.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, destination must be a general purpose register"};
 		}
 
 		uint32_t sf = dst.wide() ? 1 : 0;

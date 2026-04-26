@@ -223,6 +223,10 @@ namespace asmio::arm {
 			INST put_csetm(Condition condition, Registry dst); ///< Conditional set mask
 			INST put_csneg(Condition condition, Registry dst, Registry truthy, Registry falsy); ///< Conditional select truthy or negate falsy
 			INST put_cneg(Condition condition, Registry dst, Registry src); ///< Conditional select or negate
+			INST put_cmn(Registry src, uint16_t imm12, bool shift_12 = false); ///< Compare negative with immediate
+			INST put_cmn(Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Compare negative with shifted register
+			INST put_cmp(Registry src, uint16_t imm12, bool shift_12 = false); ///< Compare with immediate
+			INST put_cmp(Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Compare with shifted register
 
 			// large system extension
 			INST put_swpb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap byte from 'src' to memory

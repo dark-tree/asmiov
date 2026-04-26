@@ -476,6 +476,22 @@ namespace test {
 
 	};
 
+	TEST (writer_check_cmn_cmp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_cmn(X2, 0x7b);
+		writer.put_cmn(X6, X7, ShiftType::LSL, 8);
+		writer.put_cmp(X2, 0x1a4);
+		writer.put_cmp(X6, X7, ShiftType::LSL, 8);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x5f, 0xec, 0x01, 0xb1, 0xdf, 0x20, 0x07, 0xab, 0x5f, 0x90, 0x06, 0xf1, 0xdf, 0x20, 0x07, 0xeb};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

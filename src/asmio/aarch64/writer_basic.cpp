@@ -23,6 +23,14 @@ namespace asmio::arm {
 		put_inst_extended_register(0b0'0'01011001, dst, a, b, size, lsl3, true);
 	}
 
+	void BufferWriter::put_add(Registry dst, Registry src, uint16_t imm12, bool shift12) {
+		put_inst_add_imm(dst, src, imm12, shift12, false, false);
+	}
+
+	void BufferWriter::put_adds(Registry dst, Registry src, uint16_t imm12, bool shift12) {
+		put_inst_add_imm(dst, src, imm12, shift12, true, false);
+	}
+
 	void BufferWriter::put_adr(Registry destination, Label label) {
 		buffer.add_linkage(label, LinkageType::AARCH64_21_5_LO_HI);
 		put_dword(0b0 << 31 | 0b10000 << 24 | destination.reg);
@@ -241,6 +249,14 @@ namespace asmio::arm {
 
 	void BufferWriter::put_subs(Registry dst, Registry a, Registry b, Sizing size, uint8_t lsl3) {
 		put_inst_extended_register(0b1'0'01011001, dst, a, b, size, lsl3, true);
+	}
+
+	void BufferWriter::put_sub(Registry dst, Registry src, uint16_t imm12, bool shift_12) {
+		put_inst_add_imm(dst, src, imm12, shift_12, false, true);
+	}
+
+	void BufferWriter::put_subs(Registry dst, Registry src, uint16_t imm12, bool shift_12) {
+		put_inst_add_imm(dst, src, imm12, shift_12, true, true);
 	}
 
 	void BufferWriter::put_cmp(Registry a, Registry b, Sizing size, uint8_t lsl3) {

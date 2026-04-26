@@ -425,6 +425,22 @@ namespace test {
 
 	};
 
+	TEST (writer_check_add_sub) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_add(X1, X8, 7, true);
+		writer.put_adds(X2, X7, 0xfff);
+		writer.put_sub(X3, X6, 700);
+		writer.put_subs(X4, X5, 0xfff, true);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x01, 0x1d, 0x40, 0x91, 0xe2, 0xfc, 0x3f, 0xb1, 0xc3, 0xf0, 0x0a, 0xd1, 0xa4, 0xfc, 0x7f, 0xf1};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM
@@ -2111,6 +2127,22 @@ namespace test {
 
 		auto exec = to_executable(segmented);
 		CHECK(exec.call_u64("b"), uint32_t(-312));
+
+	};
+
+	TEST (writer_exec_add_sub_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 13);
+		writer.put_add(X2, X1, 7);
+		writer.put_sub(X3, X1, 3);
+		writer.put_add(X0, X2, X3);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 30);
 
 	};
 

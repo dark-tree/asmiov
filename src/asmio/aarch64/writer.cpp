@@ -293,19 +293,21 @@ namespace asmio::arm {
 		put_dword(sf << 31 | 0b00'11010100 << 21 | falsy.reg << 16 | uint32_t(condition) << 12 | increment_truth << 10 | truthy.reg << 5 | dst.reg);
 	}
 
-	void BufferWriter::put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12, bool set_flags) {
-
-		if (source.is(Registry::ZERO) || destination.is(Registry::ZERO)) {
-			throw std::runtime_error {"Invalid operands, zero register can't be used here"};
+	void BufferWriter::put_inst_add_imm(Registry dst, Registry src, uint16_t imm12, bool lsl_12, bool set_flags, bool subtract) {
+		if (imm12 > 0xfff) { // 12 bits
+			throw std::runtime_error {"Invalid operand, immediate value out of bounds"};
 		}
 
-		if (destination.wide() != source.wide()) {
+		if (dst.size != src.size) {
 			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width"};
 		}
 
-		uint16_t sf = destination.wide() ? 1 : 0;
-		uint32_t fb = (set_flags ? 1 : 0) << 29; // S bit
-		put_dword(sf << 31 | 0b0'0'10001 << 24 | fb | (lsl_12 ? 0b01 : 0x00) << 22 | imm12 << 10 | source.reg << 5 | destination.reg);
+		if (dst.is(Registry::ZERO) || src.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operands, zero register can't be used here"};
+		}
+
+		uint32_t sf = dst.wide() ? 1 : 0;
+		put_dword(sf << 31 | subtract << 30 | set_flags << 29 | 0b100010 << 23 | lsl_12 << 22 | imm12 << 10 | src.reg << 5 | dst.reg);
 	}
 
 	void BufferWriter::put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags) {

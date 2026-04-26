@@ -100,9 +100,11 @@ namespace asmio::arm {
 			/// Encode "LDP/LDPSW" operations
 			void put_inst_ldpx(Registry r1, Registry r2, Registry src, int64_t offset, MemoryOperation op, uint32_t size, bool load, uint32_t opc);
 
+			/// Encode "ADD/ADDS/SUB/SUBS (immediate)" operation
+			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12, bool set_flags, bool subtract);
+
 		public:
 
-			void put_inst_add_imm(Registry destination, Registry source, uint16_t imm12, bool lsl_12 = false, bool set_flags = false);
 			void put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags = false);
 
 		public:
@@ -114,6 +116,8 @@ namespace asmio::arm {
 			INST put_adcs(Registry dst, Registry a, Registry b);           ///< Add with carry and set flags
 			INST put_add(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, potentially extending one of them
 			INST put_adds(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, set the flags, potentially extending one of them
+			INST put_add(Registry dst, Registry src, uint16_t imm12, bool shift_12 = false); ///< Add 12bit, unsigned immediate (optionally shifted by 12 bits) to a register
+			INST put_adds(Registry dst, Registry src, uint16_t imm12, bool shift_12 = false); ///< Add with Carry 12bit, unsigned immediate (optionally shifted by 12 bits) to a register
 			INST put_adr(Registry destination, Label label);               ///< Form a PC-relative address
 			INST put_adrp(Registry destination, Label label);              ///< Form a PC-page-relative address
 			INST put_movz(Registry dst, uint16_t imm, uint16_t shift = 0); ///< Move shifted WORD into register, zero other bits
@@ -146,6 +150,8 @@ namespace asmio::arm {
 			INST put_sbcs(Registry dst, Registry a, Registry b);           ///< Subtract with Carry and set flags
 			INST put_sub(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, potentially extending one of them
 			INST put_subs(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, set the flags, potentially extending one of them
+			INST put_sub(Registry dst, Registry src, uint16_t imm12, bool shift_12 = false); ///< Subtract 12bit, unsigned immediate (optionally shifted by 12 bits) to a register
+			INST put_subs(Registry dst, Registry src, uint16_t imm12, bool shift_12 = false); ///< Subtract with Carry 12bit, unsigned immediate (optionally shifted by 12 bits) to a register
 			INST put_cmp(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Compare
 			INST put_cmn(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Compare negative
 			INST put_madd(Registry dst, Registry a, Registry b, Registry addend); ///< Multiply and Add 64 bit registers

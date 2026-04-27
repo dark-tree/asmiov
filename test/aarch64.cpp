@@ -492,6 +492,20 @@ namespace test {
 
 	};
 
+	TEST (writer_check_eon_ldaxp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_eon(X2, X3, X4, ShiftType::LSL, 3);
+		writer.put_ldaxp(X2, X3, X4);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x62, 0x0c, 0x24, 0xca, 0x82, 0x8c, 0x7f, 0xc8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

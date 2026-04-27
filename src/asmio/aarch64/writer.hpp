@@ -145,6 +145,7 @@ namespace asmio::arm {
 			INST put_and(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise AND between two register, shifting the second one
 			INST put_eor(Registry destination, Registry source, BitPattern pattern); ///< Bitwise XOR between register and bit pattern
 			INST put_eor(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise XOR between two register, shifting the second one
+			INST put_eon(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise XOR NOT between two register, shifting the second one
 			INST put_orr(Registry destination, Registry source, BitPattern pattern); ///< Bitwise OR between register and bit pattern
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise OR between two register, shifting the second one
 			INST put_sbc(Registry dst, Registry a, Registry b);            ///< Subtract with Carry
@@ -227,6 +228,7 @@ namespace asmio::arm {
 			INST put_cmn(Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Compare negative with shifted register
 			INST put_cmp(Registry src, uint16_t imm12, bool shift_12 = false); ///< Compare with immediate
 			INST put_cmp(Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Compare with shifted register
+			INST put_ldaxp(Registry r1, Registry r2, Registry src); ///< Load-acquire exclusive pair of registers
 
 			// large system extension
 			INST put_swpb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap byte from 'src' to memory

@@ -225,6 +225,10 @@ namespace asmio::arm {
 		put_inst_shifted_register(0b1001010, 0, dst, a, b, imm6, shift);
 	}
 
+	void BufferWriter::put_eon(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
+		put_inst_shifted_register(0b1001010, 1, dst, a, b, imm6, shift);
+	}
+
 	void BufferWriter::put_orr(Registry destination, Registry source, BitPattern pattern) {
 
 		// destination can be SP
@@ -788,6 +792,26 @@ namespace asmio::arm {
 	void BufferWriter::put_cmp(Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		Registry zero = a.wide() ? XZR : WZR;
 		put_subs(zero, a, b, shift, imm6);
+	}
+
+	void BufferWriter::put_ldaxp(Registry r1, Registry r2, Registry src) {
+		if (!src.wide()) {
+			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};
+		}
+
+		if (src.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
+		}
+
+		if (!r1.is(Registry::GENERAL) || !r2.is(Registry::GENERAL)) {
+			throw std::runtime_error {"Invalid operand, destinations must be general purpose registers"};
+		}
+
+		if (r1.wide() != r2.wide()) {
+			throw std::runtime_error {"Invalid operand, destinations must be of the same size"};
+		}
+
+		put_dword(1 << 31 | r1.wide() << 30 | 0b0010000'11'11111'1 << 15 | r2.reg << 10 | src.reg << 5 | r1.reg);
 	}
 
 	void BufferWriter::put_inst_ldop(Registry val, Registry dst, Registry src, Order order, uint8_t size, uint32_t opc) {

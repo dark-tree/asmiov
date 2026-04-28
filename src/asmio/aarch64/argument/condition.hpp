@@ -23,7 +23,7 @@ namespace asmio::arm {
 	 */
 	constexpr Condition invert(Condition condition) {
 		if (condition == Condition::AL) throw std::runtime_error {"The 'always' condition can't be inverted, as there is no 'never' condition!"};
-		return (Condition) (uint32_t(condition) ^ 1);
+		return static_cast<Condition>(static_cast<uint32_t>(condition) ^ 1);
 	}
 
 }

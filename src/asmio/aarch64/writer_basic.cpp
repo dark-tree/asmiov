@@ -550,7 +550,12 @@ namespace asmio::arm {
 			throw std::runtime_error {"Invalid operand, expected general purpose source and compare register"};
 		}
 
-		put_dword(size << 30 | order_to_dword_mask(order) | 0b001000'101 << 21 | cmp.reg << 16 | 0b11111 << 10 | ptr.reg << 5 | src.reg);
+		// "L" flag is used to mark acquire semantics (marked with suffix "A" in mnemonics),
+		// and o0 to mark "release" (suffix "L" in mnemonics). How designed it like this??
+		const uint32_t lf = is_order_acquire(order) ? (1 << 22) : 0;
+		const uint32_t of = is_order_release(order) ? (1 << 15) : 0;
+
+		put_dword(size << 30 | lf | of | 0b001000'101 << 21 | cmp.reg << 16 | 0b11111 << 10 | ptr.reg << 5 | src.reg);
 	}
 
 	void BufferWriter::put_swpb(Registry val, Registry dst, Registry src, Order order) {

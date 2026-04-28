@@ -36,7 +36,7 @@ set(ASMIO_WRITERS
 
 set(ASMIO_BRIDGES "${ASMIO_WRITERS}")
 
-list(TRANSFORM ASMIO_BRIDGES REPLACE "src/asm/(.*)/writer.hpp" "${PROJECT_BINARY_DIR}/src/generated/\\1.hpp")
+list(TRANSFORM ASMIO_BRIDGES REPLACE "src/asmio/(.*)/writer.hpp" "${PROJECT_BINARY_DIR}/src/generated/\\1.hpp")
 list(TRANSFORM ASMIO_WRITERS PREPEND "${PROJECT_SOURCE_DIR}/")
 
 add_custom_command(

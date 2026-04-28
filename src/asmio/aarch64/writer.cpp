@@ -329,4 +329,26 @@ namespace asmio::arm {
 		put_dword(sf << 31 | subtract << 30 | set_flags << 29 | 0b0'0'01011 << 24 | uint8_t(shift) << 22 | b.reg << 16 | (imm6 & 0b111111) << 10 | a.reg << 5 | destination.reg);
 	}
 
+	void BufferWriter::put_inst_ldstx(Registry r1, Registry r2, Registry status, Registry mem, uint8_t size, bool load, bool barrier, bool pair) {
+		if (!mem.wide()) {
+			throw std::runtime_error {"Invalid operand, source register must be wide"};
+		}
+
+		if (mem.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
+		}
+
+		if (pair) {
+			if (r1.wide() != r2.wide()) {
+				throw std::runtime_error {"Invalid operands, both destination registers need to be of the same size"};
+			}
+
+			if (!r1.is(Registry::GENERAL) || !r2.is(Registry::GENERAL)) {
+				throw std::runtime_error {"Invalid operands, both destination registers need to be general purpose"};
+			}
+		}
+
+		put_dword(size << 30 | 0b0010000 << 23 | load << 22 | pair << 21 | status.reg << 16 | barrier << 15 | r2.reg << 10 | mem.reg << 5 | r1.reg);
+	}
+
 }

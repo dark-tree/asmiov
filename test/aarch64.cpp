@@ -492,16 +492,34 @@ namespace test {
 
 	};
 
-	TEST (writer_check_eon_ldaxp) {
+	TEST (writer_check_eon) {
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
 
 		writer.put_eon(X2, X3, X4, ShiftType::LSL, 3);
-		writer.put_ldaxp(X2, X3, X4);
 
 		segmented.link(0);
-		std::vector<uint8_t> s0 = {0x62, 0x0c, 0x24, 0xca, 0x82, 0x8c, 0x7f, 0xc8};
+		std::vector<uint8_t> s0 = {0x62, 0x0c, 0x24, 0xca};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_exclusive_ops) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldxr(X3, X7);
+		writer.put_ldxrb(X3, X7);
+		writer.put_ldaxrh(X3, X7);
+		writer.put_stlxr(W1, X2, X5);
+		writer.put_stlxp(W1, X2, X3, X5);
+		writer.put_stxp(W1, X2, X3, X5);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xe3, 0x7c, 0x5f, 0xc8, 0xe3, 0x7c, 0x5f, 0x08, 0xe3, 0xfc, 0x5f, 0x48, 0xa2, 0xfc, 0x01, 0xc8, 0xa2, 0x8c, 0x21, 0xc8, 0xa3, 0x0c, 0x21, 0xc8};
 		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};

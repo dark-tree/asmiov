@@ -106,6 +106,9 @@ namespace asmio::arm {
 			/// Encode "ADD/ADDS/SUB/SUBS (shifted register)" operation
 			void put_inst_add_shifted(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6, bool set_flags, bool subtract);
 
+			/// Encode exclusive load/store operations
+			void put_inst_ldstx(Registry r1, Registry r2, Registry status, Registry mem, uint8_t size, bool load, bool barrier, bool pair);
+
 		public:
 
 			BufferWriter(SegmentedBuffer& buffer);
@@ -210,7 +213,6 @@ namespace asmio::arm {
 			INST put_ildpsw(Registry r1, Registry r2, Registry src, int64_t offset); ///< Increment src and load sign-extended dword pair from memory
 			INST put_ldpswi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Load sign-extended dword pair from memory and increment src
 			INST put_ldnp(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Load a non-temporal Pair of Registers
-			INST put_ldxp(Registry r1, Registry r2, Registry src);         ///< Load exclusive pair of registers
 			INST put_stp(Registry r1, Registry r2, Registry src, int64_t offset = 0); ///< Store a Pair of Registers
 			INST put_istp(Registry r1, Registry r2, Registry src, int64_t offset); ///< Increment src and store value pair to memory
 			INST put_stpi(Registry r1, Registry r2, Registry src, int64_t offset); ///< Store value pair to memory and increment src
@@ -221,14 +223,29 @@ namespace asmio::arm {
 			INST put_ccmn(Condition condition, Condition flags, Registry reg, Registry val); ///< Conditional compare negative
 			INST put_csinv(Condition condition, Registry dst, Registry truthy, Registry falsy); ///< Conditional select truthy or invert falsy
 			INST put_cinv(Condition condition, Registry dst, Registry src); ///< Conditional select or invert
-			INST put_csetm(Condition condition, Registry dst); ///< Conditional set mask
+			INST put_csetm(Condition condition, Registry dst);             ///< Conditional set mask
 			INST put_csneg(Condition condition, Registry dst, Registry truthy, Registry falsy); ///< Conditional select truthy or negate falsy
 			INST put_cneg(Condition condition, Registry dst, Registry src); ///< Conditional select or negate
 			INST put_cmn(Registry src, uint16_t imm12, bool shift_12 = false); ///< Compare negative with immediate
 			INST put_cmn(Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Compare negative with shifted register
 			INST put_cmp(Registry src, uint16_t imm12, bool shift_12 = false); ///< Compare with immediate
 			INST put_cmp(Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Compare with shifted register
-			INST put_ldaxp(Registry r1, Registry r2, Registry src); ///< Load-acquire exclusive pair of registers
+			INST put_ldxp(Registry r1, Registry r2, Registry src);         ///< Load exclusive pair of registers
+			INST put_ldaxp(Registry r1, Registry r2, Registry src);        ///< Load-acquire exclusive pair of registers
+			INST put_stxp(Registry status, Registry r1, Registry r2, Registry src); ///< Store exclusive pair of registers
+			INST put_stlxp(Registry status, Registry r1, Registry r2, Registry src); ///< Store-release exclusive pair of registers
+			INST put_ldaxr(Registry dst, Registry src);                    ///< Load-acquire dword/qword exclusive register
+			INST put_ldaxrh(Registry dst, Registry src);                   ///< Load-acquire word exclusive register
+			INST put_ldaxrb(Registry dst, Registry src);                   ///< Load-acquire byte exclusive register
+			INST put_ldxr(Registry dst, Registry src);                     ///< Load dword/qword exclusive register
+			INST put_ldxrh(Registry dst, Registry src);                    ///< Load word exclusive register
+			INST put_ldxrb(Registry dst, Registry src);                    ///< Load byte exclusive register
+			INST put_stlxr(Registry status, Registry dst, Registry src);   ///< Store-release dword/qword exclusive register
+			INST put_stlxrh(Registry status, Registry dst, Registry src);  ///< Store-release word exclusive register
+			INST put_stlxrb(Registry status, Registry dst, Registry src);  ///< Store-release byte exclusive register
+			INST put_stxr(Registry status, Registry dst, Registry src);    ///< Store dword/qword exclusive register
+			INST put_stxrh(Registry status, Registry dst, Registry src);   ///< Store word exclusive register
+			INST put_stxrb(Registry status, Registry dst, Registry src);   ///< Store byte exclusive register
 
 			// large system extension
 			INST put_swpb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap byte from 'src' to memory

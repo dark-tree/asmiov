@@ -690,28 +690,6 @@ namespace asmio::arm {
 		put_inst_ldpx(r1, r2, src, offset, static_cast<MemoryOperation>(-1), r1.size, true, r1.wide() << 1);
 	}
 
-	void BufferWriter::put_ldxp(Registry r1, Registry r2, Registry src) {
-
-		if (!src.wide()) {
-			throw std::runtime_error {"Invalid operand, source register must be wide"};
-		}
-
-		if (src.is(Registry::ZERO)) {
-			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
-		}
-
-		if (r1.wide() != r2.wide()) {
-			throw std::runtime_error {"Invalid operands, both destination registers need to be of the same size"};
-		}
-
-		if (!r1.is(Registry::GENERAL) || !r2.is(Registry::GENERAL)) {
-			throw std::runtime_error {"Invalid operands, both destination registers need to be general purpose"};
-		}
-
-		uint16_t sf = r1.wide() ? 1 : 0;
-		put_dword(1 << 31 | sf << 30 | 0b0010000'11'11111'0 << 15 | r2.reg << 10 | src.reg << 5 | r1.reg);
-	}
-
 	void BufferWriter::put_stp(Registry r1, Registry r2, Registry src, int64_t offset) {
 		put_inst_ldpx(r1, r2, src, offset, OFFSET, r1.size, false, r1.wide() << 1);
 	}
@@ -794,24 +772,68 @@ namespace asmio::arm {
 		put_subs(zero, a, b, shift, imm6);
 	}
 
+	void BufferWriter::put_ldxp(Registry r1, Registry r2, Registry src) {
+		put_inst_ldstx(r1, r2, XZR, src, 0b10 | r1.wide(), true, false, true);
+	}
+
 	void BufferWriter::put_ldaxp(Registry r1, Registry r2, Registry src) {
-		if (!src.wide()) {
-			throw std::runtime_error {"Invalid operand, source and destination register must be wide"};
-		}
+		put_inst_ldstx(r1, r2, XZR, src, 0b10 | r1.wide(), true, true, true);
+	}
 
-		if (src.is(Registry::ZERO)) {
-			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
-		}
+	void BufferWriter::put_ldaxr(Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, XZR, src, 0b10 | dst.wide(), true, true, false);
+	}
 
-		if (!r1.is(Registry::GENERAL) || !r2.is(Registry::GENERAL)) {
-			throw std::runtime_error {"Invalid operand, destinations must be general purpose registers"};
-		}
+	void BufferWriter::put_ldaxrh(Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, XZR, src, 0b01, true, true, false);
+	}
 
-		if (r1.wide() != r2.wide()) {
-			throw std::runtime_error {"Invalid operand, destinations must be of the same size"};
-		}
+	void BufferWriter::put_ldaxrb(Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, XZR, src, 0b00, true, true, false);
+	}
 
-		put_dword(1 << 31 | r1.wide() << 30 | 0b0010000'11'11111'1 << 15 | r2.reg << 10 | src.reg << 5 | r1.reg);
+	void BufferWriter::put_ldxr(Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, XZR, src, 0b10 | dst.wide(), true, false, false);
+	}
+
+	void BufferWriter::put_ldxrh(Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, XZR, src, 0b01, true, false, false);
+	}
+
+	void BufferWriter::put_ldxrb(Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, XZR, src, 0b00, true, false, false);
+	}
+
+	void BufferWriter::put_stlxr(Registry status, Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, status, src, 0b10 | dst.wide(), false, true, false);
+	}
+
+	void BufferWriter::put_stlxrh(Registry status, Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, status, src, 0b01, false, true, false);
+	}
+
+	void BufferWriter::put_stlxrb(Registry status, Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, status, src, 0b00, false, true, false);
+	}
+
+	void BufferWriter::put_stxr(Registry status, Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, status, src, 0b10 | dst.wide(), false, false, false);
+	}
+
+	void BufferWriter::put_stxrh(Registry status, Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, status, src, 0b01, false, false, false);
+	}
+
+	void BufferWriter::put_stxrb(Registry status, Registry dst, Registry src) {
+		put_inst_ldstx(dst, XZR, status, src, 0b00, false, false, false);
+	}
+
+	void BufferWriter::put_stlxp(Registry status, Registry r1, Registry r2, Registry src) {
+		put_inst_ldstx(r1, r2, status, src, 0b10 | r1.wide(), false, true, true);
+	}
+
+	void BufferWriter::put_stxp(Registry status, Registry r1, Registry r2, Registry src) {
+		put_inst_ldstx(r2, r2, status, src, 0b10 | r1.wide(), false, false, true);
 	}
 
 	void BufferWriter::put_inst_ldop(Registry val, Registry dst, Registry src, Order order, uint8_t size, uint32_t opc) {

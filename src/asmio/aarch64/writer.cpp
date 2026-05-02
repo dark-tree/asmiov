@@ -66,20 +66,6 @@ namespace asmio::arm {
 		put_dword(sf << 31 | opc << 23 | hw << 21 | imm << 5 | registry.reg);
 	}
 
-	void BufferWriter::put_inst_orr_bitmask(Registry destination, Registry source, uint16_t n_immr_imms) {
-
-		// destination can be SP
-		if (!source.is(Registry::GENERAL)) {
-			throw std::runtime_error {"Invalid operand, expected source to be a general purpose register."};
-		}
-
-		if (destination.wide() != source.wide()) {
-			throw std::runtime_error {"Invalid operands, all given registers need to be of the same width."};
-		}
-
-		put_inst_bitmask_immediate(0b01100100, destination, source, n_immr_imms);
-	}
-
 	void BufferWriter::put_inst_extended_register(uint32_t opcode_from_21, Registry destination, Registry a, Registry b, Sizing add, uint8_t imm3, bool set_flags) {
 
 		// we can only accept SP as destination IF set_flags is false

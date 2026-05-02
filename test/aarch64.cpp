@@ -9,7 +9,6 @@
 #include "vstl.hpp"
 
 namespace test {
-
 	using namespace asmio;
 	using namespace asmio::arm;
 
@@ -45,10 +44,19 @@ namespace test {
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_orr(X1, X2, X3);
+		writer.put_orn(X1, X2, X3);
+		writer.put_movn(X12, X11);
 
 		EXPECT_THROW(std::runtime_error) {
 			writer.put_orr(W(0), W(0), X(0));
 		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x41, 0x00, 0x03, 0xaa, 0x41, 0x00, 0x23, 0xaa, 0xec, 0x03, 0x2b, 0xaa};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
 
@@ -557,6 +565,42 @@ namespace test {
 
 		segmented.link(0);
 		std::vector<uint8_t> s0 = {0x60, 0xb9, 0x47, 0xf8, 0x41, 0x59, 0x58, 0x78, 0x22, 0x59, 0x58, 0x38, 0x03, 0xb1, 0x47, 0xb8, 0xe4, 0xb0, 0x47, 0x78, 0xc5, 0xb0, 0x47, 0x38, 0x60, 0xb9, 0x07, 0xf8, 0x41, 0xb9, 0x07, 0x78, 0x22, 0xb9, 0x07, 0x38, 0x03, 0xb1, 0x07, 0xf8, 0xe4, 0xb0, 0x07, 0x78, 0xc5, 0xb0, 0x07, 0x38};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_neg_ngc) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_neg(X1, X7);
+		writer.put_negs(X2, X8);
+		writer.put_ngc(X3, X9);
+		writer.put_ngcs(X4, X10);
+
+		writer.put_neg(X5, X11, ShiftType::LSL, 4);
+		writer.put_negs(X6, X12, ShiftType::LSL, 4);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xe1, 0x03, 0x07, 0xcb, 0xe2, 0x03, 0x08, 0xeb, 0xe3, 0x03, 0x09, 0xda, 0xe4, 0x03, 0x0a, 0xfa, 0xe5, 0x13, 0x0b, 0xcb, 0xe6, 0x13, 0x0c, 0xeb};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_sxt) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_sxtb(X1, X7);
+		writer.put_sxth(X2, X8);
+		writer.put_sxtw(X2, X9);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xe1, 0x1c, 0x40, 0x93, 0x02, 0x3d, 0x40, 0x93, 0x22, 0x7d, 0x40, 0x93};
 		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
@@ -2278,6 +2322,20 @@ namespace test {
 
 		auto exec = to_executable(segmented);
 		CHECK(exec.call_i64(), 0x173);
+
+	};
+
+	TEST (writer_exec_sxtb) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xff);
+		writer.put_sxtb(X0, X1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), -1);
 
 	};
 

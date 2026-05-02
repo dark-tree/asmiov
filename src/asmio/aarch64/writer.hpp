@@ -52,9 +52,6 @@ namespace asmio::arm {
 			/// Encode generic, 16 bit, immediate move, used by MOVN, MOVK, MOVZ
 			void put_inst_mov(Registry registry, uint16_t opc, uint16_t imm, uint16_t shift);
 
-			/// Encode ORR instruction, using the given N:R:S fields
-			void put_inst_orr_bitmask(Registry destination, Registry source, uint16_t n_immr_imms);
-
 			/// Encode "ADC/ADCS (extended register)" operation
 			void put_inst_adc(Registry destination, Registry a, Registry b, bool set_flags);
 
@@ -132,6 +129,12 @@ namespace asmio::arm {
 			INST put_movn(Registry dst, uint16_t imm, uint16_t shift = 0); ///< Move shifted WORD into register, zero other bits, then NOT the register
 			INST put_mov(Registry dst, uint64_t imm);                      ///< Move immediate into register
 			INST put_mov(Registry dst, Registry src);                      ///< Move value between registers
+			INST put_movn(Registry dst, Registry src);                     ///< Move inverted value between registers
+			INST put_mov(Registry dst, BitPattern pattern);                ///< Move BitPattern encoded immediate to a register
+			INST put_neg(Registry dst, Registry src, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Negate
+			INST put_negs(Registry dst, Registry src, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Negate, setting flags
+			INST put_ngc(Registry dst, Registry src);                      ///< Negate with carry
+			INST put_ngcs(Registry dst, Registry src);                     ///< Negate with carry, setting flags
 			INST put_ret();                                                ///< Return from procedure using link register
 			INST put_eret();                                               ///< Exception return
 			INST put_ret(Registry src);                                    ///< Return from procedure
@@ -154,14 +157,15 @@ namespace asmio::arm {
 			INST put_eon(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise XOR NOT between two register, shifting the second one
 			INST put_orr(Registry destination, Registry source, BitPattern pattern); ///< Bitwise OR between register and bit pattern
 			INST put_orr(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise OR between two register, shifting the second one
+			INST put_orn(Registry dst, Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Bitwise OR NOT between two register, shifting the second one
 			INST put_sbc(Registry dst, Registry a, Registry b);            ///< Subtract with Carry
 			INST put_sbcs(Registry dst, Registry a, Registry b);           ///< Subtract with Carry and set flags
 			INST put_sub(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, potentially extending one of them
 			INST put_subs(Registry dst, Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Add two registers, set the flags, potentially extending one of them
 			INST put_sub(Registry dst, Registry src, uint16_t imm12, bool shift_12 = false); ///< Subtract 12bit, unsigned immediate (optionally shifted by 12 bits) to a register
 			INST put_subs(Registry dst, Registry src, uint16_t imm12, bool shift_12 = false); ///< Subtract with Carry 12bit, unsigned immediate (optionally shifted by 12 bits) to a register
-			INST put_sub(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Add an optionally-shifted register
-			INST put_subs(Registry destination, Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Add, with Carry, an optionally-shifted register
+			INST put_sub(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Add an optionally-shifted register
+			INST put_subs(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6); ///< Add, with Carry, an optionally-shifted register
 			INST put_cmp(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Compare
 			INST put_cmn(Registry a, Registry b, Sizing size = Sizing::UX, uint8_t lsl3 = 0); ///< Compare negative
 			INST put_madd(Registry dst, Registry a, Registry b, Registry addend); ///< Multiply and Add 64 bit registers
@@ -197,6 +201,7 @@ namespace asmio::arm {
 			INST put_cinc(Condition condition, Registry dst, Registry src);///< Conditional Increment if true
 			INST put_cinc(Condition condition, Registry dst);              ///< Conditional Increment if true
 			INST put_cset(Condition condition, Registry dst);              ///< Conditional Set if true
+			INST put_tst(Registry reg, BitPattern pattern);      ///< Test bits (immediate)
 			INST put_tst(Registry a, Registry b, ShiftType shift = ShiftType::LSL, uint8_t lsl6 = 0); ///< Test shifted register
 			INST put_sbfm(Registry dst, Registry src, BitPattern pattern); ///< Signed Bitfield Insert in Zero
 			INST put_ubfm(Registry dst, Registry src, BitPattern pattern); ///< Unsigned Bitfield Insert in Zero
@@ -261,6 +266,9 @@ namespace asmio::arm {
 			INST put_stur(Registry dst, Registry src, int16_t offset);     ///< Store dword/qword register at unscaled offset
 			INST put_sturh(Registry dst, Registry src, int16_t offset);    ///< Store word register at unscaled offset
 			INST put_sturb(Registry dst, Registry src, int16_t offset);    ///< Store byte register at unscaled offset
+			INST put_sxtw(Registry dst, Registry src);                     ///< Sign extend dword
+			INST put_sxth(Registry dst, Registry src);                     ///< Sign extend word
+			INST put_sxtb(Registry dst, Registry src);                     ///< Sign extend byte
 
 			// large system extension
 			INST put_swpb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap byte from 'src' to memory
@@ -293,6 +301,32 @@ namespace asmio::arm {
 			INST put_lduminb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on byte
 			INST put_lduminh(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on word
 			INST put_ldumin(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
+
+			// large system extension aliases
+			INST put_staddb(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic add on byte
+			INST put_staddh(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic add on word
+			INST put_stadd(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic add on dword or qword
+			INST put_stclrb(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic bit clear on byte
+			INST put_stclrh(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic bit clear on word
+			INST put_stclr(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic bit clear on dword or qword
+			INST put_steorb(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic bitwise xor on byte
+			INST put_steorh(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic bitwise xor on word
+			INST put_steor(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic bitwise xor on dword or qword
+			INST put_stsetb(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic bit set on byte
+			INST put_stseth(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic bit set on word
+			INST put_stset(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic bit set on dword or qword
+			INST put_stsmaxb(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on byte
+			INST put_stsmaxh(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on word
+			INST put_stsmax(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
+			INST put_stumaxb(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on byte
+			INST put_stumaxh(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on word
+			INST put_stumax(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
+			INST put_stsminb(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on byte
+			INST put_stsminh(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on word
+			INST put_stsmin(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
+			INST put_stuminb(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on byte
+			INST put_stuminh(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on word
+			INST put_stumin(Registry val, Registry ptr, Order order = Order::NONE); ///< Atomic signed maximum on dword or qword
 
 			// control
 			INST put_clrex(uint8_t imm4 = 15);                             ///< This instruction clears the local monitor of the executing PE.

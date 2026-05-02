@@ -82,7 +82,7 @@ namespace asmio::arm {
 		const auto nrs = BitPattern::try_pack(imm);
 
 		if (nrs.ok()) {
-			return put_orr(dst, dst.wide() ? XZR : WZR, nrs);
+			return put_mov(dst, nrs);
 		}
 
 		const size_t length = dst.wide() ? 64 : 32;
@@ -107,7 +107,7 @@ namespace asmio::arm {
 
 			// when dealing with SP zero can't be used
 			if (src.is(Registry::ZERO) || dst.is(Registry::ZERO)) {
-				throw std::runtime_error {"Invalid operands, zero registry can't be used int this context"};
+				throw std::runtime_error {"Invalid operands, zero registry can't be used in this context"};
 			}
 
 			put_add(dst, src, XZR);
@@ -115,6 +115,30 @@ namespace asmio::arm {
 		}
 
 		put_orr(dst, src, dst.wide() ? XZR : WZR);
+	}
+
+	void BufferWriter::put_movn(Registry dst, Registry src) {
+		put_orn(dst, dst.wide() ? XZR : WZR, src);
+	}
+
+	void BufferWriter::put_mov(Registry dst, BitPattern pattern) {
+		put_orr(dst, dst.wide() ? XZR : WZR, pattern);
+	}
+
+	void BufferWriter::put_neg(Registry dst, Registry src, ShiftType shift, uint8_t imm6) {
+		put_sub(dst, dst.wide() ? XZR : WZR, src, shift, imm6);
+	}
+
+	void BufferWriter::put_negs(Registry dst, Registry src, ShiftType shift, uint8_t imm6) {
+		put_subs(dst, dst.wide() ? XZR : WZR, src, shift, imm6);
+	}
+
+	void BufferWriter::put_ngc(Registry dst, Registry src) {
+		put_sbc(dst, dst.wide() ? XZR : WZR, src);
+	}
+
+	void BufferWriter::put_ngcs(Registry dst, Registry src) {
+		put_sbcs(dst, dst.wide() ? XZR : WZR, src);
 	}
 
 	void BufferWriter::put_ret() {
@@ -241,6 +265,10 @@ namespace asmio::arm {
 
 	void BufferWriter::put_orr(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
 		put_inst_shifted_register(0b0101010, 0, dst, a, b, imm6, shift);
+	}
+
+	void BufferWriter::put_orn(Registry dst, Registry a, Registry b, ShiftType shift, uint8_t imm6) {
+		put_inst_shifted_register(0b0101010, 1, dst, a, b, imm6, shift);
 	}
 
 	void BufferWriter::put_clrex(uint8_t imm4) {
@@ -484,6 +512,10 @@ namespace asmio::arm {
 
 	void BufferWriter::put_cset(Condition condition, Registry dst) {
 		put_cinc(condition, dst, dst.wide() ? XZR : WZR);
+	}
+
+	void BufferWriter::put_tst(Registry reg, BitPattern pattern) {
+		put_ands(reg.wide() ? XZR : WZR, reg, pattern);
 	}
 
 	void BufferWriter::put_tst(Registry a, Registry b, ShiftType shift, uint8_t lsl6) {
@@ -881,6 +913,18 @@ namespace asmio::arm {
 		put_inst_ldst_simm9(dst, src, offset, 0b00, false, 0b00);
 	}
 
+	void BufferWriter::put_sxtw(Registry dst, Registry src) {
+		put_sbfm(dst, src, BitPattern::try_pack(0xffffffff));
+	}
+
+	void BufferWriter::put_sxth(Registry dst, Registry src) {
+		put_sbfm(dst, src, BitPattern::try_pack(0xffff));
+	}
+
+	void BufferWriter::put_sxtb(Registry dst, Registry src) {
+		put_sbfm(dst, src, BitPattern::try_pack(0xff));
+	}
+
 	void BufferWriter::put_stlxp(Registry status, Registry r1, Registry r2, Registry src) {
 		put_inst_ldstx(r1, r2, status, src, 0b10 | r1.wide(), false, true, true);
 	}
@@ -1033,6 +1077,102 @@ namespace asmio::arm {
 		}
 
 		put_inst_ldop(val, dst, src, order, 0b10 | val.wide(), 0b111);
+	}
+
+	void BufferWriter::put_staddb(Registry val, Registry ptr, Order order) {
+		put_ldaddb(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_staddh(Registry val, Registry ptr, Order order) {
+		put_ldaddh(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stadd(Registry val, Registry ptr, Order order) {
+		put_ldadd(val, val.wide() ? XZR : WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stclrb(Registry val, Registry ptr, Order order) {
+		put_ldclrb(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stclrh(Registry val, Registry ptr, Order order) {
+		put_ldclrh(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stclr(Registry val, Registry ptr, Order order) {
+		put_ldclr(val, val.wide() ? XZR : WZR, ptr, order);
+	}
+
+	void BufferWriter::put_steorb(Registry val, Registry ptr, Order order) {
+		put_ldeorb(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_steorh(Registry val, Registry ptr, Order order) {
+		put_ldeorh(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_steor(Registry val, Registry ptr, Order order) {
+		put_ldeor(val, val.wide() ? XZR : WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stsetb(Registry val, Registry ptr, Order order) {
+		put_ldsetb(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stseth(Registry val, Registry ptr, Order order) {
+		put_ldseth(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stset(Registry val, Registry ptr, Order order) {
+		put_ldset(val, val.wide() ? XZR : WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stsmaxb(Registry val, Registry ptr, Order order) {
+		put_ldsmaxb(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stsmaxh(Registry val, Registry ptr, Order order) {
+		put_ldsmaxh(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stsmax(Registry val, Registry ptr, Order order) {
+		put_ldsmax(val, val.wide() ? XZR : WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stumaxb(Registry val, Registry ptr, Order order) {
+		put_ldumaxb(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stumaxh(Registry val, Registry ptr, Order order) {
+		put_ldumaxh(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stumax(Registry val, Registry ptr, Order order) {
+		put_ldumax(val, val.wide() ? XZR : WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stsminb(Registry val, Registry ptr, Order order) {
+		put_ldsminb(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stsminh(Registry val, Registry ptr, Order order) {
+		put_ldsminh(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stsmin(Registry val, Registry ptr, Order order) {
+		put_ldsmin(val, val.wide() ? XZR : WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stuminb(Registry val, Registry ptr, Order order) {
+		put_lduminb(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stuminh(Registry val, Registry ptr, Order order) {
+		put_lduminh(val, WZR, ptr, order);
+	}
+
+	void BufferWriter::put_stumin(Registry val, Registry ptr, Order order) {
+		put_ldumin(val, val.wide() ? XZR : WZR, ptr, order);
 	}
 
 	void BufferWriter::put_hint(uint8_t imm7) {

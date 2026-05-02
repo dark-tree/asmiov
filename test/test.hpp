@@ -14,7 +14,7 @@ namespace test {
 		std::string extra_flags = "";
 
 		if (buffer.elf_machine == asmio::ElfMachine::X86_64) {
-			extra_flags += " -Mintel";
+			extra_flags += "-Mintel ";
 		}
 
 		asmio::ObjectFile baked = asmio::to_elf(buffer, asmio::Label::UNSET).bake();

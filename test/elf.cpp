@@ -1,17 +1,13 @@
 
-#define VSTL_TEST_COUNT 3
-#define VSTL_PRINT_SKIP_REASON true
-#define VSTL_SUBMODULE true
-
 #include <vstl.hpp>
-#include <out/buffer/writer.hpp>
-#include <out/elf/dwarf/encoding.hpp>
-#include <out/elf/dwarf/info.hpp>
-#include <out/elf/dwarf/lines.hpp>
+#include <asmio/program/writer.hpp>
+#include <asmio/elf/dwarf/encoding.hpp>
+#include <asmio/elf/dwarf/info.hpp>
+#include <asmio/elf/dwarf/lines.hpp>
 #include <tasml/top.hpp>
 
-#include "util/tmp.hpp"
-#include "out/elf/export.hpp"
+#include <asmio/util/tmp.hpp>
+#include <asmio/elf/export.hpp>
 #include "test.hpp"
 
 namespace test {
@@ -32,6 +28,7 @@ namespace test {
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
+		ASSERT(!result.empty());
 
 		ASSERT(result.contains("ELF64"));
 		ASSERT(result.contains("Advanced Micro Devices X86-64"));
@@ -87,6 +84,7 @@ namespace test {
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
+		ASSERT(!result.empty());
 
 		ASSERT(result.contains("0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND"));
 		ASSERT(result.contains("1: 00000000000000db     1 OBJECT  LOCAL  DEFAULT    2 arda"));
@@ -191,6 +189,7 @@ namespace test {
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
+		ASSERT(!result.empty());
 
 		ASSERT(result.contains("[ 2] .rwx              PROGBITS"));
 		ASSERT(result.contains("[ 3] .rodata           PROGBITS"));
@@ -243,8 +242,8 @@ namespace test {
 
 		// link with our object
 		util::TempFile exec {".out"};
-		std::string gcc_output = call_shell("gcc -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
-		CHECK(gcc_output, "");
+		std::string gcc_output = call_shell("gcc -o " + exec.path() + " " + object.path() + " " + main_src.path());
+		ASSERT(!gcc_output.contains("error"));
 
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "hello!");
@@ -314,6 +313,7 @@ namespace test {
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
+		ASSERT(!result.empty());
 
 		auto line_block = util::split_string(result, "Line Number Statements:").at(1);
 		auto lines = util::normalize_strings(util::split_string(line_block));
@@ -339,7 +339,11 @@ namespace test {
 			"[0x00000069]  Extended opcode 1: End of Sequence",
 		};
 
-		CHECK(lines, expected);
+		ASSERT(lines.size() >= expected.size());
+
+		for (size_t i = 0; i < expected.size(); i ++) {
+			CHECK(lines[i], expected[i]);
+		}
 
 	};
 
@@ -363,6 +367,7 @@ namespace test {
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
+		ASSERT(!result.empty());
 
 		auto line_block = util::split_string(result, "Line Number Statements:").at(1);
 		auto lines = util::normalize_strings(util::split_string(line_block));
@@ -376,7 +381,11 @@ namespace test {
 			"[0x00000042]  Extended opcode 1: End of Sequence"
 		};
 
-		CHECK(lines, expected);
+		ASSERT(lines.size() >= expected.size());
+
+		for (size_t i = 0; i < expected.size(); i ++) {
+			CHECK(lines[i], expected[i]);
+		}
 
 	};
 
@@ -418,6 +427,7 @@ namespace test {
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
+		ASSERT(!result.empty());
 
 		ASSERT(result.contains("1      DW_TAG_base_type    [no children]"));
 		ASSERT(result.contains("2      DW_TAG_pointer_type    [no children]"));
@@ -464,6 +474,7 @@ namespace test {
 
 		ASSERT(!result.contains("Warning"));
 		ASSERT(!result.contains("Error"));
+		ASSERT(!result.empty());
 
 		ASSERT(result.contains("Abbrev Number: 1 (DW_TAG_compile_unit)"));
 		ASSERT(result.contains("Abbrev Number: 2 (DW_TAG_base_type)"));

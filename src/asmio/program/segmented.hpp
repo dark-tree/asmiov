@@ -1,0 +1,198 @@
+#pragma once
+
+#include <asmio/elf/header.hpp>
+#include <asmio/elf/relocation.hpp>
+#include <asmio/util/set.hpp>
+#include <asmio/external.hpp>
+
+#include "label.hpp"
+#include "memory.hpp"
+
+namespace asmio {
+
+	/// Universal SegmentedBuffer data pointer
+	struct BufferMarker {
+		uint32_t section;
+		uint32_t offset;
+	};
+
+	/// Single link job entry
+	struct Linkage {
+
+		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, BufferMarker label, size_t mount)>;
+
+		struct Type {
+			ElfRelocationType relocation;
+			Linker linker;
+		};
+
+		Label label;
+		BufferMarker target;
+		Type type;
+		int64_t addend;
+
+		constexpr Linkage(Label label, BufferMarker target, Type type, int64_t addend)
+			: label(label), target(target), type(type), addend(addend) {
+		}
+
+	};
+
+	using LinkReporter = std::function<void(const Linkage& link, const char* what)>;
+
+	/// Single Label export symbol
+	struct ExportSymbol {
+
+		enum Type {
+			PRIVATE, // this symbol will not be visible outside the unit
+			PUBLIC,  // this symbol will be usable outside the unit
+			WEAK,    // PUBLIC symbol of lower precedence
+		};
+
+		Label label;
+		size_t size;
+		Type type;
+
+	};
+
+	struct SourceLocation {
+
+		BufferMarker marker;
+		uint32_t line;
+		uint16_t column;
+		uint16_t file;
+
+	};
+
+	/// One track in the SegmentedBuffer
+	struct BufferSegment {
+
+		// by default create a mixed-use section
+		constexpr static MemoryFlags DEFAULT = { true, true, true };
+
+		uint16_t index = 0;
+		MemoryFlags flags {};
+		uint8_t padder = 0; // byte used to pad the buffer tail
+		std::vector<uint8_t> buffer;
+		std::string name;
+
+		// set only once aligned, no data must be written after that point
+		int64_t start = 0;
+		int64_t tail = 0;
+
+		BufferSegment(uint32_t index, MemoryFlags flags, std::string name = "") noexcept;
+
+		/// Get size of this buffer, including padding
+		size_t size() const;
+
+		/// Check if this segment contains no data
+		bool empty() const;
+
+		/// Return a LabelMarker that points to the current buffer position
+		BufferMarker current() const;
+
+		/// Update internal paddings to ensure page alignment
+		size_t align(size_t start, size_t page);
+
+		/// Compute default name based on assigned flags
+		static const char* default_name(MemoryFlags flags);
+
+	};
+
+	/// Multi-track buffer, section and segment are used quite interchangeably here
+	class SegmentedBuffer {
+
+		private:
+
+			size_t base_address = 0; // this is set during linking and used ONLY for debugging
+			int selected = 0;
+			std::vector<BufferSegment> sections;
+			LabelMap<BufferMarker> labels;
+			std::vector<Linkage> linkages;
+			std::vector<ExportSymbol> exported_symbols;
+			std::unordered_set<Label, Label::HashFunction> external_symbols;
+
+			std::vector<SourceLocation> source_locations;
+			util::IndexedSet<std::string> source_files;
+
+		public:
+
+			// is there some cleaner way to do this?
+			// we at least need to make it target file agnostic in the future
+			ElfMachine elf_machine = ElfMachine::NONE;
+
+		public:
+
+			SegmentedBuffer();
+
+			/// Get marker of the current buffer segment position
+			BufferMarker current() const;
+
+			/// Offset in the final contiguous buffer of the given marker
+			int64_t get_offset(BufferMarker marker) const;
+
+			/// Get a pointer into one of the sections where the marker points
+			uint8_t* get_pointer(BufferMarker marker);
+
+			/// Needs to be called before linking, calculates sections start/end offsets
+			void align(size_t page);
+
+			/// Execute all linkages, returns a link of unresolved, external linkages
+			std::vector<Linkage> link(size_t base, const LinkReporter& handler = nullptr);
+
+			/// Insert linker command to be executed once link() is called
+			void add_linkage(const Label& label, const Linkage::Type& linker, int64_t addend = 0);
+
+			/// Get the label value
+			BufferMarker get_label(const Label& label);
+
+			/// Add the given label into the buffer
+			void add_label(const Label& label);
+
+			/// Check if given labels have already been defined
+			bool has_label(const Label& label);
+
+			/// Append a single byte to the current section
+			void push(uint8_t byte);
+
+			/// Append N bytes of a uniform value to the current section
+			void fill(int64_t bytes, uint8_t value);
+
+			/// Append arbitrary data into the current section
+			void insert(const uint8_t* data, size_t bytes);
+
+			/// Select the section to use
+			void use_section(MemoryFlags flags, const std::string& name = "");
+
+			/// Get section count
+			size_t count() const;
+
+			/// Get the total size in bytes of the whole segmented buffer, can be used only after linking
+			size_t total() const;
+
+			/// Get segment list
+			const std::vector<BufferSegment>& segments() const;
+
+			/// Get a copy of the label map with resolved linkages
+			LabelMap<size_t> resolved_labels() const;
+
+			/// Get a list of exported symbols
+			const std::vector<ExportSymbol>& exports() const;
+
+			/// Add new external symbol, external symbols are allowed to be missing
+			void add_external(const Label& name);
+
+			/// Add new symbol to the export list
+			void add_export(const Label& label, ExportSymbol::Type type, size_t size);
+
+			/// Add location specifier for the current address
+			void add_location(const std::string& path, uint32_t line, uint32_t column);
+
+			/// Get source location list
+			const std::vector<SourceLocation>& locations() const;
+
+			/// Get source file list
+			const std::vector<std::string>& files() const;
+
+	};
+
+}

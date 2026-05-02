@@ -4,8 +4,7 @@ code generation using the build-in C++ API with syntax closely matching the sour
 The project consists of a `tasml` CLI assembler and a `test` unit test runner. 
 
 The code unique to the CLI utility is separated from the rest of 
-the library and located in the `/src/tasml`. The `/src/file` contains binary file IO, and `/src/asm` 
-implements the assembler itself.
+the library (located in `/src/asmio`) and located in the `/src/tasml`.
 
 ## Utility
 The example of the syntax used by `tasml` utility, the API version of the exact same code can be seen below.

@@ -1,19 +1,14 @@
 
-#define DEBUG_MODE false
-#define VSTL_TEST_COUNT 3
-#define VSTL_PRINT_SKIP_REASON true
-#define VSTL_SUBMODULE true
-
 #include <filesystem>
 #include <fstream>
 #include <regex>
 #include <tasml/top.hpp>
-#include <util/tmp.hpp>
-#include <out/elf/export.hpp>
+#include <asmio/util/tmp.hpp>
+#include <asmio/elf/export.hpp>
 
 #include "test.hpp"
 #include "vstl.hpp"
-#include "out/buffer/executable.hpp"
+#include <asmio/program/executable.hpp>
 
 namespace test {
 
@@ -42,6 +37,21 @@ namespace test {
 			lang aarch64
 			mov x1, 7
 			mov x2, x1
+		)";
+
+		tasml::ErrorHandler reporter {vstl_self.name(), true};
+		tasml::assemble(reporter, code);
+
+		ASSERT(reporter.ok());
+
+	};
+
+	TEST (tasml_check_order_semantics) {
+
+		std::string code = R"(
+			lang aarch64
+			cas x0, x1, x2
+			cas x0, x1, x2, ra
 		)";
 
 		tasml::ErrorHandler reporter {vstl_self.name(), true};
@@ -199,10 +209,13 @@ namespace test {
 		util::TempFile embedded {".txt"};
 		embedded.write(embed);
 
+		// escape Windows path separators, replaces '\' with '\\'
+		auto escaped_path = std::regex_replace(embedded.path(),std::regex("\\\\"),"\\\\");
+
 		std::string code = R"(
 			section r
 			export private begin:
-				embed ")" + embedded.path() + R"("
+				embed ")" + escaped_path + R"("
 			export private end:
 		)";
 

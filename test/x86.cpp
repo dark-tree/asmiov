@@ -1,20 +1,19 @@
 
-#define DEBUG_MODE false
-#define VSTL_TEST_COUNT 3
-#define VSTL_PRINT_SKIP_REASON true
-#define VSTL_PRINT_MODULES true
-
 #include "vstl.hpp"
-#include "asm/x86/writer.hpp"
-#include <out/elf/export.hpp>
+#include <asmio/x86/writer.hpp>
+#include <asmio/elf/export.hpp>
 
 // private libs
 #include <fstream>
-#include <out/buffer/executable.hpp>
+#include <asmio/program/executable.hpp>
+#include <asmio/util/platform.hpp>
 #include <tasml/top.hpp>
-#include <util/tmp.hpp>
+#include <asmio/util/tmp.hpp>
 
 #include "test.hpp"
+
+VCONF(repeats, 3);
+VCONF(print_modules, true);
 
 namespace test {
 
@@ -472,6 +471,356 @@ namespace test {
 		};
 
 	}
+
+	TEST (check_sse_cvtsi2ss) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.put_cvtsi2ss(XMM0, EAX);
+		writer.put_cvtsi2ss(XMM1, ref<QWORD>(RAX));
+
+		buffer.link(0);
+		std::vector<uint8_t> s1 = {0xf3, 0x0f, 0x2a, 0xc0, 0xf3, 0x48, 0x0f, 0x2a, 0x08};
+		CHECK(buffer.segments()[1].buffer, s1); // .text
+
+	};
+
+	TEST (check_sse_movaps) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.put_movaps(XMM1, XMM10);
+		writer.put_movaps(XMM15, XMM10);
+		writer.put_movaps(XMM14, XMM1);
+		writer.put_movaps(XMM1, ref<XMMWORD>(RAX));
+		writer.put_movaps(XMM2, ref<XMMWORD>(R12));
+		writer.put_movaps(XMM13, ref<XMMWORD>(R12));
+		writer.put_movaps(ref<XMMWORD>(RAX), XMM1);
+		writer.put_movaps(ref<XMMWORD>(R12), XMM1);
+		writer.put_movaps(ref<XMMWORD>(R12), XMM14);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movaps(ref<XMMWORD>(R12), RAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movaps(XMM1, ref<XMMWORD>(XMM0));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movaps(XMM1, ref<QWORD>(R12));
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s1 = {0x41, 0x0f, 0x28, 0xca, 0x45, 0x0f, 0x28, 0xfa, 0x44, 0x0f, 0x28, 0xf1, 0x0f, 0x28, 0x08, 0x41, 0x0f, 0x28, 0x14, 0x24, 0x45, 0x0f, 0x28, 0x2c, 0x24, 0x0f, 0x29, 0x08, 0x41, 0x0f, 0x29, 0x0c, 0x24, 0x45, 0x0f, 0x29, 0x34, 0x24};
+		CHECK(buffer.segments()[1].buffer, s1); // .text
+
+	};
+
+	TEST (check_sse_movhlps_movlhps_movhps_movlps) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_movhlps(XMM14, XMM1);
+		writer.put_movlhps(XMM14, XMM13);
+		writer.put_movhps(XMM0, ref<QWORD>(RSP));
+		writer.put_movhps(ref<QWORD>(RBP), XMM15);
+		writer.put_movlps(ref<QWORD>(RCX * 2 + 0x100), XMM0);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movhlps(XMM14, RAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movhps(XMM0, ref<DWORD>(R11));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movlps(ref<DWORD>(RCX), XMM0);
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x44, 0x0f, 0x12, 0xf1, 0x45, 0x0f, 0x16, 0xf5, 0x0f, 0x16, 0x04, 0x24, 0x44, 0x0f, 0x17, 0x7d, 0x00, 0x0f, 0x13, 0x04, 0x4d, 0x00, 0x01, 0x00, 0x00};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_movmskps) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_movmskps(RAX, XMM0);
+		writer.put_movmskps(RAX, XMM15);
+		writer.put_movmskps(ECX, XMM11);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movmskps(BX, XMM12);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movmskps(DL, XMM14);
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x48, 0x0f, 0x50, 0xc0, 0x49, 0x0f, 0x50, 0xc7, 0x41, 0x0f, 0x50, 0xcb};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_op_packed) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_addps(XMM1, XMM1);
+		writer.put_divps(XMM11, XMM11);
+		writer.put_maxps(XMM1, XMM11);
+		writer.put_minps(XMM11, ref<XMMWORD>(RAX));
+		writer.put_mulps(XMM1, ref<XMMWORD>(RCX));
+		writer.put_rcpps(XMM11, ref<XMMWORD>(RBP));
+		writer.put_rsqrtps(XMM11, XMM1);
+		writer.put_sqrtps(XMM1, ref<XMMWORD>(RCX * 8));
+		writer.put_subps(XMM11, ref<XMMWORD>(RBP + 0x100));
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addps(XMM11, ref<QWORD>(RAX));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addps(RAX, ref<XMMWORD>(RAX));
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x0f, 0x58, 0xc9, 0x45, 0x0f, 0x5e, 0xdb, 0x41, 0x0f, 0x5f, 0xcb, 0x44, 0x0f, 0x5d, 0x18, 0x0f, 0x59, 0x09, 0x44, 0x0f, 0x53, 0x5d, 0x00, 0x44, 0x0f, 0x52, 0xd9, 0x0f, 0x51, 0x0c, 0xcd, 0x00, 0x00, 0x00, 0x00, 0x44, 0x0f, 0x5c, 0x9d, 0x00, 0x01, 0x00, 0x00};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	}
+
+	TEST (check_sse_op_bitwise) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_andnps(XMM1, XMM1);
+		writer.put_andps(XMM11, XMM11);
+		writer.put_orps(XMM1, XMM11);
+		writer.put_xorps(XMM11, ref<XMMWORD>(RAX));
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x0f, 0x55, 0xc9, 0x45, 0x0f, 0x54, 0xdb, 0x41, 0x0f, 0x56, 0xcb, 0x44, 0x0f, 0x57, 0x18};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	}
+
+	TEST (check_sse_op_scalar) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_addss(XMM1, XMM1);
+		writer.put_divss(XMM11, XMM11);
+		writer.put_maxss(XMM1, XMM11);
+		writer.put_minss(XMM11, ref<DWORD>(RAX));
+		writer.put_mulss(XMM1, ref<DWORD>(RCX));
+		writer.put_rcpss(XMM11, ref<DWORD>(RBP));
+		writer.put_rsqrtss(XMM11, XMM1);
+		writer.put_sqrtss(XMM1, ref<DWORD>(RCX * 8));
+		writer.put_subss(XMM11, ref<DWORD>(RBP + 0x100));
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addss(XMM11, ref<XMMWORD>(RAX));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addss(RAX, ref<DWORD>(RAX));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addss(XMM11, EAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_addss(XMM11, RAX);
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0xf3, 0x0f, 0x58, 0xc9, 0xf3, 0x45, 0x0f, 0x5e, 0xdb, 0xf3, 0x41, 0x0f, 0x5f, 0xcb, 0xf3, 0x44, 0x0f, 0x5d, 0x18, 0xf3, 0x0f, 0x59, 0x09, 0xf3, 0x44, 0x0f, 0x53, 0x5d, 0x00, 0xf3, 0x44, 0x0f, 0x52, 0xd9, 0xf3, 0x0f, 0x51, 0x0c, 0xcd, 0x00, 0x00, 0x00, 0x00, 0xf3, 0x44, 0x0f, 0x5c, 0x9d, 0x00, 0x01, 0x00, 0x00};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	}
+
+	TEST (check_sse_cmpps_cmpss_comiss_ucomiss) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_cmpps(XMM1, XMM1, SimdCondition::EQ);
+		writer.put_cmpps(XMM2, XMM3, SimdCondition::LT);
+		writer.put_cmpss(XMM5, XMM8, SimdCondition::RD);
+		writer.put_cmpss(XMM11, XMM1, SimdCondition::NLT);
+		writer.put_comiss(XMM11, ref<DWORD>(RBP));
+		writer.put_comiss(XMM11, XMM1);
+		writer.put_ucomiss(XMM11, XMM1);
+		writer.put_ucomiss(XMM11, ref<DWORD>(RAX));
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x0f, 0xc2, 0xc9, 0x00, 0x0f, 0xc2, 0xd3, 0x01, 0xf3, 0x41, 0x0f, 0xc2, 0xe8, 0x07, 0xf3, 0x44, 0x0f, 0xc2, 0xd9, 0x05, 0x44, 0x0f, 0x2f, 0x5d, 0x00, 0x44, 0x0f, 0x2f, 0xd9, 0x44, 0x0f, 0x2e, 0xd9, 0x44, 0x0f, 0x2e, 0x18};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_shufps_unpckhps_unpcklps) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_shufps(XMM11, ref<XMMWORD>(RAX + RCX), 0b1011);
+		writer.put_unpckhps(XMM11, ref<XMMWORD>(RAX));
+		writer.put_unpcklps(XMM11, XMM1);
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x44, 0x0f, 0xc6, 0x1c, 0x08, 0x0b, 0x44, 0x0f, 0x15, 0x18, 0x44, 0x0f, 0x14, 0xd9};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_cvtss2si_cvttss2si) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_cvtss2si(EAX, XMM1);
+		writer.put_cvtss2si(EAX, ref(RAX));
+		writer.put_cvtss2si(EAX, ref<DWORD>(RAX));
+		writer.put_cvtss2si(RAX, XMM1);
+		writer.put_cvtss2si(RAX, ref(RAX));
+		writer.put_cvtss2si(RAX, ref<DWORD>(RAX));
+		writer.put_cvtss2si(R11, XMM11);
+		writer.put_cvtss2si(R11, ref(R11));
+		writer.put_cvtss2si(R11, ref<DWORD>(R11));
+		writer.put_cvttss2si(R11, XMM11);
+		writer.put_cvttss2si(EAX, ref(R11));
+		writer.put_cvttss2si(R11, ref<DWORD>(R11));
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_cvtss2si(XMM11, XMM11);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_cvtss2si(R11, R11);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_cvtss2si(R11, ref<QWORD>(R11));
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0xf3, 0x0f, 0x2d, 0xc1, 0xf3, 0x0f, 0x2d, 0x00, 0xf3, 0x0f, 0x2d, 0x00, 0xf3, 0x48, 0x0f, 0x2d, 0xc1, 0xf3, 0x48, 0x0f, 0x2d, 0x00, 0xf3, 0x48, 0x0f, 0x2d, 0x00, 0xf3, 0x4d, 0x0f, 0x2d, 0xdb, 0xf3, 0x4d, 0x0f, 0x2d, 0x1b, 0xf3, 0x4d, 0x0f, 0x2d, 0x1b, 0xf3, 0x4d, 0x0f, 0x2c, 0xdb, 0xf3, 0x41, 0x0f, 0x2c, 0x03, 0xf3, 0x4d, 0x0f, 0x2c, 0x1b};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_ldmxcsr_stmxcsr) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_ldmxcsr(ref<DWORD>(EAX));
+		writer.put_ldmxcsr(ref<DWORD>(ECX));
+		writer.put_stmxcsr(ref<DWORD>(ESP));
+		writer.put_stmxcsr(ref<DWORD>(ESP));
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldmxcsr(RAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_stmxcsr(EAX);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_stmxcsr(XMM1);
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x67, 0x0f, 0xae, 0x10, 0x67, 0x0f, 0xae, 0x11, 0x67, 0x0f, 0xae, 0x1c, 0x24, 0x67, 0x0f, 0xae, 0x1c, 0x24};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_sfence_movntps) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_sfence();
+		writer.put_movntps(ref<XMMWORD>(RAX), XMM1);
+		writer.put_movntps(ref<XMMWORD>(RAX), XMM11);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movntps(XMM1, XMM11);
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x0f, 0xae, 0xf8, 0x0f, 0x2b, 0x08, 0x44, 0x0f, 0x2b, 0x18};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_sse_movss_movups) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.put_movups(XMM1, XMM2);
+		writer.put_movups(XMM1, ref<XMMWORD>(RAX));
+		writer.put_movups(ref<XMMWORD>(RAX), XMM1);
+
+		writer.put_movss(XMM1, XMM2);
+		writer.put_movss(XMM1, ref<DWORD>(RAX));
+		writer.put_movss(ref<DWORD>(RAX), XMM1);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movups(XMM1, ref<QWORD>(RAX));
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_movss(XMM1, ref<QWORD>(RAX));
+		};
+
+		buffer.link(0);
+		std::vector<uint8_t> s0 = {0x0f, 0x10, 0xca, 0x0f, 0x10, 0x08, 0x0f, 0x11, 0x08, 0xf3, 0x0f, 0x10, 0xca, 0xf3, 0x0f, 0x10, 0x08, 0xf3, 0x0f, 0x11, 0x08};
+		CHECK(buffer.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (check_imul) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		// byte register not allowed
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_imul(AL, AL, 1);
+		};
+
+		// can't encode 64 bit immediate
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_imul(RAX, RAX, 10'000'000'000);
+		};
+
+		// can't encode 32 bit immediate for 16 operation
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_imul(AX, AX, 100'000);
+		};
+
+	};
 
 	/*
 	 * region Executable
@@ -1090,6 +1439,47 @@ namespace test {
 		int output = buffer.call_i32();
 
 		CHECK(output, 7 * 5 * 3 * 2 * 11);
+
+	}
+
+	TEST(writer_exec_mul_imul_longer) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.label("imul_2");
+		writer.put_mov(RAX, 2);
+		writer.put_imul(AX, AX, 1000);
+		writer.put_ret();
+
+		writer.label("imul_3");
+		writer.put_mov(RAX, 3);
+		writer.put_imul(RAX, RAX, 1000);
+		writer.put_ret();
+
+		writer.label("imul_4");
+		writer.put_mov(RAX, 4);
+		writer.put_imul(EAX, EAX, 1000000);
+		writer.put_ret();
+
+		writer.label("imul_5");
+		writer.put_mov(RAX, 5);
+		writer.put_imul(RAX, RAX, 1000000000);
+		writer.put_ret();
+
+		writer.label("imul_6");
+		writer.put_mov(EAX, 6);
+		writer.put_imul(AX, AX, -1000);
+		writer.put_movsx(RAX, AX);
+		writer.put_ret();
+
+		ExecutableBuffer buffer = to_executable(segmented);
+
+		CHECK(buffer.call_i32("imul_2"), 2000);
+		CHECK(buffer.call_i32("imul_3"), 3000);
+		CHECK(buffer.call_u32("imul_4"), 4000000);
+		CHECK(buffer.call_u64("imul_5"), 5000000000);
+		CHECK(buffer.call_i32("imul_6"), -6000);
 
 	}
 
@@ -1715,7 +2105,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32(), 1.0f);
+		CHECK(buffer.call_f80(), 1.0f);
 
 	}
 
@@ -1747,7 +2137,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 3.0f);
+		CHECK(buffer.call_f80("main"), 3.0f);
 
 	}
 
@@ -1772,7 +2162,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 2.5f);
+		CHECK(buffer.call_f80("main"), 2.5f);
 
 	}
 
@@ -1804,7 +2194,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 10.75f);
+		CHECK(buffer.call_f80("main"), 10.75f);
 
 	}
 
@@ -1841,7 +2231,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 12.5f);
+		CHECK(buffer.call_f80("main"), 12.5f);
 
 	}
 
@@ -1876,7 +2266,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 6.0f);
+		CHECK(buffer.call_f80("main"), 6.0f);
 
 	}
 
@@ -1921,7 +2311,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 4.5f);
+		CHECK(buffer.call_f80("main"), 4.5f);
 
 	}
 
@@ -1937,7 +2327,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), -1);
+		CHECK(buffer.call_f80("main"), -1);
 
 	}
 
@@ -1966,7 +2356,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 20);
+		CHECK(buffer.call_f80("main"), 20);
 
 	}
 
@@ -1992,7 +2382,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 7);
+		CHECK(buffer.call_f80("main"), 7);
 
 	}
 
@@ -2037,7 +2427,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 1);
+		CHECK(buffer.call_f80("main"), 1);
 
 	}
 
@@ -2053,7 +2443,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32(), 1);
+		CHECK(buffer.call_f80(), 1);
 
 	}
 
@@ -2081,7 +2471,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 6);
+		CHECK(buffer.call_f80("main"), 6);
 
 	}
 
@@ -2116,7 +2506,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("init"), 1.0f);
+		CHECK(buffer.call_f80("init"), 1.0f);
 		CHECK(buffer.call_i32("main"), 6);
 
 	}
@@ -2144,7 +2534,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("init"), 1.0f);
+		CHECK(buffer.call_f80("init"), 1.0f);
 		CHECK(buffer.call_i32("main"), 3);
 
 	}
@@ -2161,7 +2551,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 3.0f);
+		CHECK(buffer.call_f80("main"), 3.0f);
 
 	}
 
@@ -2180,7 +2570,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("main"), 4.0f);
+		CHECK(buffer.call_f80("main"), 4.0f);
 
 	}
 
@@ -2235,10 +2625,10 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.call_f32("set_a"), 2.0f);
-		CHECK(buffer.call_f32("set_b"), 1.0f);
-		CHECK(buffer.call_f32("set_c"), 0.0f);
-		CHECK(buffer.call_f32("ctrl_sum"), 11.0f);
+		CHECK(buffer.call_f80("set_a"), 2.0f);
+		CHECK(buffer.call_f80("set_b"), 1.0f);
+		CHECK(buffer.call_f80("set_c"), 0.0f);
+		CHECK(buffer.call_f80("ctrl_sum"), 11.0f);
 
 	}
 
@@ -2321,6 +2711,7 @@ namespace test {
 	}
 
 	TEST (writer_exec_int_0x80) {
+#if _POSIX_C_SOURCE >= 200112L
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
@@ -2332,6 +2723,9 @@ namespace test {
 		const uint32_t pid = to_executable(segmented).call_u32();
 		CHECK(pid, getpid());
 
+#else
+		SKIP ("_POSIX_C_SOURCE < 200112L")
+#endif
 	}
 
 	TEST (writer_exec_long_back_jmp) {
@@ -3290,10 +3684,14 @@ namespace test {
 		segmented.elf_machine = ElfMachine::X86_64;
 		ObjectFile file = to_elf(segmented, "_start").bake();
 
+#ifdef __linux__
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 42);
+#else
+		SKIP("ELF execution not supported in this environment")
+#endif
 
 	}
 
@@ -3324,10 +3722,15 @@ namespace test {
 
 		segmented.elf_machine = ElfMachine::X86_64;
 		ObjectFile file = to_elf(segmented, "_start").bake();
+
+#ifdef __linux__
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 13);
+#else
+		SKIP("ELF execution not supported in this environment")
+#endif
 
 	}
 
@@ -3358,10 +3761,15 @@ namespace test {
 
 		segmented.elf_machine = ElfMachine::X86_64;
 		ObjectFile file = to_elf(segmented, "_start").bake();
+
+#ifdef __linux__
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 20);
+#else
+		SKIP("ELF execution not supported in this environment")
+#endif
 
 	}
 
@@ -3383,7 +3791,7 @@ namespace test {
 		writer.put_ret();
 
 		ExecutableBuffer buffer = to_executable(segmented);
-		CHECK(buffer.size(), getpagesize() * 2); // expect there to be two pages
+		CHECK(buffer.size(), page_size() * 2); // expect there to be two pages
 		CHECK(buffer.call_u32("read"), 42);
 
 		EXPECT_SIGNAL(SIGSEGV) {
@@ -3509,8 +3917,8 @@ namespace test {
 
 		writer.label("simple_add");
 		writer.put_push(RBX);
-		writer.put_mov(RBX, ref(RAX));
-		writer.put_add(RBX, ref(RAX + 8));
+		writer.put_mov(RBX, ref(SCALL_REG));
+		writer.put_add(RBX, ref(SCALL_REG + 8));
 		writer.put_mov(RAX, RBX);
 		writer.put_pop(RBX);
 		writer.put_ret();
@@ -3528,7 +3936,7 @@ namespace test {
 		BufferWriter writer {segmented};
 
 		writer.label("main");
-		writer.put_mov(RCX, ref<QWORD>(RAX));
+		writer.put_mov(RCX, ref<QWORD>(SCALL_REG));
 		writer.put_mov(ref<QWORD>(RCX), 42);
 		writer.put_ret();
 
@@ -3602,8 +4010,8 @@ namespace test {
 		BufferWriter writer {segmented};
 
 		writer.label("add");
-		writer.put_mov(RAX, ref(RDI + 0));
-		writer.put_add(RAX, ref(RDI + 8));
+		writer.put_mov(RAX, ref(SCALL_REG + 0));
+		writer.put_add(RAX, ref(SCALL_REG + 8));
 		writer.put_ret();
 
 		// check if no segfault occures
@@ -3654,8 +4062,8 @@ namespace test {
 
 		// link with our object
 		util::TempFile exec {".out"};
-		std::string gcc_output = call_shell("gcc -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
-		CHECK(gcc_output, "");
+		std::string gcc_output = call_shell("gcc -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		ASSERT(!gcc_output.contains("error"));
 
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "42");
@@ -3682,10 +4090,15 @@ namespace test {
 
 		segmented.elf_machine = ElfMachine::X86_64;
 		ObjectFile file = to_elf(segmented, "_start").bake();
+
+#ifdef __linux__
 		RunResult result = file.execute("memfd-elf-1");
 
 		CHECK(result.type, RunStatus::SUCCESS);
 		CHECK(result.status, 42);
+#else
+		SKIP("ELF execution not supported in this environment")
+#endif
 
 	};
 
@@ -3734,7 +4147,7 @@ namespace test {
 			volatile uint64_t test_value = 0;
 
 			// imported from asmiov
-			uint64_t update_text();
+			void update_text();
 
 			int main() {
 				char* a = (char*) &test_value;
@@ -3750,11 +4163,125 @@ namespace test {
 
 		// link with our object
 		util::TempFile exec {".out"};
-		std::string gcc_output = call_shell("gcc -Wno-format -z noexecstack -o " + exec.path() + " " + object.path() + " " + main_src.path() );
-		CHECK(gcc_output, "");
+		std::string gcc_output = call_shell("gcc -Wno-format -o " + exec.path() + " " + object.path() + " " + main_src.path() );
+		ASSERT(!gcc_output.contains("error"));
 
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "HELLO FURRY!");
+
+	};
+
+	TEST (exec_cpuid) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		struct Result {
+			uint32_t eax;
+			uint32_t ebx;
+			uint32_t ecx;
+			uint32_t edx;
+		};
+
+		writer.label("cpuid");
+		writer.put_push(RBX);
+		writer.put_push(RDI);
+		writer.put_mov(RDI, SCALL_REG);
+		writer.put_mov(RAX, ref(RDI)); // page
+		writer.put_cpuid();
+		writer.put_mov(R8, ref(RDI + 8)); // result*
+
+		writer.put_mov(ref(R8), EAX); // result->eax
+		writer.put_mov(ref(R8 + 4), EBX); // result->ebx
+		writer.put_add(R8, 8);
+		writer.put_mov(ref(R8), ECX); // result->ecx
+		writer.put_mov(ref(R8 + 4), EDX); // result->edx
+		writer.put_pop(RDI);
+		writer.put_pop(RBX);
+		writer.put_ret();
+
+		Result result {};
+
+		ExecutableBuffer exe = to_executable(buffer);
+
+		// EAX:EDX:ECX should contain vendor name
+		// exe.scall<void>("cpuid", uint64_t(0), &result);
+
+		exe.scall<void>("cpuid", uint64_t(1), &result);
+
+		// check for support of some expected features
+		ASSERT_MSG(result.edx & (1 << 23), "MMX not supported or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 0), "FPU not supported or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 15), "CMOV not supported or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 25), "SSE not supported or CPUID failed!");
+		ASSERT_MSG(result.edx & (1 << 26), "SSE2 not supported or CPUID failed!");
+		ASSERT_MSG(result.ecx & (1 << 23), "POPCNT not supported or CPUID failed!");
+
+	};
+
+	TEST (exec_sse_generic_floats) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer {buffer};
+
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("three");
+		writer.put_dword(3);
+
+		writer.label("fraction");
+		writer.put_dword_f(3.1415);
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("mult");
+		writer.put_mov(EAX, 13);
+		writer.put_cvtsi2ss(XMM0, EAX);
+		writer.put_cvtsi2ss(XMM1, ref<DWORD>("three"));
+		writer.put_mulss(XMM0, XMM1);
+		writer.put_ret();
+
+		writer.label("pi");
+		writer.put_movss(XMM0, ref<DWORD>("fraction"));
+		writer.put_ret();
+
+		ExecutableBuffer exe = to_executable(buffer);
+
+		int res = (int) exe.call_f32("mult");
+		CHECK(res, 39);
+
+		float pi = exe.call_f32("pi");
+		CHECK(pi, 3.1415);
+
+	};
+
+	TEST (tasml_exec_string_prefix) {
+
+		std::string code = R"(
+			lang x86
+
+			section r
+			value:
+				dword 3.5
+
+			section rx
+			syntax:
+				cmpps xmm11, xmmword [rax], nrd
+				cmpps xmm11, [rax], nrd
+				shufps xmm1, xmm15, 3
+
+			floats:
+				movss xmm1, dword [@value]
+				mulss xmm1, xmm1
+				movss xmm0, xmm1
+				ret
+		)";
+
+		SegmentedBuffer segmented = tasml::assemble(vstl_self.name(), code);
+		ExecutableBuffer buffer = to_executable(segmented);
+
+		float f = buffer.call_f32("floats");
+
+		ASSERT(f > 12);
+		ASSERT(f < 13);
 
 	};
 

@@ -1,19 +1,14 @@
-#define DEBUG_MODE false
-#define VSTL_TEST_COUNT 3
-#define VSTL_PRINT_SKIP_REASON true
-#define VSTL_SUBMODULE true
 
-#include "vstl.hpp"
-#include "asm/aarch64/writer.hpp"
-#include "out/buffer/executable.hpp"
-#include <out/elf/export.hpp>
+#include <asmio/aarch64/writer.hpp>
+#include <asmio/program/executable.hpp>
+#include <asmio/elf/export.hpp>
+#include <asmio/util/tmp.hpp>
 #include <tasml/top.hpp>
-#include <util/tmp.hpp>
 
 #include "test.hpp"
+#include "vstl.hpp"
 
 namespace test {
-
 	using namespace asmio;
 	using namespace asmio::arm;
 
@@ -49,10 +44,19 @@ namespace test {
 
 		SegmentedBuffer segmented;
 		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_orr(X1, X2, X3);
+		writer.put_orn(X1, X2, X3);
+		writer.put_movn(X12, X11);
 
 		EXPECT_THROW(std::runtime_error) {
 			writer.put_orr(W(0), W(0), X(0));
 		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x41, 0x00, 0x03, 0xaa, 0x41, 0x00, 0x23, 0xaa, 0xec, 0x03, 0x2b, 0xaa};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
 
@@ -148,12 +152,493 @@ namespace test {
 
 	};
 
+	TEST (writer_check_cas) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// considered valid
+		writer.put_cas(X0, XZR, XZR);
+		writer.put_casb(X0, X1, W2);
+		writer.put_cash(X0, X1, X2, Order::RELEASE);
+		writer.put_cash(X0, X1, X2, Order::ACQUIRE_RELEASE);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_cas(X0, X1, W2);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_casb(XZR, X1, W1);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x1f, 0x7c, 0xbf, 0xc8, 0x01, 0x7c, 0xa2, 0x08, 0x01, 0xfc, 0xa2, 0x48, 0x01, 0xfc, 0xe2, 0x48};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_ldar) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		// considered valid
+		writer.put_ldarb(X11, SP);
+		writer.put_ldarh(WZR, X10);
+		writer.put_ldar(W10, SP);
+		writer.put_ldar(X10, SP);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldarb(X0, XZR);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldar(X1, W1); // source ptr must be qword
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldar(SP, X10);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xeb, 0xff, 0xdf, 0x08, 0x5f, 0xfd, 0xdf, 0x48, 0xea, 0xff, 0xdf, 0x88, 0xea, 0xff, 0xdf, 0xc8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_ldadd) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldadd(X0, X1, X2);
+		writer.put_ldadd(W11, W1, SP);
+		writer.put_ldadd(WZR, WZR, X2);
+		writer.put_ldaddb(X11, X1, X2);
+		writer.put_ldaddb(W0, X1, X2);
+		writer.put_ldaddb(X11, W0, X2);
+		writer.put_ldaddb(W2, W0, X2);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldadd(X11, W1, X2);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldaddb(X11, X1, W2);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldaddb(SP, X1, X1);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldaddb(X1, SP, X1);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x41, 0x00, 0x20, 0xf8, 0xe1, 0x03, 0x2b, 0xb8, 0x5f, 0x00, 0x3f, 0xb8, 0x41, 0x00, 0x2b, 0x38, 0x41, 0x00, 0x20, 0x38, 0x40, 0x00, 0x2b, 0x38, 0x40, 0x00, 0x22, 0x38};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_ldp_ldpsw) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		// ldp
+		writer.put_ldp(X2, X3, X0);
+		writer.put_ldp(W2, W3, X0);
+		writer.put_ldp(W2, W3, SP);
+		writer.put_ldpi(W2, W3, X0, 12);
+		writer.put_ildp(X2, X3, X0, -8);
+
+		// ldpsw
+		writer.put_ldpsw(X2, X3, X0);
+		writer.put_ldpswi(X2, X3, X0, 8);
+		writer.put_ildpsw(X2, X3, X0, -8);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldp(W2, X3, X0);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ildp(X3, X3, X0, 12); // 12 is not div by 8
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldp(X2, W3, X0);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldp(X1, X2, W4);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldpi(X1, X2, X4, 512);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldpsw(W2, W3, X0);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ildpsw(W2, W3, X0, 260);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x02, 0x0c, 0x40, 0xa9, 0x02, 0x0c, 0x40, 0x29, 0xe2, 0x0f, 0x40, 0x29, 0x02, 0x8c, 0xc1, 0x28, 0x02, 0x8c, 0xff, 0xa9, 0x02, 0x0c, 0x40, 0x69, 0x02, 0x0c, 0xc1, 0x68, 0x02, 0x0c, 0xff, 0x69};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_ldnp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldnp(X1, X2, X3, 16);
+		writer.put_ldnp(W1, W2, X3, 12);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldnp(X1, X2, X3, 12);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x61, 0x08, 0x41, 0xa8, 0x61, 0x88, 0x41, 0x28};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_ldxp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldxp(X1, X2, X3);
+		writer.put_ldxp(W1, W2, X3);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldxp(W1, X2, X3);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x61, 0x08, 0x7f, 0xc8, 0x61, 0x08, 0x7f, 0x88};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_stp_stnp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_stp(X1, X2, X3);
+		writer.put_stp(W1, W2, X3, 128);
+		writer.put_stpi(X3, X4, X3, 32);
+		writer.put_istp(W1, W2, X3, 64);
+		writer.put_stnp(X1, X2, X3, 48);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x61, 0x08, 0x00, 0xa9, 0x61, 0x08, 0x10, 0x29, 0x63, 0x10, 0x82, 0xa8, 0x61, 0x08, 0x88, 0x29, 0x61, 0x08, 0x03, 0xa8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_eret_hlt_hvc) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_eret();
+		writer.put_clrex();
+		writer.put_hlt(0x42);
+		writer.put_hvc(0x69);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xe0, 0x03, 0x9f, 0xd6, 0x5f, 0x3f, 0x03, 0xd5, 0x40, 0x08, 0x40, 0xd4, 0x22, 0x0d, 0x00, 0xd4};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_ldops) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldaddb(W1, W2, X8, Order::ACQUIRE);
+		writer.put_ldclr(X5, X6, X11, Order::RELEASE);
+		writer.put_ldeor(X3, X24, X4, Order::ACQUIRE_RELEASE);
+		writer.put_ldseth(X6, X6, X6, Order::NONE);
+		writer.put_ldsmax(X1, X5, X9, Order::RELEASE);
+		writer.put_ldumax(X2, X6, X10, Order::ACQUIRE);
+		writer.put_ldsmin(X3, X7, X11, Order::NONE);
+		writer.put_ldumin(X4, X8, X12, Order::ACQUIRE_RELEASE);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x02, 0x01, 0xa1, 0x38, 0x66, 0x11, 0x65, 0xf8, 0x98, 0x20, 0xe3, 0xf8, 0xc6, 0x30, 0x26, 0x78, 0x25, 0x41, 0x61, 0xf8, 0x46, 0x61, 0xa2, 0xf8, 0x67, 0x51, 0x23, 0xf8, 0x88, 0x71, 0xe4, 0xf8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_swp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_swpb(W1, W2, X8, Order::ACQUIRE);
+		writer.put_swph(X5, X6, X11, Order::RELEASE);
+		writer.put_swp(X3, X24, X4, Order::ACQUIRE_RELEASE);
+		writer.put_swp(W3, W24, X4, Order::NONE);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x02, 0x81, 0xa1, 0x38, 0x66, 0x81, 0x65, 0x78, 0x98, 0x80, 0xe3, 0xf8, 0x98, 0x80, 0x23, 0xb8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_ccmp_ccmn) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ccmp(Condition::LE, Condition::NE, X2, X7);
+		writer.put_ccmn(Condition::GE, Condition::CC, X5, X3);
+		writer.put_ccmp(Condition::LE, Condition::NE, X2, 15);
+		writer.put_ccmn(Condition::CC, Condition::CC, X5, 3);
+
+		// check overflow
+		writer.put_ccmn(Condition::CC, Condition::CC, X5, 0xff);
+		writer.put_ccmp(Condition::CC, Condition::CC, X5, 0xff);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ccmp(Condition::LE, Condition::NE, X2, W7);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ccmn(Condition::GE, Condition::CC, W5, X3);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x41, 0xd0, 0x47, 0xfa, 0xa3, 0xa0, 0x43, 0xba, 0x41, 0xd8, 0x4f, 0xfa, 0xa3, 0x38, 0x43, 0xba, 0xa3, 0x38, 0x5f, 0xba, 0xa3, 0x38, 0x5f, 0xfa};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_add_sub_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_add(X1, X8, 7, true);
+		writer.put_adds(X2, X7, 0xfff);
+		writer.put_sub(X3, X6, 700);
+		writer.put_subs(X4, X5, 0xfff, true);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x01, 0x1d, 0x40, 0x91, 0xe2, 0xfc, 0x3f, 0xb1, 0xc3, 0xf0, 0x0a, 0xd1, 0xa4, 0xfc, 0x7f, 0xf1};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_add_sub_shifted) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_add(X1, X8, X9, ShiftType::LSL, 3);
+		writer.put_adds(X2, X7, X10, ShiftType::ASR, 5);
+		writer.put_sub(X3, X6, X11, ShiftType::LSR, 7);
+		writer.put_subs(X4, X5, X12, ShiftType::LSL, 0);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x01, 0x0d, 0x09, 0x8b, 0xe2, 0x14, 0x8a, 0xab, 0xc3, 0x1c, 0x4b, 0xcb, 0xa4, 0x00, 0x0c, 0xeb};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_csinv_cinv_csetm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_csinv(Condition::PL, X0, X2, X3);
+		writer.put_csinc(Condition::GE, X6, X7, X8);
+		writer.put_cinv(Condition::HI, X0, X6);
+		writer.put_csetm(Condition::LE, X3);
+		writer.put_csneg(Condition::LE, X0, X2, X3);
+		writer.put_cneg(Condition::LE, X0, X11);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x40, 0x50, 0x83, 0xda, 0xe6, 0xa4, 0x88, 0x9a, 0xc0, 0x90, 0x86, 0xda, 0xe3, 0xc3, 0x9f, 0xda, 0x40, 0xd4, 0x83, 0xda, 0x60, 0xd5, 0x8b, 0xda};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_cmn_cmp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_cmn(X2, 0x7b);
+		writer.put_cmn(X6, X7, ShiftType::LSL, 8);
+		writer.put_cmp(X2, 0x1a4);
+		writer.put_cmp(X6, X7, ShiftType::LSL, 8);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x5f, 0xec, 0x01, 0xb1, 0xdf, 0x20, 0x07, 0xab, 0x5f, 0x90, 0x06, 0xf1, 0xdf, 0x20, 0x07, 0xeb};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_eon) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_eon(X2, X3, X4, ShiftType::LSL, 3);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x62, 0x0c, 0x24, 0xca};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_exclusive_ops) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldxr(X3, X7);
+		writer.put_ldxrb(X3, X7);
+		writer.put_ldaxrh(X3, X7);
+		writer.put_stlxr(W1, X2, X5);
+		writer.put_stlxp(W1, X2, X3, X5);
+		writer.put_stxp(W1, X2, X3, X5);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xe3, 0x7c, 0x5f, 0xc8, 0xe3, 0x7c, 0x5f, 0x08, 0xe3, 0xfc, 0x5f, 0x48, 0xa2, 0xfc, 0x01, 0xc8, 0xa2, 0x8c, 0x21, 0xc8, 0xa3, 0x0c, 0x21, 0xc8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_ldtr_sttr_ldur_stur) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldtr(X0, X11, 123);
+		writer.put_ldtrh(X1, X10, -123);
+		writer.put_ldtrb(X2, X9, -123);
+		writer.put_ldur(W3, X8, 123);
+		writer.put_ldurh(X4, X7, 123);
+		writer.put_ldurb(X5, X6, 123);
+		writer.put_sttr(X0, X11, 123);
+		writer.put_sttrh(X1, X10, 123);
+		writer.put_sttrb(X2, X9, 123);
+		writer.put_stur(X3, X8, 123);
+		writer.put_sturh(X4, X7, 123);
+		writer.put_sturb(X5, X6, 123);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldtr(X0, X1, 256);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldtr(X0, XZR, 6);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldtr(X0, W2, 6);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x60, 0xb9, 0x47, 0xf8, 0x41, 0x59, 0x58, 0x78, 0x22, 0x59, 0x58, 0x38, 0x03, 0xb1, 0x47, 0xb8, 0xe4, 0xb0, 0x47, 0x78, 0xc5, 0xb0, 0x47, 0x38, 0x60, 0xb9, 0x07, 0xf8, 0x41, 0xb9, 0x07, 0x78, 0x22, 0xb9, 0x07, 0x38, 0x03, 0xb1, 0x07, 0xf8, 0xe4, 0xb0, 0x07, 0x78, 0xc5, 0xb0, 0x07, 0x38};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_neg_ngc) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_neg(X1, X7);
+		writer.put_negs(X2, X8);
+		writer.put_ngc(X3, X9);
+		writer.put_ngcs(X4, X10);
+
+		writer.put_neg(X5, X11, ShiftType::LSL, 4);
+		writer.put_negs(X6, X12, ShiftType::LSL, 4);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xe1, 0x03, 0x07, 0xcb, 0xe2, 0x03, 0x08, 0xeb, 0xe3, 0x03, 0x09, 0xda, 0xe4, 0x03, 0x0a, 0xfa, 0xe5, 0x13, 0x0b, 0xcb, 0xe6, 0x13, 0x0c, 0xeb};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_sxt) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_sxtb(X1, X7);
+		writer.put_sxth(X2, X8);
+		writer.put_sxtw(X2, X9);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xe1, 0x1c, 0x40, 0x93, 0x02, 0x3d, 0x40, 0x93, 0x22, 0x7d, 0x40, 0x93};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (writer_check_prfm_basic) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_prfm(Prefetch::PLD_L1_STRM, X1, X7);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x21, 0x68, 0xa7, 0xf8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM
 	 */
 
 #if ARCH_AARCH64
+
+	TEST (check_no_f80) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		writer.put_ret();
+
+		auto exe = to_executable(segmented);
+
+		EXPECT_THROW(std::runtime_error) {
+			exe.call_f80();
+		};
+
+	}
 
 	TEST (writer_exec_nop_ret) {
 
@@ -1705,6 +2190,166 @@ namespace test {
 
 		std::string exe_output = call_shell(exec.path());
 		CHECK(exe_output, "42");
+
+	};
+
+	TEST (writer_exec_cas) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("cell");
+		writer.put_qword(11);
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("a");
+		writer.put_adr(X0, "cell");
+		writer.put_mov(X1, 13);
+		writer.put_mov(X2, 12);
+		writer.put_cas(X0, X1, X2, Order::ACQUIRE); // ordering not actually required
+		writer.put_ldr(X0, "cell");
+		writer.put_ret();
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("b");
+		writer.put_adr(X0, "cell");
+		writer.put_mov(X1, 12);
+		writer.put_mov(X2, 11);
+		writer.put_cas(X0, X1, X2, Order::ACQUIRE_RELEASE); // ordering not actually required
+		writer.put_ldr(X0, "cell");
+		writer.put_ret();
+
+#ifdef __ARM_FEATURE_ATOMICS
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64("a"), 11);
+		CHECK(exec.call_u64("b"), 12);
+		CHECK(exec.call_u64("a"), 13);
+		CHECK(exec.call_u64("b"), 13);
+		CHECK(exec.call_u64("a"), 13);
+#else
+		SKIP("AArch64 LSE not supported")
+#endif
+
+	};
+
+	TEST (writer_exec_ldar) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("cell");
+		writer.put_byte(42);
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("a");
+		writer.put_adr(X1, "cell");
+		writer.put_ldarb(X0, X1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64("a"), 42);
+
+	};
+
+	TEST (writer_exec_ldadd) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("cell");
+		writer.put_dword(0x1234);
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("add");
+		writer.put_adr(X1, "cell");
+		writer.put_mov(X2, 0x1111);
+		writer.put_ldadd(X2, X0, X1);
+		writer.put_ret();
+
+#ifdef __ARM_FEATURE_ATOMICS
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64("add"), 0x2345);
+		CHECK(exec.call_u64("add"), 0x3456);
+		CHECK(exec.call_u64("add"), 0x4567);
+#else
+		SKIP("AArch64 LSE not supported")
+#endif
+
+	};
+
+	TEST (writer_exec_ldpsw_ldp) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.section(MemoryFlag::R | MemoryFlag::W);
+		writer.label("cell");
+		writer.put_dword(234);
+		writer.put_dword(-312);
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("a");
+		writer.put_adr(X3, "cell");
+		writer.put_ldpsw(X1, X2, X3);
+		writer.put_add(X0, X1, X2);
+		writer.put_ret();
+
+		writer.section(MemoryFlag::R | MemoryFlag::X);
+		writer.label("b");
+		writer.put_adr(X3, "cell");
+		writer.put_ldp(W1, W0, X3);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_u64("b"), uint32_t(-312));
+
+	};
+
+	TEST (writer_exec_add_sub_imm) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 13);
+		writer.put_add(X2, X1, 7);
+		writer.put_sub(X3, X1, 3);
+		writer.put_add(X0, X2, X3);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 30);
+
+	};
+
+	TEST (writer_exec_add_shifted) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0x17);
+		writer.put_mov(X2, 0x03);
+		writer.put_add(X0, X2, X1, ShiftType::LSL, 4);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), 0x173);
+
+	};
+
+	TEST (writer_exec_sxtb) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+
+		writer.put_mov(X1, 0xff);
+		writer.put_sxtb(X0, X1);
+		writer.put_ret();
+
+		auto exec = to_executable(segmented);
+		CHECK(exec.call_i64(), -1);
 
 	};
 

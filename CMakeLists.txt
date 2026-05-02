@@ -24,19 +24,19 @@ endif()
 FetchContent_Declare(
 		vstl
 		GIT_REPOSITORY https://github.com/magistermaks/lib-vstl
-		GIT_TAG 8e590538f66e21aca2558c3029a275725a8f2be3
+		GIT_TAG c7f1069ea12fbe8087067841c491940fc3f6dc7f
 )
 
 FetchContent_MakeAvailable(vstl)
 
 set(ASMIO_WRITERS
-		src/asm/x86/writer.hpp
-		src/asm/aarch64/writer.hpp
+		src/asmio/x86/writer.hpp
+		src/asmio/aarch64/writer.hpp
 )
 
 set(ASMIO_BRIDGES "${ASMIO_WRITERS}")
 
-list(TRANSFORM ASMIO_BRIDGES REPLACE "src/asm/(.*)/writer.hpp" "${PROJECT_BINARY_DIR}/src/generated/\\1.hpp")
+list(TRANSFORM ASMIO_BRIDGES REPLACE "src/asmio/(.*)/writer.hpp" "${PROJECT_BINARY_DIR}/src/generated/\\1.hpp")
 list(TRANSFORM ASMIO_WRITERS PREPEND "${PROJECT_SOURCE_DIR}/")
 
 add_custom_command(
@@ -70,7 +70,8 @@ add_executable(test
 		test/elf.cpp
 )
 target_link_libraries(test PRIVATE asmiov)
-target_include_directories(test PRIVATE ${ASMIOV_INCLUDE_DIRS} ${vstl_SOURCE_DIR})
+target_include_directories(test PRIVATE ${ASMIOV_INCLUDE_DIRS})
+target_link_libraries(test PRIVATE vstl)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	target_compile_options(asmiov PUBLIC

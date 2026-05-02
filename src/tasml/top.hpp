@@ -1,6 +1,6 @@
 #pragma once
-#include <out/buffer/segmented.hpp>
-#include <out/elf/object.hpp>
+#include <asmio/program/segmented.hpp>
+#include <asmio/elf/object.hpp>
 
 #include "error.hpp"
 #include "stream.hpp"

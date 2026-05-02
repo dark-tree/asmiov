@@ -1,14 +1,11 @@
-#define DEBUG_MODE false
-#define VSTL_TEST_COUNT 3
-#define VSTL_PRINT_SKIP_REASON true
-#define VSTL_SUBMODULE true
 
-#include <util.hpp>
-#include <out/buffer/label.hpp>
-#include <out/buffer/segmented.hpp>
-#include <out/chunk/buffer.hpp>
-#include <out/chunk/codecs.hpp>
-#include <util/pool.hpp>
+#include <asmio/util.hpp>
+#include <asmio/program/label.hpp>
+#include <asmio/program/segmented.hpp>
+#include <asmio/util/chunk.hpp>
+#include <asmio/util/codecs.hpp>
+#include <asmio/util/pool.hpp>
+#include <asmio/util/platform.hpp>
 
 #include "vstl.hpp"
 
@@ -71,6 +68,7 @@ namespace test {
 		CHECK(util::min_signed_bytes(0x7FFF'FF01), 4);
 		CHECK(util::min_signed_bytes(0x80), 2);
 		CHECK(util::min_signed_bytes(0xFFFF), 4);
+		CHECK(util::min_signed_bytes(-1000), 2);
 
 	};
 
@@ -480,6 +478,26 @@ namespace test {
 		CHECK(b->b, 5);
 		CHECK(c3->a, 2);
 		CHECK(c3->b, 1);
+
+	};
+
+	TEST (util_call_shell) {
+
+		std::string output = call_shell("echo hello", "");
+		ASSERT(output.contains("hello"));
+
+	};
+
+	TEST (util_string_trim) {
+
+		CHECK(util::trim("  abc    "), "abc");
+		CHECK(util::trim("\tdef\n"), "def");
+		CHECK(util::trim("\t \t ghi\r\n"), "ghi");
+
+		CHECK(util::trim("foo"), "foo");
+		CHECK(util::trim(" bar"), "bar");
+		CHECK(util::trim("    "), "");
+		CHECK(util::trim(""), "");
 
 	};
 

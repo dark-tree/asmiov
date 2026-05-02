@@ -1,0 +1,52 @@
+#!/bin/env python3
+import requests
+import sys
+from bs4 import BeautifulSoup
+
+def to_markdown_table(data):
+	header = data[0]
+	rows = data[1:]
+
+	md = "| " + " | ".join(map(str, header)) + " |\n"
+	md += "| " + " | ".join(["---"] * len(header)) + " |\n"
+
+	for row in rows:
+		md += "| " + " | ".join(map(str, row)) + " |\n"
+
+	return md
+
+if len(sys.argv) < 2:
+	print("Usage: felix-fetch <mnemonic>...")
+	exit(1)
+
+def print_x86(mnm):
+	url = 'https://www.felixcloutier.com/x86/' + mnm
+	res = requests.get(url)
+
+	print("## " +  mnm.upper())
+
+	if res.status_code != 200:
+		print("Mnemonic not found!\n")
+		return
+
+	soup = BeautifulSoup(res.content, 'html.parser')
+	title = soup.title.string.split('—', 1)[1].strip(' \t\n\r')
+
+	print(title)
+
+	table = soup.find("table") # first table
+	rows = []
+
+	for row in table.find_all("tr"):
+		cells = row.find_all(["td", "th"])
+		data = [cell.get_text(strip=True) for cell in cells]
+
+		if data[0].startswith("VEX") or data[0].startswith("EVEX"):
+			continue
+
+		rows.append(data)
+
+	print(to_markdown_table(rows))
+
+for arg in sys.argv[1:]:
+	print_x86(arg.lower())

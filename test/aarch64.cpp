@@ -605,6 +605,20 @@ namespace test {
 
 	};
 
+	TEST (writer_check_prfm_basic) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_prfm(Prefetch::PLD_L1_STRM, X1, X7);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x21, 0x68, 0xa7, 0xf8};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

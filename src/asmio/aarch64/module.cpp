@@ -125,6 +125,14 @@ namespace asmio::arm {
 	}
 
 	template <>
+	Prefetch parse_argument(TokenStream stream) {
+		const Token& token = stream.expect(Token::NAME);
+
+		// FIXME this one is case sensitive and requires uppercase
+		return parse_prefetch_enum(token.raw);
+	}
+
+	template <>
 	BitPattern parse_argument(TokenStream stream) {
 		if (const Token* token = stream.accept(Token::INT)) {
 			return BitPattern::try_pack(token->as_int());

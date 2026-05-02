@@ -925,6 +925,11 @@ namespace asmio::arm {
 		put_sbfm(dst, src, BitPattern::try_pack(0xff));
 	}
 
+	void BufferWriter::put_prfm(Prefetch mode, Registry base, Registry index) {
+		// TODO: this is a partial implementation
+		put_dword(0b11'11'1000'10'1 << 21 | index.reg << 16 | 0b011 << 13 /* LSL */ | 0b010 << 10 | base.reg << 5 | static_cast<uint32_t>(mode));
+	}
+
 	void BufferWriter::put_stlxp(Registry status, Registry r1, Registry r2, Registry src) {
 		put_inst_ldstx(r1, r2, status, src, 0b10 | r1.wide(), false, true, true);
 	}

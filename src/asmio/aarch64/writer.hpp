@@ -7,6 +7,7 @@
 #include "argument/condition.hpp"
 #include "argument/order.hpp"
 #include "argument/pattern.hpp"
+#include "argument/prefetch.hpp"
 
 namespace asmio::arm {
 
@@ -269,6 +270,7 @@ namespace asmio::arm {
 			INST put_sxtw(Registry dst, Registry src);                     ///< Sign extend dword
 			INST put_sxth(Registry dst, Registry src);                     ///< Sign extend word
 			INST put_sxtb(Registry dst, Registry src);                     ///< Sign extend byte
+			INST put_prfm(Prefetch mode, Registry base, Registry index);   ///< Prefetch memory
 
 			// large system extension
 			INST put_swpb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap byte from 'src' to memory

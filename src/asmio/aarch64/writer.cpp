@@ -351,4 +351,20 @@ namespace asmio::arm {
 		put_dword(size << 30 | 0b0010000 << 23 | load << 22 | pair << 21 | status.reg << 16 | barrier << 15 | r2.reg << 10 | mem.reg << 5 | r1.reg);
 	}
 
+	void BufferWriter::put_inst_ldst_simm9(Registry dst, Registry src, int16_t offset, uint32_t size, bool load, uint32_t opc) {
+		if (!src.wide()) {
+			throw std::runtime_error {"Invalid operand, source register must be wide"};
+		}
+
+		if (src.is(Registry::ZERO)) {
+			throw std::runtime_error {"Invalid operand, source can't be the zero register"};
+		}
+
+		if ((offset < -256) || (offset > 255)) {
+			throw std::runtime_error {"Invalid operand, offset out of valid range"};
+		}
+
+		put_dword(size << 30 | 0b111'0'00'00'0 << 21 | load << 22 | (offset & 0x1ff) << 12 | opc << 10 | src.reg << 5 | dst.reg);
+	}
+
 }

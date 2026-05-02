@@ -109,6 +109,9 @@ namespace asmio::arm {
 			/// Encode exclusive load/store operations
 			void put_inst_ldstx(Registry r1, Registry r2, Registry status, Registry mem, uint8_t size, bool load, bool barrier, bool pair);
 
+			/// Encode load/store operations with base-destination registers and 9 bit signed offsets
+			void put_inst_ldst_simm9(Registry dst, Registry src, int16_t offset, uint32_t size, bool load, uint32_t opc);
+
 		public:
 
 			BufferWriter(SegmentedBuffer& buffer);
@@ -246,6 +249,18 @@ namespace asmio::arm {
 			INST put_stxr(Registry status, Registry dst, Registry src);    ///< Store dword/qword exclusive register
 			INST put_stxrh(Registry status, Registry dst, Registry src);   ///< Store word exclusive register
 			INST put_stxrb(Registry status, Registry dst, Registry src);   ///< Store byte exclusive register
+			INST put_ldtr(Registry dst, Registry src, int16_t offset);     ///< Load dword/qword register (unprivileged) at unscaled offset
+			INST put_ldtrh(Registry dst, Registry src, int16_t offset);    ///< Load word register (unprivileged) at unscaled offset
+			INST put_ldtrb(Registry dst, Registry src, int16_t offset);    ///< Load byte register (unprivileged) at unscaled offset
+			INST put_sttr(Registry dst, Registry src, int16_t offset);     ///< Store dword/qword register (unprivileged) at unscaled offset
+			INST put_sttrh(Registry dst, Registry src, int16_t offset);    ///< Store word register (unprivileged) at unscaled offset
+			INST put_sttrb(Registry dst, Registry src, int16_t offset);    ///< Store byte register (unprivileged) at unscaled offset
+			INST put_ldur(Registry dst, Registry src, int16_t offset);     ///< Load dword/qword register at unscaled offset
+			INST put_ldurh(Registry dst, Registry src, int16_t offset);    ///< Load word register at unscaled offset
+			INST put_ldurb(Registry dst, Registry src, int16_t offset);    ///< Load byte register at unscaled offset
+			INST put_stur(Registry dst, Registry src, int16_t offset);     ///< Store dword/qword register at unscaled offset
+			INST put_sturh(Registry dst, Registry src, int16_t offset);    ///< Store word register at unscaled offset
+			INST put_sturb(Registry dst, Registry src, int16_t offset);    ///< Store byte register at unscaled offset
 
 			// large system extension
 			INST put_swpb(Registry val, Registry dst, Registry src, Order order = Order::NONE); ///< Swap byte from 'src' to memory

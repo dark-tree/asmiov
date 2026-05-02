@@ -833,6 +833,54 @@ namespace asmio::arm {
 		put_inst_ldstx(dst, XZR, status, src, 0b00, false, false, false);
 	}
 
+	void BufferWriter::put_ldtr(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b10 | dst.wide(), true, 0b10);
+	}
+
+	void BufferWriter::put_ldtrh(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b01, true, 0b10);
+	}
+
+	void BufferWriter::put_ldtrb(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b00, true, 0b10);
+	}
+
+	void BufferWriter::put_sttr(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b10 | dst.wide(), false, 0b10);
+	}
+
+	void BufferWriter::put_sttrh(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b01, false, 0b10);
+	}
+
+	void BufferWriter::put_sttrb(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b00, false, 0b10);
+	}
+
+	void BufferWriter::put_ldur(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b10 | dst.wide(), true, 0b00);
+	}
+
+	void BufferWriter::put_ldurh(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b01, true, 0b00);
+	}
+
+	void BufferWriter::put_ldurb(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b00, true, 0b00);
+	}
+
+	void BufferWriter::put_stur(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b10 | dst.wide(), false, 0b00);
+	}
+
+	void BufferWriter::put_sturh(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b01, false, 0b00);
+	}
+
+	void BufferWriter::put_sturb(Registry dst, Registry src, int16_t offset) {
+		put_inst_ldst_simm9(dst, src, offset, 0b00, false, 0b00);
+	}
+
 	void BufferWriter::put_stlxp(Registry status, Registry r1, Registry r2, Registry src) {
 		put_inst_ldstx(r1, r2, status, src, 0b10 | r1.wide(), false, true, true);
 	}

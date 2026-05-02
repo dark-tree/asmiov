@@ -524,6 +524,43 @@ namespace test {
 
 	};
 
+	TEST (writer_check_ldtr_sttr_ldur_stur) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::AARCH64;
+
+		writer.put_ldtr(X0, X11, 123);
+		writer.put_ldtrh(X1, X10, -123);
+		writer.put_ldtrb(X2, X9, -123);
+		writer.put_ldur(W3, X8, 123);
+		writer.put_ldurh(X4, X7, 123);
+		writer.put_ldurb(X5, X6, 123);
+		writer.put_sttr(X0, X11, 123);
+		writer.put_sttrh(X1, X10, 123);
+		writer.put_sttrb(X2, X9, 123);
+		writer.put_stur(X3, X8, 123);
+		writer.put_sturh(X4, X7, 123);
+		writer.put_sturb(X5, X6, 123);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldtr(X0, X1, 256);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldtr(X0, XZR, 6);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_ldtr(X0, W2, 6);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x60, 0xb9, 0x47, 0xf8, 0x41, 0x59, 0x58, 0x78, 0x22, 0x59, 0x58, 0x38, 0x03, 0xb1, 0x47, 0xb8, 0xe4, 0xb0, 0x47, 0x78, 0xc5, 0xb0, 0x47, 0x38, 0x60, 0xb9, 0x07, 0xf8, 0x41, 0xb9, 0x07, 0x78, 0x22, 0xb9, 0x07, 0x38, 0x03, 0xb1, 0x07, 0xf8, 0xe4, 0xb0, 0x07, 0x78, 0xc5, 0xb0, 0x07, 0x38};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	/*
 	 * region Executable
 	 * Begin architecture depended tests for ARM

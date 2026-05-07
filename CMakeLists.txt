@@ -32,6 +32,7 @@ FetchContent_MakeAvailable(vstl)
 set(ASMIO_WRITERS
 		src/asmio/x86/writer.hpp
 		src/asmio/aarch64/writer.hpp
+		src/asmio/riscv/writer.hpp
 )
 
 set(ASMIO_BRIDGES "${ASMIO_WRITERS}")
@@ -68,6 +69,7 @@ add_executable(test
 		test/x86.cpp
 		test/aarch64.cpp
 		test/elf.cpp
+		test/riscv.cpp
 )
 target_link_libraries(test PRIVATE asmiov)
 target_include_directories(test PRIVATE ${ASMIOV_INCLUDE_DIRS})

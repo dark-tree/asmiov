@@ -7,6 +7,32 @@ namespace asmio::riscv {
 
 	using namespace tasml;
 
+	template <typename T>
+	T parse_argument(TokenStream stream);
+
+	template <std::integral T>
+	T parse_argument(TokenStream stream) {
+		return stream.expect(Token::INT).as_int();
+	}
+
+	template <>
+	Registry parse_argument(TokenStream stream) {
+		const Token& token = stream.expect(Token::NAME);
+		std::string raw = util::to_lower(token.raw);
+
+		if (raw[0] == 'x') {
+			int index = util::parse_decimal(raw.substr(1));
+
+			if (index >= 0 && index <= 31) {
+				return X(index);
+			}
+
+			throw std::runtime_error {"Invalid register number, expected value in range [0, 31]"};
+		}
+
+		throw std::runtime_error {"Invalid argument format, expected register"};
+	}
+
 #	include "generated/riscv.hpp"
 
 	/*

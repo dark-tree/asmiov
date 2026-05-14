@@ -21,6 +21,37 @@ namespace asmio::riscv {
 			BufferWriter(SegmentedBuffer& buffer);
 
 			INST put_add(Registry rd, Registry rs, int16_t imm12); ///< Add signed 12 bit immediate to rs and save result to rd
+			INST put_xor(Registry rd, Registry rs, int16_t imm12); ///< Bitwise XOR 12 bit immediate rs and save result to rd
+			INST put_or(Registry rd, Registry rs, int16_t imm12); ///< Bitwise OR 12 bit immediate rs and save result to rd
+			INST put_and(Registry rd, Registry rs, int16_t imm12); ///< Bitwise AND 12 bit immediate rs and save result to rd
+			INST put_sll(Registry rd, Registry rs, int16_t imm12); ///< Shift register rs left by a 12 bit immediate and save result to rd
+			INST put_srl(Registry rd, Registry rs, int16_t imm12); ///< Shift register rs right logically by a 12 bit immediate and save result to rd
+			INST put_sra(Registry rd, Registry rs, int16_t imm12); ///< Shift register rs right arythetically by a 12 bit immediate and save result to rd
+			INST put_slt(Registry rd, Registry rs, int16_t imm12); ///< Set rd to 1 if rs is less than a 12 bit immediate, and to 0 otherwise (signed)
+			INST put_sltu(Registry rd, Registry rs, int16_t imm12); ///< Set rd to 1 if rs1 is less than a 12 bit immediate, and to 0 otherwise (unsigned)
+
+			INST put_add(Registry rd, Registry rs1, Registry rs2); ///< Add register rs1 to rs2 and save result to rd
+			INST put_sub(Registry rd, Registry rs1, Registry rs2); ///< Subtract register rs1 from rs2 and save result to rd
+			INST put_xor(Registry rd, Registry rs1, Registry rs2); ///< Bitwise XOR register rs1 with rs2 and save result to rd
+			INST put_or(Registry rd, Registry rs1, Registry rs2); ///< Bitwise OR register rs1 with rs2 and save result to rd
+			INST put_and(Registry rd, Registry rs1, Registry rs2); ///< Bitwise AND register rs1 with rs2 and save result to rd
+			INST put_sll(Registry rd, Registry rs1, Registry rs2); ///< Shift register rs1 left by rs2 and save result to rd
+			INST put_srl(Registry rd, Registry rs1, Registry rs2); ///< Shift register rs1 right logically by rs2 and save result to rd
+			INST put_sra(Registry rd, Registry rs1, Registry rs2); ///< Shift register rs1 right arythetically by rs2 and save result to rd
+			INST put_slt(Registry rd, Registry rs1, Registry rs2); ///< Set rd to 1 if rs1 is less than rs2, and to 0 otherwise (signed)
+			INST put_sltu(Registry rd, Registry rs1, Registry rs2); ///< Set rd to 1 if rs1 is less than rs2, and to 0 otherwise (unsigned)
+
+			// TODO: check sign extension behaviour of LW in RV64
+
+			INST put_lb(Registry rd, Registry rs, int16_t imm12); ///< Load byte at rs + imm12 into rd (with sign extension)
+			INST put_lh(Registry rd, Registry rs, int16_t imm12); ///< Load word at rs + imm12 into rd (with sign extension)
+			INST put_lw(Registry rd, Registry rs, int16_t imm12); ///< Load dword at rs + imm12 into rd
+			INST put_lbu(Registry rd, Registry rs, int16_t imm12); ///< Load byte at rs + imm12 into rd (with zero extension)
+			INST put_lhu(Registry rd, Registry rs, int16_t imm12); ///< Load word at rs + imm12 into rd (with zero extension)
+
+			INST put_sb(Registry rs1, Registry rs2, int16_t imm12); ///< Store byte from rs2 at rs1 + imm
+			INST put_sh(Registry rs1, Registry rs2, int16_t imm12); ///< Store word from rs2 at rs1 + imm
+			INST put_sw(Registry rs1, Registry rs2, int16_t imm12); ///< Store dword from rs2 at rs1 + imm
 
 	};
 

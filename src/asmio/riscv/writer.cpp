@@ -133,11 +133,11 @@ namespace asmio::riscv {
 		put_inst_i(imm12, rs, 0x0, rd, 0b0000011);
 	}
 
-	void BufferWriter::put_lh(Registry rd, Registry rs, int16_t imm12) {
+	void BufferWriter::put_lw(Registry rd, Registry rs, int16_t imm12) {
 		put_inst_i(imm12, rs, 0x1, rd, 0b0000011);
 	}
 
-	void BufferWriter::put_lw(Registry rd, Registry rs, int16_t imm12) {
+	void BufferWriter::put_ld(Registry rd, Registry rs, int16_t imm12) {
 		put_inst_i(imm12, rs, 0x2, rd, 0b0000011);
 	}
 
@@ -145,20 +145,40 @@ namespace asmio::riscv {
 		put_inst_i(imm12, rs, 0x4, rd, 0b0000011);
 	}
 
-	void BufferWriter::put_lhu(Registry rd, Registry rs, int16_t imm12) {
+	void BufferWriter::put_lwu(Registry rd, Registry rs, int16_t imm12) {
 		put_inst_i(imm12, rs, 0x5, rd, 0b0000011);
 	}
 
-	void BufferWriter::put_sb(Registry rs1, Registry rs2, int16_t imm12) {
-		put_inst_s(imm12, rs2, rs1, 0x0, 0b0000011);
+	void BufferWriter::put_ldu(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x6, rd, 0b0000011);
 	}
 
-	void BufferWriter::put_sh(Registry rs1, Registry rs2, int16_t imm12) {
-		put_inst_s(imm12, rs2, rs1, 0x1, 0b0000011);
+	void BufferWriter::put_lq(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x3, rd, 0b0000011);
+	}
+
+	void BufferWriter::put_sb(Registry rs1, Registry rs2, int16_t imm12) {
+		put_inst_s(imm12, rs1, rs2, 0x0, 0b0100011);
 	}
 
 	void BufferWriter::put_sw(Registry rs1, Registry rs2, int16_t imm12) {
-		put_inst_s(imm12, rs2, rs1, 0x2, 0b0000011);
+		put_inst_s(imm12, rs1, rs2, 0x1, 0b0100011);
+	}
+
+	void BufferWriter::put_sd(Registry rs1, Registry rs2, int16_t imm12) {
+		put_inst_s(imm12, rs1, rs2, 0x2, 0b0100011);
+	}
+
+	void BufferWriter::put_sq(Registry rs1, Registry rs2, int16_t imm12) {
+		put_inst_s(imm12, rs1, rs2, 0x3, 0b0100011);
+	}
+
+	void BufferWriter::put_ecall() {
+		put_inst_i(0, X0, 0x0, X0, 0b1110011);
+	}
+
+	void BufferWriter::put_ebreak() {
+		put_inst_i(1, X0, 0x0, X0, 0b1110011);
 	}
 
 }

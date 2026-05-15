@@ -75,13 +75,15 @@ namespace test {
 		segmented.elf_machine = ElfMachine::RISCV;
 
 		writer.put_lb(X0, X5, 100);
-		writer.put_lh(X1, X6, 200);
-		writer.put_lw(X2, X7, 300);
+		writer.put_lw(X1, X6, 200);
+		writer.put_ld(X2, X7, 300);
 		writer.put_lbu(X3, X8, 400);
-		writer.put_lhu(X4, X9, 500);
+		writer.put_lwu(X4, X9, 500);
+		writer.put_ldu(X4, X9, 600);
+		writer.put_lq(X4, X9, 700);
 
 		segmented.link(0);
-		std::vector<uint8_t> s0 = {0x03, 0x80, 0x42, 0x06, 0x83, 0x10, 0x83, 0x0c, 0x03, 0xa1, 0xc3, 0x12, 0x83, 0x41, 0x04, 0x19, 0x03, 0xd2, 0x44, 0x1f};
+		std::vector<uint8_t> s0 = {0x03, 0x80, 0x42, 0x06, 0x83, 0x10, 0x83, 0x0c, 0x03, 0xa1, 0xc3, 0x12, 0x83, 0x41, 0x04, 0x19, 0x03, 0xd2, 0x44, 0x1f, 0x03, 0xe2, 0x84, 0x25, 0x03, 0xb2, 0xc4, 0x2b};
 		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
@@ -93,11 +95,28 @@ namespace test {
 		segmented.elf_machine = ElfMachine::RISCV;
 
 		writer.put_sb(X1, X4, 0x100);
-		writer.put_sh(X2, X5, 0x200);
-		writer.put_sw(X3, X6, 0x300);
+		writer.put_sw(X2, X5, 0x200);
+		writer.put_sd(X3, X6, 0x300);
+		writer.put_sq(X4, X7, 0x400);
 
-		// FIXME
-		SKIP("Invalid decode");
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x23, 0x00, 0x12, 0x10, 0x23, 0x90, 0x22, 0x20, 0x23, 0x20, 0x33, 0x30, 0x23, 0xb0, 0x43, 0x40};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
+	TEST (rv32i_check_ecall_ebreak) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_ecall();
+		writer.put_ebreak();
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x73, 0x00, 0x00, 0x00, 0x73, 0x00, 0x10, 0x00};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
 

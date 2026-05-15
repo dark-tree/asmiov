@@ -41,17 +41,22 @@ namespace asmio::riscv {
 			INST put_slt(Registry rd, Registry rs1, Registry rs2); ///< Set rd to 1 if rs1 is less than rs2, and to 0 otherwise (signed)
 			INST put_sltu(Registry rd, Registry rs1, Registry rs2); ///< Set rd to 1 if rs1 is less than rs2, and to 0 otherwise (unsigned)
 
-			// TODO: check sign extension behaviour of LW in RV64
-
 			INST put_lb(Registry rd, Registry rs, int16_t imm12); ///< Load byte at rs + imm12 into rd (with sign extension)
-			INST put_lh(Registry rd, Registry rs, int16_t imm12); ///< Load word at rs + imm12 into rd (with sign extension)
-			INST put_lw(Registry rd, Registry rs, int16_t imm12); ///< Load dword at rs + imm12 into rd
+			INST put_lw(Registry rd, Registry rs, int16_t imm12); ///< Load word at rs + imm12 into rd (with sign extension)
+			INST put_ld(Registry rd, Registry rs, int16_t imm12); ///< Load dword at rs + imm12 into rd (with sign extension)
 			INST put_lbu(Registry rd, Registry rs, int16_t imm12); ///< Load byte at rs + imm12 into rd (with zero extension)
-			INST put_lhu(Registry rd, Registry rs, int16_t imm12); ///< Load word at rs + imm12 into rd (with zero extension)
+			INST put_lwu(Registry rd, Registry rs, int16_t imm12); ///< Load word at rs + imm12 into rd (with zero extension)
+			INST put_ldu(Registry rd, Registry rs, int16_t imm12); ///< Load dword at rs + imm12 into rd (with zero extension)
+			INST put_lq(Registry rd, Registry rs, int16_t imm12); ///< Load qword at rs + imm12 into rd
 
-			INST put_sb(Registry rs1, Registry rs2, int16_t imm12); ///< Store byte from rs2 at rs1 + imm
-			INST put_sh(Registry rs1, Registry rs2, int16_t imm12); ///< Store word from rs2 at rs1 + imm
-			INST put_sw(Registry rs1, Registry rs2, int16_t imm12); ///< Store dword from rs2 at rs1 + imm
+
+			INST put_sb(Registry rs1, Registry rs2, int16_t imm12); ///< Store byte from rs1 at rs2 + imm
+			INST put_sw(Registry rs1, Registry rs2, int16_t imm12); ///< Store word from rs1 at rs2 + imm
+			INST put_sd(Registry rs1, Registry rs2, int16_t imm12); ///< Store dword from rs1 at rs2 + imm
+			INST put_sq(Registry rs1, Registry rs2, int16_t imm12); ///< Store qword from rs1 at rs2 + imm
+
+			INST put_ecall(); ///< Environment Call
+			INST put_ebreak(); ///< Environment Break
 
 	};
 

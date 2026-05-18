@@ -1,5 +1,7 @@
 #include "writer.hpp"
 
+#include <asmio/program/linkage.hpp>
+
 namespace asmio::riscv {
 	/*
 	 * class BufferWriter
@@ -25,13 +27,12 @@ namespace asmio::riscv {
 	}
 
 	void BufferWriter::put_inst_b(uint16_t imm12, Registry rs2, Registry rs1, uint8_t func3, uint8_t opc7) {
-		const uint32_t si = (imm12 & 0b1'0'00000'0000) >> 10;
-		const uint32_t b7 = (imm12 & 0b0'1'00000'0000) >> 9;
-		const uint32_t hi = (imm12 & 0b0'0'11111'0000) >> 4;
-		const uint32_t lo = (imm12 & 0b0'0'00000'1111) >> 0;
+		const uint32_t si = (imm12 & 0b1'0'000000'0000) >> 11;
+		const uint32_t b7 = (imm12 & 0b0'1'000000'0000) >> 10;
+		const uint32_t hi = (imm12 & 0b0'0'111111'0000) >> 4;
+		const uint32_t lo = (imm12 & 0b0'0'000000'1111) >> 0;
 
 		put_dword(si << 31 | hi << 25 | rs2.reg << 20 | rs1.reg << 15 | (func3 & 0b111) << 12 | lo << 8 | b7 << 7 | (opc7 & 0b1111111));
-
 	}
 
 	void BufferWriter::put_inst_u(uint32_t imm20, Registry rd, uint8_t opc7) {
@@ -171,6 +172,51 @@ namespace asmio::riscv {
 
 	void BufferWriter::put_sq(Registry rs1, Registry rs2, int16_t imm12) {
 		put_inst_s(imm12, rs1, rs2, 0x3, 0b0100011);
+	}
+
+	void BufferWriter::put_b(Condition cond, Registry rs1, Registry rs2, const Label& label) {
+		buffer.add_linkage(label, LinkageType::RISCV_BRANCH);
+		put_inst_b(0, rs2, rs1, static_cast<int>(cond), 0b1100011);
+	}
+
+	void BufferWriter::put_beq(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::EQ, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bne(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::NE, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_blt(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::LT, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bge(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::GE, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bltu(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::LTU, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bgeu(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::GEU, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bgt(Registry rs1, Registry rs2, const Label& label) {
+		put_blt(rs2, rs1, label);
+	}
+
+	void BufferWriter::put_ble(Registry rs1, Registry rs2, const Label& label) {
+		put_bge(rs2, rs1, label);
+	}
+
+	void BufferWriter::put_bgtu(Registry rs1, Registry rs2, const Label& label) {
+		put_bltu(rs2, rs1, label);
+	}
+
+	void BufferWriter::put_bleu(Registry rs1, Registry rs2, const Label& label) {
+		put_bgeu(rs2, rs1, label);
 	}
 
 	void BufferWriter::put_ecall() {

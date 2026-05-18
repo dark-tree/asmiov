@@ -16,6 +16,12 @@ namespace asmio::riscv {
 	}
 
 	template <>
+	Label parse_argument(TokenStream stream) {
+		const Token& label = stream.expect(Token::REFERENCE);
+		return {label.raw.c_str() + 1};
+	}
+
+	template <>
 	Registry parse_argument(TokenStream stream) {
 		const Token& token = stream.expect(Token::NAME);
 		std::string raw = util::to_lower(token.raw);
@@ -31,6 +37,14 @@ namespace asmio::riscv {
 		}
 
 		throw std::runtime_error {"Invalid argument format, expected register"};
+	}
+
+	template <>
+	Condition parse_argument(TokenStream stream) {
+		const Token& token = stream.expect(Token::NAME);
+		std::string raw = util::to_lower(token.raw);
+
+		return parse_condition_enum(raw);
 	}
 
 #	include "generated/riscv.hpp"

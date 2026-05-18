@@ -2,6 +2,7 @@
 
 #include <asmio/program/writer.hpp>
 #include <asmio/riscv/argument/registry.hpp>
+#include <asmio/riscv/argument/condition.hpp>
 
 namespace asmio::riscv {
 
@@ -49,11 +50,23 @@ namespace asmio::riscv {
 			INST put_ldu(Registry rd, Registry rs, int16_t imm12); ///< Load dword at rs + imm12 into rd (with zero extension)
 			INST put_lq(Registry rd, Registry rs, int16_t imm12); ///< Load qword at rs + imm12 into rd
 
-
 			INST put_sb(Registry rs1, Registry rs2, int16_t imm12); ///< Store byte from rs1 at rs2 + imm
 			INST put_sw(Registry rs1, Registry rs2, int16_t imm12); ///< Store word from rs1 at rs2 + imm
 			INST put_sd(Registry rs1, Registry rs2, int16_t imm12); ///< Store dword from rs1 at rs2 + imm
 			INST put_sq(Registry rs1, Registry rs2, int16_t imm12); ///< Store qword from rs1 at rs2 + imm
+
+			INST put_b(Condition cond, Registry rs1, Registry rs2, const Label& label); ///< Branch to label if condition is met between rs1 and rs2
+
+			INST put_beq(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 == rs2
+			INST put_bne(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 != rs2
+			INST put_blt(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 < rs2
+			INST put_bge(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 >= rs2
+			INST put_bltu(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 < rs2 (zero-extended)
+			INST put_bgeu(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 >= rs2 (zero-extended)
+			INST put_bgt(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 > rs2
+			INST put_ble(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 <= rs2
+			INST put_bgtu(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 > rs2 (zero-extended)
+			INST put_bleu(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 <= rs2 (zero-extended)
 
 			INST put_ecall(); ///< Environment Call
 			INST put_ebreak(); ///< Environment Break

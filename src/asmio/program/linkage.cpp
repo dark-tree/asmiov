@@ -76,6 +76,10 @@ namespace asmio {
 
 		const int64_t imm12 = dist >> 1;
 
+		if (!util::is_signed_encodable(imm12, 12)) {
+			throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (offset " + util::to_hex(dist) + ") into target " + util::to_hex(dst.offset) + ", some data would have been truncated!"};
+		}
+
 		const uint32_t si = (imm12 & 0b1'0'000000'0000) >> 11;
 		const uint32_t b7 = (imm12 & 0b0'1'000000'0000) >> 10;
 		const uint32_t hi = (imm12 & 0b0'0'111111'0000) >> 4;
@@ -85,7 +89,25 @@ namespace asmio {
 	}
 
 	static void encode_riscv_j(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
-		// TODO
+		BufferMarker dst = linkage.target;
+		const int64_t dist = buffer->get_offset(src) - buffer->get_offset(dst) + linkage.addend;
+
+		if (dist & 1) {
+			throw std::runtime_error {"Can't reference label '" + linkage.label.string() + "' (offset " + util::to_hex(dist) + ") into target " + util::to_hex(dst.offset) + ", offset is not 2-aligned!"};
+		}
+
+		const int64_t imm20 = dist >> 1;
+
+		if (!util::is_signed_encodable(imm20, 20)) {
+			throw std::runtime_error {"Can't fit label '" + linkage.label.string() + "' (offset " + util::to_hex(dist) + ") into target " + util::to_hex(dst.offset) + ", some data would have been truncated!"};
+		}
+
+		const uint32_t si = (imm20 & 0b1'00000000'0'0000000000) >> 19;
+		const uint32_t hi = (imm20 & 0b0'11111111'0'0000000000) >> 11;
+		const uint32_t b2 = (imm20 & 0b0'00000000'1'0000000000) >> 10;
+		const uint32_t lo = (imm20 & 0b0'00000000'0'1111111111) >> 0;
+
+		*reinterpret_cast<uint32_t*>(buffer->get_pointer(dst)) |= (si << 31 | lo << 21 | b2 << 20 | hi << 12);
 	}
 
 	/*

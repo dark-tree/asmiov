@@ -139,4 +139,22 @@ namespace test {
 
 	};
 
+	TEST (rv32i_check_jump) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.label("start");
+		writer.put_add(X1, X1, 10);
+		writer.put_jal("start");
+		writer.put_jal(X8, "start");
+		writer.put_jalr(X6, X7);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x93, 0x80, 0xa0, 0x00, 0xef, 0xf0, 0xdf, 0xff, 0x6f, 0xf4, 0x9f, 0xff, 0x67, 0x83, 0x03, 0x00};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 }

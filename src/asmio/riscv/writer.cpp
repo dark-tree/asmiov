@@ -179,6 +179,19 @@ namespace asmio::riscv {
 		put_inst_b(0, rs2, rs1, static_cast<int>(cond), 0b1100011);
 	}
 
+	void BufferWriter::put_jal(const Label& label) {
+		put_jal(X1, label);
+	}
+
+	void BufferWriter::put_jal(Registry rd, const Label& label) {
+		buffer.add_linkage(label, LinkageType::RISCV_JUMP);
+		put_inst_j(0, rd, 0b1101111);
+	}
+
+	void BufferWriter::put_jalr(Registry rd, Registry rs, int16_t offset) {
+		put_inst_i(offset, rs, 0x0, rd, 0b1100111);
+	}
+
 	void BufferWriter::put_beq(Registry rs1, Registry rs2, const Label& label) {
 		put_b(Condition::EQ, rs1, rs2, label);
 	}

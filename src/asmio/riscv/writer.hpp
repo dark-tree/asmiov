@@ -56,6 +56,9 @@ namespace asmio::riscv {
 			INST put_sq(Registry rs1, Registry rs2, int16_t imm12); ///< Store qword from rs1 at rs2 + imm
 
 			INST put_b(Condition cond, Registry rs1, Registry rs2, const Label& label); ///< Branch to label if condition is met between rs1 and rs2
+			INST put_jal(const Label& label); ///< Jump and link
+			INST put_jal(Registry rd, const Label& label); ///< Jump and link
+			INST put_jalr(Registry rd, Registry rs, int16_t offset = 0); ///< Jump and link to register
 
 			INST put_beq(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 == rs2
 			INST put_bne(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 != rs2

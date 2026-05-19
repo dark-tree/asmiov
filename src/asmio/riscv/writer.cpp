@@ -36,7 +36,7 @@ namespace asmio::riscv {
 	}
 
 	void BufferWriter::put_inst_u(uint32_t imm20, Registry rd, uint8_t opc7) {
-		put_dword(imm20 << 20 | rd.reg << 7 | (opc7 & 0b1111111));
+		put_dword(imm20 << 12 | rd.reg << 7 | (opc7 & 0b1111111));
 	}
 
 	void BufferWriter::put_inst_j(uint32_t imm20, Registry rd, uint8_t opc7) {
@@ -230,6 +230,10 @@ namespace asmio::riscv {
 
 	void BufferWriter::put_bleu(Registry rs1, Registry rs2, const Label& label) {
 		put_bgeu(rs2, rs1, label);
+	}
+
+	void BufferWriter::put_lui(Registry rd, uint32_t imm) {
+		put_inst_u(imm, rd, 0b0110111);
 	}
 
 	void BufferWriter::put_ecall() {

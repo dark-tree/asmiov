@@ -71,6 +71,8 @@ namespace asmio::riscv {
 			INST put_bgtu(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 > rs2 (zero-extended)
 			INST put_bleu(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 <= rs2 (zero-extended)
 
+			INST put_lui(Registry rd, uint32_t imm); ///< Load an upper constant to register, rd = imm << 12
+
 			INST put_ecall(); ///< Environment Call
 			INST put_ebreak(); ///< Environment Break
 

@@ -157,4 +157,18 @@ namespace test {
 
 	};
 
+	TEST (rv32i_check_lui) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_lui(X1, 1);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xb7, 0x10, 0x00, 0x00};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 }

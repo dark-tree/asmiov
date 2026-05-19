@@ -72,9 +72,18 @@ namespace asmio::riscv {
 			INST put_bleu(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 <= rs2 (zero-extended)
 
 			INST put_lui(Registry rd, uint32_t imm); ///< Load an upper constant to register, rd = imm << 12
-
 			INST put_ecall(); ///< Environment Call
 			INST put_ebreak(); ///< Environment Break
+
+			// M extension
+			INST put_mul(Registry rd, Registry rs1, Registry rs2); ///< Store lower 64 bits of rs1 * rs2 into rd
+			INST put_mulh(Registry rd, Registry rs1, Registry rs2); ///< Store upper 64 bits of rs1 * rs2 into rd
+			INST put_mulhsu(Registry rd, Registry rs1, Registry rs2); ///< Store upper 64 bits of rs1 * rs2 into rd
+			INST put_mulhu(Registry rd, Registry rs1, Registry rs2); ///< Store upper 64 bits of rs1 * rs2 into rd
+			INST put_div(Registry rd, Registry rs1, Registry rs2); ///< Store rs1 / rs2 into rd
+			INST put_divu(Registry rd, Registry rs1, Registry rs2); ///< Store rs1 / rs2 into rd
+			INST put_rem(Registry rd, Registry rs1, Registry rs2); ///< Store reminder of rs1 / rs2 into rd
+			INST put_remu(Registry rd, Registry rs1, Registry rs2); ///< Store reminder of rs1 / rs2 into rd
 
 	};
 

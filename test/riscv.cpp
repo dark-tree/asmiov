@@ -171,4 +171,25 @@ namespace test {
 
 	};
 
+	TEST (rv32m_check) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_mul(X1, X2, X3);
+		writer.put_mulh(X1, X2, X3);
+		writer.put_mulhsu(X1, X2, X3);
+		writer.put_mulhu(X1, X2, X3);
+		writer.put_div(X1, X2, X3);
+		writer.put_divu(X1, X2, X3);
+		writer.put_rem(X1, X2, X3);
+		writer.put_remu(X1, X2, X3);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xb3, 0x00, 0x31, 0x02, 0xb3, 0x10, 0x31, 0x02, 0xb3, 0x20, 0x31, 0x02, 0xb3, 0x30, 0x31, 0x02, 0xb3, 0x40, 0x31, 0x02, 0xb3, 0x50, 0x31, 0x02, 0xb3, 0x60, 0x31, 0x02, 0xb3, 0x70, 0x31, 0x02};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 }

@@ -244,4 +244,36 @@ namespace asmio::riscv {
 		put_inst_i(1, X0, 0x0, X0, 0b1110011);
 	}
 
+	void BufferWriter::put_mul(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x0, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_mulh(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x1, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_mulhsu(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x2, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_mulhu(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x3, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_div(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x4, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_divu(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x5, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_rem(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x6, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_remu(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x7, rd, 0b0110011);
+	}
+
 }

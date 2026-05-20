@@ -276,4 +276,24 @@ namespace asmio::riscv {
 		put_inst_r(0x01, rs2, rs1, 0x7, rd, 0b0110011);
 	}
 
+	void BufferWriter::put_muld(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x0, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_divd(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x4, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_divud(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x5, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_remd(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x6, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_remud(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x7, rd, 0b0111011);
+	}
+
 }

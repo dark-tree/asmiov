@@ -84,6 +84,12 @@ namespace asmio::riscv {
 			INST put_divu(Registry rd, Registry rs1, Registry rs2); ///< Store rs1 / rs2 into rd
 			INST put_rem(Registry rd, Registry rs1, Registry rs2); ///< Store reminder of rs1 / rs2 into rd
 			INST put_remu(Registry rd, Registry rs1, Registry rs2); ///< Store reminder of rs1 / rs2 into rd
+			INST put_muld(Registry rd, Registry rs1, Registry rs2); ///< Multiply dword rs1 and rs2, store result in rd
+			INST put_divd(Registry rd, Registry rs1, Registry rs2); ///< Divide dword rs1 by rs2, store result in rd
+			INST put_divud(Registry rd, Registry rs1, Registry rs2); ///< Divide dword rs1 by rs2, store result in rd
+			INST put_remd(Registry rd, Registry rs1, Registry rs2); ///< Get reminder of dword rs1 and rs2 division, store result in rd
+			INST put_remud(Registry rd, Registry rs1, Registry rs2); ///< Get reminder of dword rs1 and rs2 division, store result in rd
+
 
 	};
 

@@ -192,4 +192,22 @@ namespace test {
 
 	};
 
+	TEST (rv64m_check) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_muld(X1, X2, X3);
+		writer.put_divd(X1, X2, X3);
+		writer.put_divud(X1, X2, X3);
+		writer.put_remd(X1, X2, X3);
+		writer.put_remud(X1, X2, X3);
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xbb, 0x00, 0x31, 0x02, 0xbb, 0x40, 0x31, 0x02, 0xbb, 0x50, 0x31, 0x02, 0xbb, 0x60, 0x31, 0x02, 0xbb, 0x70, 0x31, 0x02};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 }

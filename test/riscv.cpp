@@ -139,6 +139,23 @@ namespace test {
 
 	};
 
+	TEST (rv32i_check_branch_inverted) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.label("test");
+		writer.put_b(Condition::GE, X10, X11, "test");
+		writer.put_b(Condition::LE, X10, X11, "test");
+		writer.put_b(Condition::GTU, X10, X11, "test");
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x63, 0x50, 0xb5, 0x00, 0xe3, 0xde, 0xa5, 0xfe, 0xe3, 0xec, 0xa5, 0xfe};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 	TEST (rv32i_check_jump) {
 
 		SegmentedBuffer segmented;

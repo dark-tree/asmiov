@@ -8,10 +8,11 @@ namespace asmio::riscv {
 
 		public:
 
-			const uint8_t reg;      // registry ARM code
+			const uint8_t reg; // registry Risc-V code
 
-			constexpr Registry(uint8_t reg)
-			: reg(reg) {}
+		public:
+
+			constexpr Registry(uint8_t reg) noexcept : reg(reg) {}
 
 	};
 

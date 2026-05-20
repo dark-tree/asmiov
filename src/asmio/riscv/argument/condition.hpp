@@ -5,13 +5,27 @@
 namespace asmio::riscv {
 
 	enum struct Condition : uint8_t {
-		EQ = 0x0,
-		NE = 0x1,
-		LT = 0x4,
-		GE = 0x5,
-		LTU = 0x6,
-		GEU = 0x7
+		EQ  = 0x00,
+		NE  = 0x01,
+		LT  = 0x04, GT  = 0x14,
+		GE  = 0x05, LE  = 0x15,
+		LTU = 0x06, GTU = 0x16,
+		GEU = 0x07, LEU = 0x17,
 	};
+
+	/**
+	 * Extract the condition code used during instruction encoding
+	 */
+	constexpr uint8_t get_condition_code(Condition cond) {
+		return static_cast<uint8_t>(cond) & 0xf;
+	}
+
+	/**
+	 * Check if during instruction encoding this condition requires inverting the arguments
+	 */
+	constexpr bool get_condition_swap(Condition cond) {
+		return static_cast<uint8_t>(cond) & 0x10;
+	}
 
 	inline Condition parse_condition_enum(const std::string_view& view) {
 		if (view == "eq") return Condition::EQ;

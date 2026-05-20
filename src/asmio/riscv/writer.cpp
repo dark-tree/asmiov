@@ -176,7 +176,15 @@ namespace asmio::riscv {
 
 	void BufferWriter::put_b(Condition cond, Registry rs1, Registry rs2, const Label& label) {
 		buffer.add_linkage(label, LinkageType::RISCV_BRANCH);
-		put_inst_b(0, rs2, rs1, static_cast<int>(cond), 0b1100011);
+
+		Registry* rp1 = &rs1;
+		Registry* rp2 = &rs2;
+
+		if (get_condition_swap(cond)) {
+			std::swap(rp1, rp2);
+		}
+
+		put_inst_b(0,*rp2, *rp1, get_condition_code(cond), 0b1100011);
 	}
 
 	void BufferWriter::put_jal(const Label& label) {
@@ -217,19 +225,19 @@ namespace asmio::riscv {
 	}
 
 	void BufferWriter::put_bgt(Registry rs1, Registry rs2, const Label& label) {
-		put_blt(rs2, rs1, label);
+		put_b(Condition::GT, rs1, rs2, label);
 	}
 
 	void BufferWriter::put_ble(Registry rs1, Registry rs2, const Label& label) {
-		put_bge(rs2, rs1, label);
+		put_b(Condition::LE, rs1, rs2, label);
 	}
 
 	void BufferWriter::put_bgtu(Registry rs1, Registry rs2, const Label& label) {
-		put_bltu(rs2, rs1, label);
+		put_b(Condition::GTU, rs1, rs2, label);
 	}
 
 	void BufferWriter::put_bleu(Registry rs1, Registry rs2, const Label& label) {
-		put_bgeu(rs2, rs1, label);
+		put_b(Condition::LEU, rs1, rs2, label);
 	}
 
 	void BufferWriter::put_lui(Registry rd, uint32_t imm) {

@@ -55,4 +55,37 @@ namespace asmio::riscv {
 	constexpr Registry X30 = X(30);
 	constexpr Registry X31 = X(31);
 
+	// register name aliases
+	constexpr Registry RA = X1;
+	constexpr Registry SP = X2;
+	constexpr Registry GP = X3;
+	constexpr Registry TP = X4;
+	constexpr Registry T0 = X5;
+	constexpr Registry T1 = X6;
+	constexpr Registry T2 = X7;
+	constexpr Registry S0 = X8;
+	constexpr Registry S1 = X9;
+	constexpr Registry A0 = X10;
+	constexpr Registry A1 = X11;
+	constexpr Registry A2 = X12;
+	constexpr Registry A3 = X13;
+	constexpr Registry A4 = X14;
+	constexpr Registry A5 = X15;
+	constexpr Registry A6 = X16;
+	constexpr Registry A7 = X17;
+	constexpr Registry S2 = X18;
+	constexpr Registry S3 = X19;
+	constexpr Registry S4 = X20;
+	constexpr Registry S5 = X21;
+	constexpr Registry S6 = X22;
+	constexpr Registry S7 = X23;
+	constexpr Registry S8 = X24;
+	constexpr Registry S9 = X25;
+	constexpr Registry S10 = X26;
+	constexpr Registry S11 = X27;
+	constexpr Registry T3 = X28;
+	constexpr Registry T4 = X29;
+	constexpr Registry T5 = X30;
+	constexpr Registry T6 = X31;
+
 }

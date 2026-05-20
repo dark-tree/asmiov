@@ -9,6 +9,20 @@ namespace test {
 	using namespace asmio;
 	using namespace asmio::riscv;
 
+	TEST (rv32i_check_nop) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_nop();
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x13, 0x00, 0x00, 0x00};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	}
+
 	TEST (rv32i_check_add) {
 
 		SegmentedBuffer segmented;
@@ -187,6 +201,23 @@ namespace test {
 		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
+
+	TEST (rv32i_check_aliases) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_mov(X11, X12);
+		writer.put_neg(X12, X13);
+		writer.put_not(X12, X13);
+		writer.put_ret();
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0x93, 0x05, 0x06, 0x00, 0x33, 0x06, 0xd0, 0x40, 0x13, 0xc6, 0xf6, 0xff, 0x67, 0x80, 0x00, 0x00};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	}
 
 	TEST (rv32m_check) {
 

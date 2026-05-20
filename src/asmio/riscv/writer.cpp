@@ -304,4 +304,36 @@ namespace asmio::riscv {
 		put_inst_r(0x01, rs2, rs1, 0x7, rd, 0b0111011);
 	}
 
+	void BufferWriter::put_mov(Registry rd, Registry rs) {
+		put_add(rd, rs, 0);
+	}
+
+	void BufferWriter::put_nop() {
+		put_add(X0, X0, 0);
+	}
+
+	void BufferWriter::put_not(Registry rd, Registry rs) {
+		put_xor(rd, rs, -1);
+	}
+
+	void BufferWriter::put_neg(Registry rd, Registry rs) {
+		put_sub(rd, X0, rs);
+	}
+
+	void BufferWriter::put_j(const Label& label) {
+		put_jal(X0, label);
+	}
+
+	void BufferWriter::put_jr(Registry rs) {
+		put_jalr(X0, rs);
+	}
+
+	void BufferWriter::put_jlr(Registry rd, Registry rs) {
+		put_jalr(rd, rs);
+	}
+
+	void BufferWriter::put_ret() {
+		put_jalr(X0, X1, 0);
+	}
+
 }

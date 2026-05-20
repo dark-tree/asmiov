@@ -90,6 +90,16 @@ namespace asmio::riscv {
 			INST put_remd(Registry rd, Registry rs1, Registry rs2); ///< Get reminder of dword rs1 and rs2 division, store result in rd
 			INST put_remud(Registry rd, Registry rs1, Registry rs2); ///< Get reminder of dword rs1 and rs2 unsigned division, store result in rd
 
+			// Aliasses
+			INST put_mov(Registry rd, Registry rs); ///< Copy value from rs to rd
+			INST put_nop(); ///< No Operation
+			INST put_not(Registry rd, Registry rs); ///< Invert bits
+			INST put_neg(Registry rd, Registry rs); ///< Negate two-complement number
+			INST put_j(const Label& label); ///< Jump
+			INST put_jr(Registry rs); ///< Jump register
+			INST put_jlr(Registry rd, Registry rs); ///< Jump register with link
+			INST put_ret(); ///< Return
+
 	};
 
 }

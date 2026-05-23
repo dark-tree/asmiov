@@ -79,6 +79,25 @@ namespace asmio::riscv {
 		return parse_condition_enum(raw);
 	}
 
+	template <>
+	Order parse_argument(TokenStream stream) {
+		const Token& token = stream.expect(Token::NAME);
+		std::string raw = util::to_lower(token.raw);
+
+		return parse_order_enum(raw);
+	}
+
+	template <>
+	Size parse_argument(TokenStream stream) {
+		const Token& token = stream.expect(Token::NAME);
+		std::string raw = util::to_lower(token.raw);
+
+		if (raw == "dword") return DWORD;
+		if (raw == "qword") return QWORD;
+
+		throw std::runtime_error {"Invalid size"};
+	}
+
 #	include "generated/riscv.hpp"
 
 	/*

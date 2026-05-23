@@ -258,4 +258,38 @@ namespace test {
 
 	};
 
+	TEST (rv64a_check) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_lr(T0, T1, DWORD, Order::ACQUIRE);
+		writer.put_lr(T6, T5, QWORD, Order::RELEASE);
+		writer.put_sc(T0, T1, T2, DWORD, Order::NONE);
+
+		writer.put_amoswap(T0, T1, T2, DWORD, Order::ACQUIRE);
+		writer.put_amoadd(T0, T1, T2, QWORD, Order::RELEASE);
+		writer.put_amoand(T0, T1, T2, DWORD, Order::ACQUIRE_RELEASE);
+		writer.put_amoor(T0, T1, T2, QWORD, Order::NONE);
+		writer.put_amoxor(T0, T1, T2, DWORD, Order::ACQUIRE);
+		writer.put_amomax(T0, T1, T2, QWORD, Order::RELEASE);
+		writer.put_amomin(T0, T1, T2, DWORD, Order::ACQUIRE_RELEASE);
+		writer.put_amomaxu(T0, T1, T2, QWORD, Order::NONE);
+		writer.put_amominu(T0, T1, T2, DWORD, Order::ACQUIRE);
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_amomin(T0, T1, T2, WORD, Order::NONE);
+		};
+
+		EXPECT_THROW(std::runtime_error) {
+			writer.put_amomin(T0, T1, T2, BYTE, Order::NONE);
+		};
+
+		segmented.link(0);
+		std::vector<uint8_t> s0 = {0xaf, 0x22, 0x03, 0x14, 0xaf, 0x3f, 0x0f, 0x12, 0xaf, 0x22, 0x73, 0x18, 0xaf, 0x22, 0x73, 0x0c, 0xaf, 0x32, 0x73, 0x02, 0xaf, 0x22, 0x73, 0x66, 0xaf, 0x32, 0x73, 0x40, 0xaf, 0x22, 0x73, 0x24, 0xaf, 0x32, 0x73, 0xa2, 0xaf, 0x22, 0x73, 0x86, 0xaf, 0x32, 0x73, 0xe0, 0xaf, 0x22, 0x73, 0xc4};
+		CHECK(segmented.segments()[0].buffer, s0); // .rwx
+
+	};
+
 }

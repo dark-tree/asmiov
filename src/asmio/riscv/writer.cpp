@@ -48,6 +48,20 @@ namespace asmio::riscv {
 		put_dword(si << 31 | lo << 21 | b2 << 20 | hi << 12 | rd.reg << 7 | (opc7 & 0b1111111));
 	}
 
+	void BufferWriter::put_inst_a(uint8_t func5, Registry rs2, Registry rs1, Size size, Registry rd, Order order) {
+		uint8_t func3;
+
+		if (size == DWORD) {
+			func3 = 0b010;
+		} else if (size == QWORD) {
+			func3 = 0b011;
+		} else {
+			throw std::runtime_error {"Invalid operand, atomic operation size must be dword or qword"};
+		}
+
+		put_inst_r(func5 << 2 | static_cast<uint8_t>(order), rs2, rs1, func3, rd, 0b0101111);
+	}
+
 	void BufferWriter::put_add(Registry rd, Registry rs, int16_t imm12) {
 		put_inst_i(imm12, rs, 0x0, rd, 0b0010011);
 	}
@@ -302,6 +316,50 @@ namespace asmio::riscv {
 
 	void BufferWriter::put_remud(Registry rd, Registry rs1, Registry rs2) {
 		put_inst_r(0x01, rs2, rs1, 0x7, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_lr(Registry rd, Registry rs, Size s, Order order) {
+		put_inst_a(0x02, X0, rs, s, rd, order);
+	}
+
+	void BufferWriter::put_sc(Registry rd, Registry rt, Registry rs, Size s, Order order) {
+		put_inst_a(0x03, rs, rt, s, rd, order);
+	}
+
+	void BufferWriter::put_amoswap(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x01, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amoadd(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x00, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amoand(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x0C, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amoor(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x08, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amoxor(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x04, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amomax(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x14, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amomin(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x10, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amomaxu(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x1C, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amominu(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x18, val, ptr, s, old, order);
 	}
 
 	void BufferWriter::put_mov(Registry rd, Registry rs) {

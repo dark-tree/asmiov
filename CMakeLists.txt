@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 2.28...3.31)
 project(ASMIOV C CXX)
 include(FetchContent)
 
@@ -7,17 +7,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Python3 COMPONENTS Interpreter)
 
+option(USE_MOLD "Use mold linker if installed" ON)
+
 # Use the mold linker automatically for GCC if available,
 # as it is faster, more modern, and produces better errors.
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-	find_program(MOLD_PROGRAM mold)
+if (USE_MOLD)
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		find_program(MOLD_PROGRAM mold)
 
-	if (MOLD_PROGRAM)
-		message(STATUS "The MOLD linker was found: ${MOLD_PROGRAM}")
-		set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=mold")
-		set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=mold")
-	else()
-		message(STATUS "The MOLD linker was NOT found!")
+		if (MOLD_PROGRAM)
+			message(STATUS "The MOLD linker was found: ${MOLD_PROGRAM}")
+			set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=mold")
+			set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=mold")
+		else()
+			message(STATUS "The MOLD linker was NOT found!")
+		endif()
 	endif()
 endif()
 

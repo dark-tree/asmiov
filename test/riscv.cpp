@@ -1,5 +1,6 @@
 #include <asmio/riscv/module.hpp>
 #include <asmio/riscv/writer.hpp>
+#include <asmio/program/executable.hpp>
 
 #include "test.hpp"
 #include "vstl.hpp"
@@ -291,5 +292,81 @@ namespace test {
 		CHECK(segmented.segments()[0].buffer, s0); // .rwx
 
 	};
+
+	/*
+	 * region Executable
+	 * Begin architecture depended tests for Risc-V
+	 */
+
+#if ARCH_RISCV64
+
+	TEST (riscv_exec_leaf_function) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_add(A0, X0, 42);
+		writer.put_ret();
+
+		auto exe = to_executable(segmented);
+		CHECK(exe.call_u64(), 42);
+
+	};
+
+	TEST (riscv_exec_nop_neg) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_nop();
+		writer.put_add(T0, X0, 7);
+		writer.put_neg(A0, T0);
+		writer.put_ret();
+
+		auto exe = to_executable(segmented);
+		CHECK(exe.call_i64(), -7);
+
+	};
+
+	TEST (riscv_exec_jump) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_j("skip_30");
+		writer.put_add(A0, X0, 30);
+		writer.put_ret();
+
+		writer.label("skip_30");
+		writer.put_add(A0, X0, 40);
+		writer.put_ret();
+
+		auto exe = to_executable(segmented);
+		CHECK(exe.call_u64(), 40);
+
+	};
+
+	TEST (riscv_exec_multiply) {
+
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_add(T0, X0, 11);
+		writer.put_add(T1, X0, 4);
+		writer.put_add(T2, X0, 3);
+		writer.put_or(T1, T1, T2);
+		writer.put_mul(A0, T0, T1);
+		writer.put_ret();
+
+		auto exe = to_executable(segmented);
+		CHECK(exe.call_u64(), 77);
+
+	};
+
+#endif
 
 }

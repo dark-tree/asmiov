@@ -33,6 +33,10 @@ namespace asmio {
 #if ARCH_X86
 		NATIVE = X86_64,
 #endif
+
+#if ARCH_RISCV64
+		NATIVE = RISCV,
+#endif
 	};
 
 	enum struct ElfClass : uint8_t {

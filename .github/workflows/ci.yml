@@ -22,23 +22,24 @@ jobs:
         run: cd build && ./test
 
   linux-qemu-riscv:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: uraimo/run-on-arch-action@v3
+        name: Run commands
+        with:
+          arch: riscv64
+          distro: ubuntu24.04
+          shell: /bin/sh
 
-      - name: Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-riscv64-linux-gnu g++-riscv64-linux-gnu binutils-riscv64-linux-gnu qemu-system-riscv64 qemu-user qemu-user-static
+          install: |
+            apt-get update
+            apt-get install -y cmake g++ git python3
 
-      - name: Configure
-        run: cmake -B build -DCMAKE_C_COMPILER=riscv64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=riscv64-linux-gnu-g++
-
-      - name: Build
-        run: cmake --build build
-
-      - name: Test RiscV
-        run: cd build && qemu-riscv64 -L /usr/riscv64-linux-gnu ./test
+          run: |
+            cmake -B build
+            cmake --build build
+            cd build && ./test
 
   linux-aarch64:
     runs-on: ubuntu-24.04-arm

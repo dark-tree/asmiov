@@ -41,6 +41,16 @@
 #	define ARCH_AARCH64 false
 #endif
 
-#if !(ARCH_X86 || ARCH_AARCH64)
+#if defined(__riscv)
+#	if (__riscv_xlen == 64)
+#		define ARCH_RISCV64 true
+#	else
+#		define ARCH_RISCV64 false
+#	endif
+#else
+#	define ARCH_RISCV64 false
+#endif
+
+#if !(ARCH_X86 || ARCH_AARCH64 || ARCH_RISCV64)
 #	error "Unsupported target architecture!"
 #endif

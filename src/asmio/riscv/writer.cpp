@@ -1,0 +1,397 @@
+#include "writer.hpp"
+
+#include <asmio/program/linkage.hpp>
+
+namespace asmio::riscv {
+	/*
+	 * class BufferWriter
+	 */
+
+	BufferWriter::BufferWriter(SegmentedBuffer& buffer)
+		: BasicBufferWriter(buffer) {
+	}
+
+	void BufferWriter::put_inst_r(uint8_t func7, Registry rs2, Registry rs1, uint8_t func3, Registry rd, uint8_t opc7) {
+		put_dword((func7 & 0b1111111) << 25 | rs2.reg << 20 | rs1.reg << 15 | (func3 & 0b111) << 12 | rd.reg << 7 | (opc7 & 0b1111111));
+	}
+
+	void BufferWriter::put_inst_i(uint16_t imm12, Registry rs1, uint8_t func3, Registry rd, uint8_t opc7) {
+		put_dword((imm12 & 0xfff) << 20 | rs1.reg << 15 | (func3 & 0b111) << 12 | rd.reg << 7 | (opc7 & 0b1111111));
+	}
+
+	void BufferWriter::put_inst_s(uint16_t imm12, Registry rs2, Registry rs1, uint8_t func3, uint8_t opc7) {
+		const uint32_t hi = (imm12 & 0b1111111'00000) >> 5;
+		const uint32_t lo = (imm12 & 0b0000000'11111) >> 0;
+
+		put_dword(hi << 25 | rs2.reg << 20 | rs1.reg << 15 | (func3 & 0b111) << 12 | lo << 7 | (opc7 & 0b1111111));
+	}
+
+	void BufferWriter::put_inst_b(uint16_t imm12, Registry rs2, Registry rs1, uint8_t func3, uint8_t opc7) {
+		const uint32_t si = (imm12 & 0b1'0'000000'0000) >> 11;
+		const uint32_t b7 = (imm12 & 0b0'1'000000'0000) >> 10;
+		const uint32_t hi = (imm12 & 0b0'0'111111'0000) >> 4;
+		const uint32_t lo = (imm12 & 0b0'0'000000'1111) >> 0;
+
+		put_dword(si << 31 | hi << 25 | rs2.reg << 20 | rs1.reg << 15 | (func3 & 0b111) << 12 | lo << 8 | b7 << 7 | (opc7 & 0b1111111));
+	}
+
+	void BufferWriter::put_inst_u(uint32_t imm20, Registry rd, uint8_t opc7) {
+		put_dword(imm20 << 12 | rd.reg << 7 | (opc7 & 0b1111111));
+	}
+
+	void BufferWriter::put_inst_j(uint32_t imm20, Registry rd, uint8_t opc7) {
+		const uint32_t si = (imm20 & 0b1'00000000'0'0000000000) >> 19;
+		const uint32_t hi = (imm20 & 0b0'11111111'0'0000000000) >> 11;
+		const uint32_t b2 = (imm20 & 0b0'00000000'1'0000000000) >> 10;
+		const uint32_t lo = (imm20 & 0b0'00000000'0'1111111111) >> 0;
+
+		put_dword(si << 31 | lo << 21 | b2 << 20 | hi << 12 | rd.reg << 7 | (opc7 & 0b1111111));
+	}
+
+	void BufferWriter::put_inst_a(uint8_t func5, Registry rs2, Registry rs1, Size size, Registry rd, Order order) {
+		uint8_t func3;
+
+		if (size == DWORD) {
+			func3 = 0b010;
+		} else if (size == QWORD) {
+			func3 = 0b011;
+		} else {
+			throw std::runtime_error {"Invalid operand, atomic operation size must be dword or qword"};
+		}
+
+		put_inst_r(func5 << 2 | static_cast<uint8_t>(order), rs2, rs1, func3, rd, 0b0101111);
+	}
+
+	void BufferWriter::put_add(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x0, rd, 0b0010011);
+	}
+
+	void BufferWriter::put_xor(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x4, rd, 0b0010011);
+	}
+
+	void BufferWriter::put_or(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x6, rd, 0b0010011);
+	}
+
+	void BufferWriter::put_and(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x7, rd, 0b0010011);
+	}
+
+	void BufferWriter::put_sll(Registry rd, Registry rs, int16_t imm12) {
+		imm12 &= 0b0000000'11111;
+		put_inst_i(imm12, rs, 0x1, rd, 0b0010011);
+	}
+
+	void BufferWriter::put_srl(Registry rd, Registry rs, int16_t imm12) {
+		imm12 &= 0b0000000'11111;
+		put_inst_i(imm12, rs, 0x5, rd, 0b0010011);
+
+	}
+
+	void BufferWriter::put_sra(Registry rd, Registry rs, int16_t imm12) {
+		imm12 &= 0b0000000'11111;
+		imm12 |= 0b0100000'00000;
+		put_inst_i(imm12, rs, 0x5, rd, 0b0010011);
+
+	}
+
+	void BufferWriter::put_slt(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x2, rd, 0b0010011);
+	}
+
+	void BufferWriter::put_sltu(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x3, rd, 0b0010011);
+	}
+
+	void BufferWriter::put_add(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x00, rs2, rs1, 0x0, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_sub(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x20, rs2, rs1, 0x0, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_xor(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x00, rs2, rs1, 0x4, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_or(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x00, rs2, rs1, 0x6, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_and(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x00, rs2, rs1, 0x7, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_sll(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x00, rs2, rs1, 0x1, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_srl(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x00, rs2, rs1, 0x5, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_sra(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x20, rs2, rs1, 0x5, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_slt(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x00, rs2, rs1, 0x2, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_sltu(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x00, rs2, rs1, 0x3, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_lb(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x0, rd, 0b0000011);
+	}
+
+	void BufferWriter::put_lw(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x1, rd, 0b0000011);
+	}
+
+	void BufferWriter::put_ld(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x2, rd, 0b0000011);
+	}
+
+	void BufferWriter::put_lbu(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x4, rd, 0b0000011);
+	}
+
+	void BufferWriter::put_lwu(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x5, rd, 0b0000011);
+	}
+
+	void BufferWriter::put_ldu(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x6, rd, 0b0000011);
+	}
+
+	void BufferWriter::put_lq(Registry rd, Registry rs, int16_t imm12) {
+		put_inst_i(imm12, rs, 0x3, rd, 0b0000011);
+	}
+
+	void BufferWriter::put_sb(Registry rs1, Registry rs2, int16_t imm12) {
+		put_inst_s(imm12, rs1, rs2, 0x0, 0b0100011);
+	}
+
+	void BufferWriter::put_sw(Registry rs1, Registry rs2, int16_t imm12) {
+		put_inst_s(imm12, rs1, rs2, 0x1, 0b0100011);
+	}
+
+	void BufferWriter::put_sd(Registry rs1, Registry rs2, int16_t imm12) {
+		put_inst_s(imm12, rs1, rs2, 0x2, 0b0100011);
+	}
+
+	void BufferWriter::put_sq(Registry rs1, Registry rs2, int16_t imm12) {
+		put_inst_s(imm12, rs1, rs2, 0x3, 0b0100011);
+	}
+
+	void BufferWriter::put_b(Condition cond, Registry rs1, Registry rs2, const Label& label) {
+		buffer.add_linkage(label, LinkageType::RISCV_BRANCH);
+
+		Registry* rp1 = &rs1;
+		Registry* rp2 = &rs2;
+
+		if (get_condition_swap(cond)) {
+			std::swap(rp1, rp2);
+		}
+
+		put_inst_b(0,*rp2, *rp1, get_condition_code(cond), 0b1100011);
+	}
+
+	void BufferWriter::put_jal(const Label& label) {
+		put_jal(X1, label);
+	}
+
+	void BufferWriter::put_jal(Registry rd, const Label& label) {
+		buffer.add_linkage(label, LinkageType::RISCV_JUMP);
+		put_inst_j(0, rd, 0b1101111);
+	}
+
+	void BufferWriter::put_jalr(Registry rd, Registry rs, int16_t offset) {
+		put_inst_i(offset, rs, 0x0, rd, 0b1100111);
+	}
+
+	void BufferWriter::put_beq(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::EQ, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bne(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::NE, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_blt(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::LT, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bge(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::GE, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bltu(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::LTU, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bgeu(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::GEU, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bgt(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::GT, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_ble(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::LE, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bgtu(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::GTU, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_bleu(Registry rs1, Registry rs2, const Label& label) {
+		put_b(Condition::LEU, rs1, rs2, label);
+	}
+
+	void BufferWriter::put_lui(Registry rd, uint32_t imm) {
+		put_inst_u(imm, rd, 0b0110111);
+	}
+
+	void BufferWriter::put_ecall() {
+		put_inst_i(0, X0, 0x0, X0, 0b1110011);
+	}
+
+	void BufferWriter::put_ebreak() {
+		put_inst_i(1, X0, 0x0, X0, 0b1110011);
+	}
+
+	void BufferWriter::put_mul(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x0, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_mulh(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x1, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_mulhsu(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x2, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_mulhu(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x3, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_div(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x4, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_divu(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x5, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_rem(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x6, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_remu(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x7, rd, 0b0110011);
+	}
+
+	void BufferWriter::put_muld(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x0, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_divd(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x4, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_divud(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x5, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_remd(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x6, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_remud(Registry rd, Registry rs1, Registry rs2) {
+		put_inst_r(0x01, rs2, rs1, 0x7, rd, 0b0111011);
+	}
+
+	void BufferWriter::put_lr(Registry rd, Registry rs, Size s, Order order) {
+		put_inst_a(0x02, X0, rs, s, rd, order);
+	}
+
+	void BufferWriter::put_sc(Registry rd, Registry rt, Registry rs, Size s, Order order) {
+		put_inst_a(0x03, rs, rt, s, rd, order);
+	}
+
+	void BufferWriter::put_amoswap(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x01, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amoadd(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x00, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amoand(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x0C, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amoor(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x08, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amoxor(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x04, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amomax(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x14, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amomin(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x10, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amomaxu(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x1C, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_amominu(Registry old, Registry ptr, Registry val, Size s, Order order) {
+		put_inst_a(0x18, val, ptr, s, old, order);
+	}
+
+	void BufferWriter::put_mov(Registry rd, Registry rs) {
+		put_add(rd, rs, 0);
+	}
+
+	void BufferWriter::put_nop() {
+		put_add(X0, X0, 0);
+	}
+
+	void BufferWriter::put_not(Registry rd, Registry rs) {
+		put_xor(rd, rs, -1);
+	}
+
+	void BufferWriter::put_neg(Registry rd, Registry rs) {
+		put_sub(rd, X0, rs);
+	}
+
+	void BufferWriter::put_j(const Label& label) {
+		put_jal(X0, label);
+	}
+
+	void BufferWriter::put_jr(Registry rs) {
+		put_jalr(X0, rs);
+	}
+
+	void BufferWriter::put_jlr(Registry rd, Registry rs) {
+		put_jalr(rd, rs);
+	}
+
+	void BufferWriter::put_ret() {
+		put_jalr(X0, X1, 0);
+	}
+
+}

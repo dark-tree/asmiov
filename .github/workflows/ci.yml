@@ -1,12 +1,6 @@
 name: ci.yml
 
-on:
-  push:
-    branches: ['master', 'next']
-  pull_request:
-    types: [ opened, synchronize, reopened ]
-    branches: ['master', 'next']
-
+on: [ push, pull_request ]
 jobs:
   linux-x86:
     runs-on: ubuntu-latest
@@ -26,6 +20,26 @@ jobs:
 
       - name: Test x86
         run: cd build && ./test
+
+  linux-qemu-riscv:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: uraimo/run-on-arch-action@v3
+        name: Run commands
+        with:
+          arch: riscv64
+          distro: ubuntu24.04
+          shell: /bin/sh
+
+          install: |
+            apt-get update
+            apt-get install -y cmake g++ git python3
+
+          run: |
+            cmake -B build
+            cmake --build build
+            cd build && ./test
 
   linux-aarch64:
     runs-on: ubuntu-24.04-arm

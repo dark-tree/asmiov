@@ -2,6 +2,10 @@
 
 #include <string>
 #include <asmio/util/platform.hpp>
+#include <asmio/program/segmented.hpp>
+#include <asmio/elf/object.hpp>
+#include <asmio/elf/export.hpp>
+#include <asmio/util/tmp.hpp>
 
 namespace test {
 
@@ -20,7 +24,7 @@ namespace test {
 		asmio::ObjectFile baked = asmio::to_elf(buffer, asmio::Label::UNSET).bake();
 		asmio::util::TempFile temp {baked};
 
-		std::string out = asmio::call_shell("objdump --visualize-jumps -wxd " + extra_flags + temp.path());
+		std::string out = asmio::call_shell("riscv64-linux-gnu-objdump --visualize-jumps -wxd " + extra_flags + temp.path());
 		printf("%s\n", out.c_str());
 
 		printf("\nAuto-generated assertions:\n\n");

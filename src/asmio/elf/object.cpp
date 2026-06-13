@@ -2,6 +2,7 @@
 #include "object.hpp"
 
 #include <filesystem>
+#include <unistd.h>
 #include <asmio/util/platform.hpp>
 
 namespace asmio {

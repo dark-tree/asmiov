@@ -5,8 +5,7 @@
 namespace asmio::riscv {
 
 	enum struct Condition : uint8_t {
-		EQ  = 0x00,
-		NE  = 0x01,
+		EQ  = 0x00, NE  = 0x01,
 		LT  = 0x04, GT  = 0x14,
 		GE  = 0x05, LE  = 0x15,
 		LTU = 0x06, GTU = 0x16,
@@ -32,8 +31,12 @@ namespace asmio::riscv {
 		if (view == "ne") return Condition::NE;
 		if (view == "lt") return Condition::LT;
 		if (view == "ge") return Condition::GE;
+		if (view == "gt") return Condition::GT;
+		if (view == "le") return Condition::LE;
 		if (view == "ltu") return Condition::LTU;
 		if (view == "geu") return Condition::GEU;
+		if (view == "gtu") return Condition::GTU;
+		if (view == "leu") return Condition::LEU;
 
 		throw std::runtime_error {"Invalid condition enumeration"};
 	}

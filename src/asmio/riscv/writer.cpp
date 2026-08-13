@@ -198,7 +198,7 @@ namespace asmio::riscv {
 			std::swap(rp1, rp2);
 		}
 
-		put_inst_b(0,*rp2, *rp1, get_condition_code(cond), 0b1100011);
+		put_inst_b(0, *rp2, *rp1, get_condition_code(cond), 0b1100011);
 	}
 
 	void BufferWriter::put_jal(const Label& label) {

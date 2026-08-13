@@ -95,6 +95,56 @@ namespace asmio::x86 {
 	};
 
 	/*
+	 * Windows x86-64 calling convention:
+	 * RAX - temporary register
+	 * RCX - temporary register
+	 * RDX - temporary register
+	 * R8  - temporary register
+	 * R9  - temporary register
+	 * R10 - temporary register
+	 * R11 - temporary register
+	 *
+	 * RBX - saved register
+	 * RBP - saved register
+	 * RDI - saved register
+	 * RSI - saved register
+	 * RSP - saved register
+	 * R12 - saved register
+	 * R13 - saved register
+	 * R14 - saved register
+	 * R15 - saved register
+	 *
+	 * Aditionally when a function is called the stack needs to be 16-aligned,
+	 * and a shadow space of 32 bytes needs to be allocated on it. Extra arguments
+	 * are pushed onto the stack after the scrach space.
+	 */
+
+	/*
+	 * Linux (and Unix-like) x86-64 calling convention:
+	 * RAX - temporary register
+	 * RDI - temporary register (return value pointer)
+	 * RSI - temporary register
+	 * RDX - temporary register
+	 * RCX - temporary register
+	 * R8  - temporary register
+	 * R9  - temporary register
+	 * R10 - temporary register (link register)
+	 * R11 - temporary register
+	 *
+	 * RBX - saved register
+	 * RBP - saved register
+	 * RSP - saved register
+	 * R12 - saved register
+	 * R13 - saved register
+	 * R14 - saved register
+	 * R15 - saved register
+	 *
+	 * Return value is stored in RAX:RDX, or in the space pointed to by RDI.
+	 * Leaf function can use 128 bytes of stack without allocating it (a so called
+	 * red-zone), as system first substracts that many bytes before touching the stack.
+	 */
+
+	/*
 	 * i386
 	 */
 

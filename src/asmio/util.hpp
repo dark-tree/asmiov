@@ -259,11 +259,43 @@ namespace asmio::util {
 	}
 
 	/**
-	 * Count the number of 'ones' form the leading (most
+	 * Count the number of 'zeros' form the trailing (least
+	 * significant) side of a number.
+	 */
+	constexpr int count_trailing_zeros(uint64_t value) {
+		return __builtin_ctzll(value);
+	}
+
+	/**
+	 * Count the number of 'ones' form the trailing (least
 	 * significant) side of a number.
 	 */
 	constexpr int count_trailing_ones(uint64_t value) {
-		return __builtin_ctzll(~value); // ctz(~x) == cto(x)
+		return count_trailing_zeros(~value); // ctz(~x) == cto(x)
+	}
+
+	/**
+	 * Count the number of 'zeros' form the leading (most
+	 * significant) side of a number.
+	 */
+	constexpr int count_leading_zeros(uint64_t value) {
+		return __builtin_clzll(value);
+	}
+
+	/**
+	 * Count the number of 'ones' form the leading (most
+	 * significant) side of a number.
+	 */
+	constexpr int count_leading_ones(uint64_t value) {
+		return count_leading_zeros(~value); // clz(~x) == clo(x)
+	}
+
+	/**
+	 * Count the number of repeating bits form the leading (most
+	 * significant) side of a number.
+	 */
+	constexpr int count_leading(uint64_t value) {
+		return std::max(count_leading_zeros(value), count_leading_ones(value));
 	}
 
 	/**

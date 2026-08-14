@@ -28,9 +28,9 @@ namespace asmio::riscv {
 			INST put_xor(Registry rd, Registry rs, int16_t imm12); ///< Bitwise XOR 12 bit immediate rs and save result to rd
 			INST put_or(Registry rd, Registry rs, int16_t imm12); ///< Bitwise OR 12 bit immediate rs and save result to rd
 			INST put_and(Registry rd, Registry rs, int16_t imm12); ///< Bitwise AND 12 bit immediate rs and save result to rd
-			INST put_sll(Registry rd, Registry rs, int16_t imm12); ///< Shift register rs left by a 12 bit immediate and save result to rd
-			INST put_srl(Registry rd, Registry rs, int16_t imm12); ///< Shift register rs right logically by a 12 bit immediate and save result to rd
-			INST put_sra(Registry rd, Registry rs, int16_t imm12); ///< Shift register rs right arythetically by a 12 bit immediate and save result to rd
+			INST put_sll(Registry rd, Registry rs, int16_t imm5); ///< Shift register rs left by a 12 bit immediate and save result to rd
+			INST put_srl(Registry rd, Registry rs, int16_t imm5); ///< Shift register rs right logically by a 12 bit immediate and save result to rd
+			INST put_sra(Registry rd, Registry rs, int16_t imm5); ///< Shift register rs right arythetically by a 12 bit immediate and save result to rd
 			INST put_slt(Registry rd, Registry rs, int16_t imm12); ///< Set rd to 1 if rs is less than a 12 bit immediate, and to 0 otherwise (signed)
 			INST put_sltu(Registry rd, Registry rs, int16_t imm12); ///< Set rd to 1 if rs1 is less than a 12 bit immediate, and to 0 otherwise (unsigned)
 			INST put_add(Registry rd, Registry rs1, Registry rs2); ///< Add register rs1 to rs2 and save result to rd
@@ -68,7 +68,7 @@ namespace asmio::riscv {
 			INST put_ble(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 <= rs2
 			INST put_bgtu(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 > rs2 (zero-extended)
 			INST put_bleu(Registry rs1, Registry rs2, const Label& label); ///< Branch if rs1 <= rs2 (zero-extended)
-			INST put_lui(Registry rd, uint32_t imm); ///< Load an upper constant to register, rd = imm << 12
+			INST put_lui(Registry rd, uint32_t imm20); ///< Load an upper constant to register, rd = imm << 12
 			INST put_ecall(); ///< Environment Call
 			INST put_ebreak(); ///< Environment Break
 
@@ -102,6 +102,7 @@ namespace asmio::riscv {
 
 			// Aliases
 			INST put_mov(Registry rd, Registry rs); ///< Copy value from rs to rd
+			INST put_mov(Registry rd, uint64_t imm); ///< Load immediate into rd
 			INST put_nop(); ///< No Operation
 			INST put_not(Registry rd, Registry rs); ///< Invert bits
 			INST put_neg(Registry rd, Registry rs); ///< Negate two-complement number

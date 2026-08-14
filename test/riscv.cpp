@@ -367,6 +367,61 @@ namespace test {
 
 	};
 
+	TEST (riscv_exec_lui) {
+		SegmentedBuffer segmented;
+		BufferWriter writer {segmented};
+		segmented.elf_machine = ElfMachine::RISCV;
+
+		writer.put_or(A0, X0, 42);
+		writer.put_lui(A0, 0xfffff);
+		writer.put_sll(A0, A0, 4);
+		writer.put_add(A0, A0, 0x7ff);
+		writer.put_ret();
+
+		auto exe = to_executable(segmented);
+		CHECK(exe.call_u64(), 0xffffffffffff07ff);
+	};
+
+	TEST (riscv_exec_mov_imm) {
+
+		auto verify = [] (uint64_t value, uint32_t instructions) {
+
+			SegmentedBuffer segmented;
+			BufferWriter writer {segmented};
+			segmented.elf_machine = ElfMachine::RISCV;
+
+			writer.put_or(A0, X0, 0xABC);
+			const uint32_t start = segmented.current().offset;
+			writer.put_mov(A0, value);
+			const uint32_t end = segmented.current().offset;
+
+			writer.put_ret();
+
+			auto exe = to_executable(segmented);
+
+			// "0x00" added as VSTL formatting hint
+			CHECK(exe.call_u64(), 0x00 + value);
+			CHECK((end - start), (instructions * 4));
+
+		};
+
+		verify(0, 1);
+		verify(1, 1);
+		verify(-1, 1);
+		verify(0x7ff, 1);
+		verify(0xfff, 2);
+		verify(0x8bcd'1234, 4);
+		verify(0x7bcd'1234, 2);
+		verify(0x7bcd'7fff, 2);
+		verify(0x1234'1234'1234'1234, 8);
+		verify(0xffff'ffff'8223'4523, 2);
+		verify(0xffff'ff12'3452'3123, 4);
+		verify(0x5555'0000'0044'4444, 5);
+		verify(0x66666'000, 1);
+		verify(0x1000'0000'0000'0001, 3);
+
+	};
+
 #endif
 
 }

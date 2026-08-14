@@ -32,6 +32,15 @@ namespace test {
 
 	};
 
+	TEST (unit_count_trailing) {
+
+		CHECK(util::count_trailing_zeros(0b11100), 2);
+		CHECK(util::count_trailing_zeros(0b11011), 0);
+		CHECK(util::count_trailing_ones(0b11100), 0);
+		CHECK(util::count_trailing_ones(0b11011), 2);
+
+	};
+
 	TEST (unit_label_string_view) {
 
 		std::string base = "aaabbb";

@@ -3,6 +3,7 @@
 #include <asmio/program/linkage.hpp>
 
 namespace asmio::riscv {
+
 	/*
 	 * class BufferWriter
 	 */
@@ -36,7 +37,7 @@ namespace asmio::riscv {
 	}
 
 	void BufferWriter::put_inst_u(uint32_t imm20, Registry rd, uint8_t opc7) {
-		put_dword(imm20 << 12 | rd.reg << 7 | (opc7 & 0b1111111));
+		put_dword((imm20 & 0xfffff) << 12 | rd.reg << 7 | (opc7 & 0b1111111));
 	}
 
 	void BufferWriter::put_inst_j(uint32_t imm20, Registry rd, uint8_t opc7) {
@@ -78,22 +79,20 @@ namespace asmio::riscv {
 		put_inst_i(imm12, rs, 0x7, rd, 0b0010011);
 	}
 
-	void BufferWriter::put_sll(Registry rd, Registry rs, int16_t imm12) {
-		imm12 &= 0b0000000'11111;
-		put_inst_i(imm12, rs, 0x1, rd, 0b0010011);
+	void BufferWriter::put_sll(Registry rd, Registry rs, int16_t imm5) {
+		imm5 &= 0b000000'111111;
+		put_inst_i(imm5, rs, 0x1, rd, 0b0010011);
 	}
 
-	void BufferWriter::put_srl(Registry rd, Registry rs, int16_t imm12) {
-		imm12 &= 0b0000000'11111;
-		put_inst_i(imm12, rs, 0x5, rd, 0b0010011);
-
+	void BufferWriter::put_srl(Registry rd, Registry rs, int16_t imm5) {
+		imm5 &= 0b000000'111111;
+		put_inst_i(imm5, rs, 0x5, rd, 0b0010011);
 	}
 
-	void BufferWriter::put_sra(Registry rd, Registry rs, int16_t imm12) {
-		imm12 &= 0b0000000'11111;
-		imm12 |= 0b0100000'00000;
-		put_inst_i(imm12, rs, 0x5, rd, 0b0010011);
-
+	void BufferWriter::put_sra(Registry rd, Registry rs, int16_t imm5) {
+		imm5 &= 0b000000'111111;
+		imm5 |= 0b010000'000000;
+		put_inst_i(imm5, rs, 0x5, rd, 0b0010011);
 	}
 
 	void BufferWriter::put_slt(Registry rd, Registry rs, int16_t imm12) {
@@ -254,8 +253,8 @@ namespace asmio::riscv {
 		put_b(Condition::LEU, rs1, rs2, label);
 	}
 
-	void BufferWriter::put_lui(Registry rd, uint32_t imm) {
-		put_inst_u(imm, rd, 0b0110111);
+	void BufferWriter::put_lui(Registry rd, uint32_t imm20) {
+		put_inst_u(imm20, rd, 0b0110111);
 	}
 
 	void BufferWriter::put_ecall() {
@@ -364,6 +363,83 @@ namespace asmio::riscv {
 
 	void BufferWriter::put_mov(Registry rd, Registry rs) {
 		put_add(rd, rs, 0);
+	}
+
+	void BufferWriter::put_mov(Registry rd, uint64_t imm64) {
+		auto value = static_cast<int64_t>(imm64);
+
+		if (imm64 == 0) {
+			put_and(rd, X0, 0);
+			return;
+		}
+
+		if (util::is_signed_encodable(value, 12)) {
+			put_add(rd, X0, static_cast<int16_t>(imm64 & 0xfff));
+			return;
+		}
+
+		// technically 4 would be fine, 6 if we ignore that we also have to fit LUI, using 8 to be safe
+		int16_t parts[8] = {};
+		int64_t index = 0;
+
+		while (true) {
+
+			// subtract one as the sign bit still needs to exist
+			int64_t heading = util::count_leading(value) - 1;
+
+			// how many bits still cary some meaning
+			int64_t bits = 64 - heading;
+
+			// finish encoding and begin writing with the mandatory LUI
+			if ((bits <= 20) && (index != 0)) {
+				put_lui(rd, value);
+				break;
+			}
+
+			// next part, offset to account for the borrow from the previous part
+			auto imm12 = static_cast<int16_t>(value & 0xfff);
+
+			parts[index ++] = imm12;
+			value = value >> 12;
+
+			// If the high bit of the lower immediate is set the 12 bit lower immediate
+			// will be negative thus forcing us to make the next constant one larger to offset the borrow.
+			// This is fine even with overflow - 0xfffff will overflow to 0x00000, then, when subtracted, return to 0xfffff.
+			if (imm12 & 0x800) {
+				value += 1;
+			}
+
+		}
+
+		int16_t shift = 0;
+
+		while (index > 0) {
+			index --;
+
+			int16_t chunk = parts[index];
+
+			// ship empty chunks
+			if (chunk != 0) {
+
+				// apply the accumulated shift
+				if (shift > 0) {
+					put_sll(rd, rd, shift);
+					shift = 0;
+				}
+
+				put_add(rd, rd, chunk);
+			}
+
+			shift += 12;
+		}
+
+		// undo the last shift increment
+		shift -= 12;
+
+		if (shift > 0) {
+			put_sll(rd, rd, shift);
+		}
+
 	}
 
 	void BufferWriter::put_nop() {

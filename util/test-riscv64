@@ -1,0 +1,6 @@
+#!/bin/env bash
+
+docker build --platform="linux/riscv64" -f util/Dockerfile -t asmiov/riscv64 .
+
+BUILD_DIR="docker-build-riscv64"
+docker run --rm -it -v "$PWD:/src" -w /src asmiov/riscv64 bash -c "cmake -B $BUILD_DIR . && cmake --build $BUILD_DIR -j\$(nproc) && cd $BUILD_DIR && ./test"

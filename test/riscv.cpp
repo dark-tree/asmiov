@@ -422,6 +422,28 @@ namespace test {
 
 	};
 
+	TEST (riscv_exec_mov_fuzzer) {
+
+		for (int i = 0; i < 5000; i ++) {
+			uint64_t value = vstl_self.random.next();
+
+			SegmentedBuffer segmented;
+			BufferWriter writer {segmented};
+			segmented.elf_machine = ElfMachine::RISCV;
+
+			writer.put_and(A0, X0, 0);
+			writer.put_mov(A0, value);
+			writer.put_ret();
+
+			auto exe = to_executable(segmented);
+
+			// "0x00" added as VSTL formatting hint
+			CHECK(exe.call_u64(), 0x00 + value);
+			CHECK(exe.call_u64(), 0x00 + value);
+		}
+
+	};
+
 #endif
 
 }

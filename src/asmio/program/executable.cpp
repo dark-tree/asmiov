@@ -2,6 +2,7 @@
 #include "executable.hpp"
 
 #include <asmio/util/platform.hpp>
+#include <asmio/util.hpp>
 
 namespace asmio {
 

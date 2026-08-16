@@ -16,7 +16,7 @@ namespace asmio {
 	}
 
 	void DwarfAbbrevHeader::rehash(const DwarfFormatedAttributeEntry* attribute_array) {
-		hash = util::hash_djb2(reinterpret_cast<const char*>(attribute_array), size);
+		hash = util::djb2(reinterpret_cast<const char*>(attribute_array), size);
 		hash ^= (static_cast<int>(tag) * 31) ^ (children * 109);
 	}
 

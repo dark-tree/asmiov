@@ -2,7 +2,7 @@
 
 #include <asmio/util/refcnt.hpp>
 #include <asmio/external.hpp>
-#include <asmio/util.hpp>
+#include <asmio/util/hash.hpp>
 
 namespace asmio {
 
@@ -32,7 +32,7 @@ namespace asmio {
 			uint32_t hash;
 
 			constexpr explicit Label(uint64_t id)
-				: id(id), allocated(false), length(0), hash(util::hash_tmix64(id)) {
+				: id(id), allocated(false), length(0), hash(util::tmix64(id)) {
 			}
 
 		public:

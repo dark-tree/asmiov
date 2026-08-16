@@ -1,6 +1,7 @@
 #include "writer.hpp"
 
 #include <asmio/program/linkage.hpp>
+#include <asmio/util/bits.hpp>
 
 namespace asmio::riscv {
 

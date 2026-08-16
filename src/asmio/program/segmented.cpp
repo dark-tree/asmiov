@@ -1,5 +1,6 @@
 
 #include "segmented.hpp"
+#include <asmio/util.hpp>
 
 #include <utility>
 

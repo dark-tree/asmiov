@@ -274,8 +274,8 @@ namespace asmio {
 			 * Safer variant of insert(), use this method
 			 * when possible to avoid concealing the type.
 			 */
-			template <trivially_copyable T, trivially_copyable... A>
-			requires ((!codec_for<T, A> && castable<T, A>) && ...)
+			template <util::trivially_copyable T, util::trivially_copyable... A>
+			requires ((!codec_for<T, A> && util::castable<T, A>) && ...)
 			ChunkBuffer* put(const A&... value) {
 				if constexpr (std::is_integral_v<T> && sizeof(T) > 1) {
 					return insert(util::native_to_endian(static_cast<T>(value), endianness)...);

@@ -1,5 +1,7 @@
 
 #include "linkage.hpp"
+#include <asmio/util/bits.hpp>
+#include <asmio/util/string.hpp>
 
 namespace asmio {
 

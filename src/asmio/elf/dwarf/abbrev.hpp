@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <unordered_set>
-#include <asmio/util.hpp>
+#include <asmio/util/hash.hpp>
 #include <asmio/util/macro.hpp>
 #include <asmio/util/chunk.hpp>
 #include <asmio/util/codecs.hpp>

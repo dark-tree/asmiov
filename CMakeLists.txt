@@ -28,7 +28,7 @@ endif()
 FetchContent_Declare(
 		vstl
 		GIT_REPOSITORY https://github.com/magistermaks/lib-vstl
-		GIT_TAG 92183a7cd5c0302e96e2f05ff6a4a32b1256b710
+		GIT_TAG ba671b2f42cad56eea7509d495f6e321302b991d
 )
 
 FetchContent_MakeAvailable(vstl)

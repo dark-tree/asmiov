@@ -42,6 +42,7 @@ namespace asmio {
 
 			ExecutableBuffer() = default;
 			explicit ExecutableBuffer(size_t total);
+			explicit ExecutableBuffer(uint8_t* buffer, size_t length) noexcept;
 
 			ExecutableBuffer(ExecutableBuffer&& other) noexcept;
 			explicit ExecutableBuffer(const ExecutableBuffer& other);
@@ -55,8 +56,14 @@ namespace asmio {
 			/// Get the base address of this buffer
 			uint8_t* address() const;
 
+			/// Take ownership of the underlying buffer, delete it with free_pages(uint8_t*, size_t)
+			uint8_t* own();
+
 			/// Get the address of a specific label
-			uint8_t* address(Label label) const;
+			uint8_t* address(const Label& label) const;
+
+			/// Get the offset of a specific label
+			uint64_t offset(const Label& label) const;
 
 			/// get the total size, in bytes
 			size_t size() const;

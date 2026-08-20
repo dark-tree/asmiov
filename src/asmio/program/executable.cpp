@@ -26,6 +26,10 @@ namespace asmio {
 
 	}
 
+	ExecutableBuffer::ExecutableBuffer(uint8_t* buffer, size_t length) noexcept
+		: buffer(buffer), length(length) {
+	}
+
 	ExecutableBuffer::ExecutableBuffer(ExecutableBuffer&& other) noexcept {
 		labels = std::move(other.labels);
 
@@ -86,8 +90,18 @@ namespace asmio {
 		return buffer;
 	}
 
-	uint8_t* ExecutableBuffer::address(Label label) const {
-		return buffer + labels.at(label);
+	uint8_t* ExecutableBuffer::own() {
+		uint8_t* ptr = buffer;
+		buffer = nullptr;
+		return ptr;
+	}
+
+	uint8_t* ExecutableBuffer::address(const Label& label) const {
+		return buffer + offset(label);
+	}
+
+	uint64_t ExecutableBuffer::offset(const Label& label) const {
+		return labels.at(label);
 	}
 
 	size_t ExecutableBuffer::size() const {

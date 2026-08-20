@@ -14,7 +14,7 @@ namespace asmio {
 	concept can_static_cast = requires (F from) { static_cast<T>(from); };
 
 	template <typename C>
-	using codec_param_of = util::function_decompose<C>::template arg_type<1>;
+	using codec_param_of = util::function_traits<C>::template arg_type<1>;
 
 	class ChunkBuffer {
 

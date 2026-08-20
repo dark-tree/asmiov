@@ -510,4 +510,21 @@ namespace test {
 
 	};
 
+	TEST (util_function_traits) {
+
+		auto f1 = [] (int a, int b) noexcept {
+			return a;
+		};
+
+		auto f2 = [f1] (int a, std::string, bool flag) {
+			return a;
+		};
+
+		CHECK(util::function_traits<decltype(f1)>::arity, 2);
+		CHECK(util::function_traits<decltype(f1)>::nothrow, true);
+
+		CHECK(util::function_traits<decltype(f2)>::arity, 3);
+		CHECK(util::function_traits<decltype(f2)>::nothrow, false);
+
+	};
 }

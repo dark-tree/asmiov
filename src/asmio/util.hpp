@@ -57,16 +57,6 @@ namespace asmio::util {
 		return std::endian::native == endian ? value : std::byteswap(value);
 	}
 
-	template<typename T>
-	auto get_int_or(T value) {
-		if constexpr (std::is_pointer_v<T>) return 0; else return value;
-	}
-
-	template<typename T>
-	auto get_ptr_or(T value) {
-		if constexpr (std::is_pointer_v<T>) return value; else return nullptr;
-	}
-
 	/// Iterate the container and check if it contains the given value
 	template<typename T>
 	bool contains(const T& container, const auto& value) {

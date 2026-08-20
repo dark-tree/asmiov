@@ -30,11 +30,16 @@ namespace asmio::x86 {
 		public:
 
 			template<typename T>
-			Location(T offset = 0) // can the same thing be archived with some smart overload?
-			: Location(UNSET, UNSET, 1, util::get_int_or(offset), util::get_ptr_or(offset), VOID, false) {}
+			Location(T* ptr = 0)
+			: Location(UNSET, UNSET, 1, reinterpret_cast<int64_t>(ptr), nullptr, VOID, false) {}
 
-			Location(const Label& label)
-			: Location(UNSET, UNSET, 1, 0, label, VOID, false) {}
+			template<util::integer_like T>
+			Location(T value = 0)
+			: Location(UNSET, UNSET, 1, static_cast<int64_t>(value), nullptr, VOID, false) {}
+
+			Location(const std::string_view& label) : Location(Label{label}) {}
+			Location(const char* label) : Location(Label{label}) {}
+			Location(const Label& label) : Location(UNSET, UNSET, 1, 0, label, VOID, false) {}
 
 			Location(Registry registry)
 			: Location(registry, UNSET, 1, 0, {}, registry.size, false) {}

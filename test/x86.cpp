@@ -4253,6 +4253,24 @@ namespace test {
 
 	};
 
+	TEST (exec_external_call) {
+
+		int (*function) () = [] () {
+			return 42;
+		};
+
+		SegmentedBuffer buffer;
+		BufferWriter writer(buffer);
+
+		writer.put_mov(RAX, function);
+		writer.put_call(RAX);
+		writer.put_ret();
+
+		ExecutableBuffer exe = to_executable(buffer);
+		CHECK(exe.call_u64(), 42);
+
+	};
+
 	TEST (tasml_exec_string_prefix) {
 
 		std::string code = R"(

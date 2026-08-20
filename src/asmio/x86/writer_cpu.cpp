@@ -740,7 +740,7 @@ namespace asmio::x86 {
 			return;
 		}
 
-		throw std::runtime_error {"Invalid operand"};
+		throw std::runtime_error {"Invalid operand, expected label, memory location, or register"};
 	}
 
 	///< Jump on Condition

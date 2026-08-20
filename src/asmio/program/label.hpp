@@ -98,7 +98,7 @@ namespace asmio {
 					return false;
 				}
 
-				// we know the lengths are the same, as the hash_view includes it
+				// we know the lengths are the same, as the hashed() includes it
 				// this loop will be completely skipped for non-text labels as then length == 0
 				for (uint64_t i = 0; i < length; i ++) {
 					if (label.str[i] != str[i]) return false;

@@ -8,6 +8,12 @@
 namespace asmio::util {
 
 	template <typename T>
+	concept integer_like = std::is_integral_v<T> || std::is_enum_v<T>;
+
+	template <typename T>
+	concept nothrow_constuctable = std::is_nothrow_constructible_v<T>;
+
+	template <typename T>
 	concept trivially_copyable = std::is_trivially_copyable_v<T>;
 
 	template <typename T, typename A>

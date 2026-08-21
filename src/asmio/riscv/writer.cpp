@@ -266,6 +266,14 @@ namespace asmio::riscv {
 		put_inst_i(1, X0, 0x0, X0, 0b1110011);
 	}
 
+	void BufferWriter::put_auipc(Registry rd, const Label& label) {
+		if (!label.empty()) {
+			buffer.add_linkage(label, LinkageType::RISCV_PCREL_HI20);
+		}
+
+		put_inst_u(0, rd, 0b0010111);
+	}
+
 	void BufferWriter::put_mul(Registry rd, Registry rs1, Registry rs2) {
 		put_inst_r(0x01, rs2, rs1, 0x0, rd, 0b0110011);
 	}
@@ -440,6 +448,21 @@ namespace asmio::riscv {
 		if (shift > 0) {
 			put_sll(rd, rd, shift);
 		}
+
+	}
+
+	void BufferWriter::put_mov(Registry rd, const Label& label) {
+
+		if (label.empty()) {
+			put_mov(rd, 0);
+			return;
+		}
+
+		// we support only 32 bit offsets here
+		put_auipc(rd, label);
+
+		buffer.add_linkage(label, LinkageType::RISCV_PCREL_LO12);
+		put_add(rd, rd, 0);
 
 	}
 

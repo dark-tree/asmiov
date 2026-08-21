@@ -43,17 +43,17 @@ namespace asmio::riscv {
 			INST put_sra(Registry rd, Registry rs1, Registry rs2); ///< Shift register rs1 right arythetically by rs2 and save result to rd
 			INST put_slt(Registry rd, Registry rs1, Registry rs2); ///< Set rd to 1 if rs1 is less than rs2, and to 0 otherwise (signed)
 			INST put_sltu(Registry rd, Registry rs1, Registry rs2); ///< Set rd to 1 if rs1 is less than rs2, and to 0 otherwise (unsigned)
-			INST put_lb(Registry rd, Registry rs, int16_t imm12); ///< Load byte at rs + imm12 into rd (with sign extension)
-			INST put_lw(Registry rd, Registry rs, int16_t imm12); ///< Load word at rs + imm12 into rd (with sign extension)
-			INST put_ld(Registry rd, Registry rs, int16_t imm12); ///< Load dword at rs + imm12 into rd (with sign extension)
-			INST put_lbu(Registry rd, Registry rs, int16_t imm12); ///< Load byte at rs + imm12 into rd (with zero extension)
-			INST put_lwu(Registry rd, Registry rs, int16_t imm12); ///< Load word at rs + imm12 into rd (with zero extension)
-			INST put_ldu(Registry rd, Registry rs, int16_t imm12); ///< Load dword at rs + imm12 into rd (with zero extension)
-			INST put_lq(Registry rd, Registry rs, int16_t imm12); ///< Load qword at rs + imm12 into rd
-			INST put_sb(Registry rs1, Registry rs2, int16_t imm12); ///< Store byte from rs1 at rs2 + imm
-			INST put_sw(Registry rs1, Registry rs2, int16_t imm12); ///< Store word from rs1 at rs2 + imm
-			INST put_sd(Registry rs1, Registry rs2, int16_t imm12); ///< Store dword from rs1 at rs2 + imm
-			INST put_sq(Registry rs1, Registry rs2, int16_t imm12); ///< Store qword from rs1 at rs2 + imm
+			INST put_lb(Registry rd, Registry rs, int16_t imm12 = 0); ///< Load byte at rs + imm12 into rd (with sign extension)
+			INST put_lw(Registry rd, Registry rs, int16_t imm12 = 0); ///< Load word at rs + imm12 into rd (with sign extension)
+			INST put_ld(Registry rd, Registry rs, int16_t imm12 = 0); ///< Load dword at rs + imm12 into rd (with sign extension)
+			INST put_lbu(Registry rd, Registry rs, int16_t imm12 = 0); ///< Load byte at rs + imm12 into rd (with zero extension)
+			INST put_lwu(Registry rd, Registry rs, int16_t imm12 = 0); ///< Load word at rs + imm12 into rd (with zero extension)
+			INST put_ldu(Registry rd, Registry rs, int16_t imm12 = 0); ///< Load dword at rs + imm12 into rd (with zero extension)
+			INST put_lq(Registry rd, Registry rs, int16_t imm12 = 0); ///< Load qword at rs + imm12 into rd
+			INST put_sb(Registry rs1, Registry rs2, int16_t imm12 = 0); ///< Store byte from rs1 at rs2 + imm
+			INST put_sw(Registry rs1, Registry rs2, int16_t imm12 = 0); ///< Store word from rs1 at rs2 + imm
+			INST put_sd(Registry rs1, Registry rs2, int16_t imm12 = 0); ///< Store dword from rs1 at rs2 + imm
+			INST put_sq(Registry rs1, Registry rs2, int16_t imm12 = 0); ///< Store qword from rs1 at rs2 + imm
 			INST put_b(Condition cond, Registry rs1, Registry rs2, const Label& label); ///< Branch to label if condition is met between rs1 and rs2
 			INST put_jal(const Label& label); ///< Jump and link
 			INST put_jal(Registry rd, const Label& label); ///< Jump and link
@@ -71,6 +71,7 @@ namespace asmio::riscv {
 			INST put_lui(Registry rd, uint32_t imm20); ///< Load an upper constant to register, rd = imm << 12
 			INST put_ecall(); ///< Environment Call
 			INST put_ebreak(); ///< Environment Break
+			INST put_auipc(Registry rd, const Label& label); ///< Add Upper Immediate to PC and store it in rd
 
 			// "M" extension
 			INST put_mul(Registry rd, Registry rs1, Registry rs2); ///< Store lower 64 bits of rs1 * rs2 into rd
@@ -103,6 +104,7 @@ namespace asmio::riscv {
 			// Aliases
 			INST put_mov(Registry rd, Registry rs); ///< Copy value from rs to rd
 			INST put_mov(Registry rd, uint64_t imm); ///< Load immediate into rd
+			INST put_mov(Registry rd, const Label& label); ///< Load address of label into rd
 			INST put_nop(); ///< No Operation
 			INST put_not(Registry rd, Registry rs); ///< Invert bits
 			INST put_neg(Registry rd, Registry rs); ///< Negate two-complement number

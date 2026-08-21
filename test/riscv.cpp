@@ -444,6 +444,93 @@ namespace test {
 
 	};
 
+	TEST (riscv_exec_external_call) {
+
+		int (*function) () = [] () {
+			return 42;
+		};
+
+		SegmentedBuffer buffer;
+		BufferWriter writer(buffer);
+
+		writer.put_add(SP, SP, -16);
+		writer.put_sq(RA, SP, 8);
+		writer.put_mov(T0, reinterpret_cast<uint64_t>(function));
+		writer.put_jalr(RA, T0);
+		writer.put_lq(RA, SP, 8);
+		writer.put_add(SP, SP, 16);
+		writer.put_jr(RA);
+
+		ExecutableBuffer exe = to_executable(buffer);
+		CHECK(exe.call_u64(), 42);
+
+	};
+
+	TEST (riscv_exec_external_tail_call) {
+
+		int (*function) () = [] () {
+			return 42;
+		};
+
+		SegmentedBuffer buffer;
+		BufferWriter writer(buffer);
+
+		writer.put_mov(T0, reinterpret_cast<uint64_t>(function));
+		writer.put_jr(T0);
+
+		ExecutableBuffer exe = to_executable(buffer);
+		CHECK(exe.call_u64(), 42);
+
+	};
+
+	TEST (riscv_exec_lookup_symbol_forward) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer(buffer);
+
+		writer.label("start");
+		writer.put_mov(T0, "var"); // look forward
+		writer.put_lq(A0, T0);
+		writer.put_add(A0, A0, -0x11);
+		writer.put_ret();
+
+		writer.put_nop();
+		writer.put_nop();
+		writer.put_nop();
+		writer.put_nop();
+
+		writer.label("var");
+		writer.put_qword(0x54);
+
+		ExecutableBuffer exe = to_executable(buffer);
+		CHECK(exe.call_u64("start"), 0x43);
+
+	};
+
+	TEST (riscv_exec_lookup_symbol_back) {
+
+		SegmentedBuffer buffer;
+		BufferWriter writer(buffer);
+
+		writer.label("var");
+		writer.put_qword(0x54);
+
+		writer.put_nop();
+		writer.put_nop();
+		writer.put_nop();
+		writer.put_nop();
+
+		writer.label("start");
+		writer.put_mov(T0, "var"); // look back
+		writer.put_lq(A0, T0);
+		writer.put_add(A0, A0, -0x12);
+		writer.put_ret();
+
+		ExecutableBuffer exe = to_executable(buffer);
+		CHECK(exe.call_u64("start"), 0x42);
+
+	};
+
 #endif
 
 }

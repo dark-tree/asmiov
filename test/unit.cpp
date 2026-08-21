@@ -6,6 +6,7 @@
 #include <asmio/util/codecs.hpp>
 #include <asmio/util/pool.hpp>
 #include <asmio/util/platform.hpp>
+#include <asmio/util/axon.hpp>
 
 #include "vstl.hpp"
 
@@ -527,4 +528,100 @@ namespace test {
 		CHECK(util::function_traits<decltype(f2)>::nothrow, false);
 
 	};
+
+	TEST (util_baked_function) {
+
+		int a = 42;
+
+		struct MyData {
+			int* ap;
+			int magic;
+		};
+
+		using Func = int (*) (const MyData*, int, int);
+
+		Func f = [] (const MyData* ctx, int p1, int p2) noexcept {
+			*ctx->ap = ctx->magic * 2 + p1;
+			return ctx->magic * 3 + p2;
+		};
+
+		MyData ctx {&a, 7};
+
+		// testing the internals :P
+		auto bound = axon::detail::bind_native(f, ctx);
+
+		int r = bound(4, 5);
+
+		CHECK(r, 26);
+		CHECK(a, 18);
+
+		axon::free_function(bound);
+
+	};
+
+	TEST (util_baked_function_pack) {
+
+		int (*raw) (int, int) = [] (int a, int b) noexcept {
+			return a * 3 + b;
+		};
+
+		using RawFunction = int (*) ();
+
+		RawFunction f11 = axon::specialize(raw, 1, 1);
+		RawFunction f35 = axon::specialize(raw, 3, 5);
+		RawFunction f74 = axon::specialize(raw, 7, 4);
+
+		CHECK(f11(), 4);
+		CHECK(f35(), 14);
+		CHECK(f74(), 25);
+
+		axon::free_function(f11);
+		axon::free_function(f35);
+		axon::free_function(f74);
+
+	};
+
+	TEST (util_baked_function_decay) {
+
+		int cb = 11;
+
+		int(*f1)(int) = axon::decay([&] (int a) noexcept -> int {
+			cb ++;
+			return a + cb;
+		});
+
+		auto lambda = [&] (std::string str, int i) noexcept -> int {
+			cb += i;
+			return str.length();
+		};
+
+		int(*f2)(std::string, int) = axon::decay(lambda);
+
+		CHECK(f1(1), 13);
+		CHECK(f1(1), 14);
+		CHECK(f2("hmmm", 1), 4);
+		CHECK(f1(2), 17);
+		CHECK(f1(1), 17);
+
+		CHECK(cb, 16);
+
+		axon::free_function(f1);
+		axon::free_function(f2);
+
+	};
+
+	TEST (util_baked_function_throw) {
+		std::string msg = "hmm";
+
+		int (*f)() = axon::decay([&] () -> int {
+			throw std::runtime_error (msg);
+		});
+
+		EXPECT_THROW(std::runtime_error) {
+			f();
+		};
+
+		axon::free_function(f);
+	};
+
 }

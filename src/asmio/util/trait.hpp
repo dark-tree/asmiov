@@ -82,4 +82,7 @@ namespace asmio::util {
 	template <typename T>
 	concept functional = requires { typename function_traits<T>; };
 
+	template <typename T>
+	concept decayable_lambda = functional<T> && requires(T lambda) { { + lambda } -> std::same_as<typename function_traits<T>::pointer_type>; };
+
 }

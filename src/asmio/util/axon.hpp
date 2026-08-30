@@ -47,19 +47,18 @@ namespace asmio::axon {
 
 		// Used for a very small window during each call to the raw function to pass the ContextWrapper
 		// pointer from generated assembly trampoline to the C++ trampoline (forward_with_context).
-		template <typename T>
-		thread_local T context_side_channel;
+		inline thread_local void* context_side_channel;
 
 		// Called from the generated assembly trampoline
 		template <typename T>
 		void set_call_context(T* wrapped) noexcept {
-			context_side_channel<T*> = wrapped;
+			context_side_channel = wrapped;
 		}
 
 		// Called from the C++ trampoline (forward_with_context)
 		template <typename T>
 		T* get_call_context() noexcept {
-			return context_side_channel<T*>;
+			return static_cast<T*>(context_side_channel);
 		}
 
 		// The C++ trampoline called from generated assembly
@@ -174,7 +173,13 @@ namespace asmio::axon {
 			writer.put_br(arm::X16); // tail call
 		}
 
-		/// Generate the assembly trampoline and create the final raw function pointer
+		// Get a pointer to the size field of generated function,
+		// that starts at the first byte of the second page
+		inline uint64_t* get_function_size(uint8_t* function) {
+			return reinterpret_cast<uint64_t*>(function + page_size());
+		}
+
+		// Generate the assembly trampoline and create the final raw function pointer
 		template <typename R, util::nothrow_constuctable T, typename... Args>
 		auto bind_native(R (* function) (const T* ctx, Args...), T context) -> R (*) (Args...) {
 
@@ -218,18 +223,18 @@ namespace asmio::axon {
 				throw std::runtime_error("Size marker misplaced, got offset +" + std::to_string(exe.offset("size")) + ", expected +" + std::to_string(page) + "!");
 			}
 
-			*reinterpret_cast<uint64_t*>(exe.address() + page) = exe.size();
+			*get_function_size(exe.address()) = exe.size();
 			return reinterpret_cast<R (*) (Args...)>(exe.own());
 		}
 
-		template <typename T>
+		template <typename>
 		struct capture_forwarder {};
 
 		template <typename... Args>
 		struct capture_forwarder<std::tuple<Args...>> {
 
-			/// The function that gets bound to context in bind_native() for all lambdas
-			/// it then forward the call to the object held in the context - the actual lambda.
+			// The function that gets bound to context in bind_native() for all lambdas
+			// it then forward the call to the object held in the context - the actual lambda.
 			template <typename L>
 			static auto forward_lambda_call(const L* ctx_lambda, Args... args) noexcept(util::function_traits<L>::nothrow) {
 				return (*ctx_lambda)(std::forward<Args>(args)...);
@@ -253,15 +258,13 @@ namespace asmio::axon {
 	 */
 	template <typename R, typename... Args>
 	void free_function(R (* function) (Args...)) {
-		const auto page = page_size();
 		auto* buffer = reinterpret_cast<uint8_t*>(function);
-		const uint64_t size = *reinterpret_cast<uint64_t*>(buffer + page);
-		free_pages(buffer, size);
+		free_pages(buffer, *detail::get_function_size(buffer));
 	}
 
 	/**
 	 * Bind a set of arguments to a function pointer and return a raw function pointer.
-	 * This can be usefull when interfacing with C code that lacks "userdata" call context.
+	 * This can be useful when interfacing with C code that lacks "userdata" call context.
 	 * The returned raw pointer must be freed after use using free_function().
 	 */
 	template <typename R, typename... Args>

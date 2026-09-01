@@ -77,7 +77,7 @@ namespace asmio {
 		for (auto& linkage : symbols) {
 			auto mapping = section_map[linkage.target.section];
 			ElfModel::Symbol* symbol = model.symbol(mapping.content, linkage.label.view(), ElfSymbolBinding::GLOBAL, ElfSymbolVisibility::DEFAULT, nullptr, 0, 0);
-			model.relocation(linkage.type.relocation, symbol, mapping.section, linkage.target.offset, linkage.addend);
+			model.relocation(linkage.type->relocation, symbol, mapping.section, linkage.target.offset, linkage.addend);
 		}
 	}
 

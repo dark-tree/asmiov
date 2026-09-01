@@ -100,7 +100,8 @@ namespace asmio {
 					throw std::runtime_error {"Undefined label '" + linkage.label.string() + "' used"};
 				}
 
-				linkage.type.linker(this, linkage, it->second, base);
+				// we never pass the mount (base address) to linkages that self report as relative
+				linkage.type->linker(this, linkage, it->second, linkage.type->is_relative() ? 0 : base);
 			} catch (const std::runtime_error& error) {
 				if (handler) handler(linkage, error.what()); else throw;
 			}
@@ -111,7 +112,7 @@ namespace asmio {
 
 	void SegmentedBuffer::add_linkage(const Label& label, const Linkage::Type& linker, int64_t addend) {
 		uint32_t offset = sections[selected].buffer.size();
-		linkages.emplace_back(label, BufferMarker {static_cast<uint32_t>(selected), offset}, linker, addend);
+		linkages.emplace_back(label, BufferMarker {static_cast<uint32_t>(selected), offset}, std::addressof(linker), addend);
 	}
 
 	BufferMarker SegmentedBuffer::get_label(const Label& label) {

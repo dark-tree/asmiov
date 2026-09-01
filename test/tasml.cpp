@@ -332,7 +332,7 @@ namespace test {
 		CHECK(unresolved.size(), 1);
 
 		CHECK(unresolved[0].label.string(), "bar");
-		CHECK(unresolved[0].type.relocation, ElfRelocationType::X86_64_PC32);
+		CHECK(unresolved[0].type->relocation, ElfRelocationType::X86_64_PC32);
 
 	};
 

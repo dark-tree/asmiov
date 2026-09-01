@@ -121,7 +121,7 @@ namespace asmio {
 		ExecutableBuffer buffer {segmented.total()};
 
 		// now that we have a buffer allocated we can link
-		segmented.link((uint64_t) buffer.address());
+		segmented.link(reinterpret_cast<uint64_t>(buffer.address()));
 
 		// finally copy data and setting to the final image
 		buffer.bake(segmented);

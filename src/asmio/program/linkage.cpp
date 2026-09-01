@@ -19,7 +19,7 @@ namespace asmio {
 	 * Linker Implementation
 	 */
 
-	static void encode_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
+	static void encode_21_5_lo_hi(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t) {
 		BufferMarker dst = linkage.target;
 
 		const int64_t offset = buffer->get_offset(src) - buffer->get_offset(dst);
@@ -36,7 +36,7 @@ namespace asmio {
 	}
 
 	template <int bits, int left_shift>
-	static void encode_shifted_aligned(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
+	static void encode_shifted_aligned(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t) {
 		BufferMarker dst = linkage.target;
 
 		const int64_t distance = buffer->get_offset(src) - buffer->get_offset(dst) + linkage.addend;
@@ -55,7 +55,7 @@ namespace asmio {
 	}
 
 	template <int width>
-	static void encode_relative(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
+	static void encode_relative(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t) {
 		BufferMarker dst = linkage.target;
 
 		const int64_t value = buffer->get_offset(src) - buffer->get_offset(dst) + linkage.addend;
@@ -82,7 +82,7 @@ namespace asmio {
 		std::memcpy(buffer->get_pointer(dst), value_ptr, width);
 	}
 
-	static void encode_riscv_b(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
+	static void encode_riscv_b(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t) {
 		BufferMarker dst = linkage.target;
 		const int64_t dist = buffer->get_offset(src) - buffer->get_offset(dst) + linkage.addend;
 
@@ -104,7 +104,7 @@ namespace asmio {
 		*reinterpret_cast<uint32_t*>(buffer->get_pointer(dst)) |= (si << 31 | hi << 25 | lo << 8 | b7 << 7);
 	}
 
-	static void encode_riscv_j(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
+	static void encode_riscv_j(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t ) {
 		BufferMarker dst = linkage.target;
 		const int64_t dist = buffer->get_offset(src) - buffer->get_offset(dst) + linkage.addend;
 
@@ -127,7 +127,7 @@ namespace asmio {
 	}
 
 	template <uint32_t part, uint32_t bits, uint32_t left_shift, uint32_t sign_mask>
-	static void encode_riscv_relative_shifted(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t mount) {
+	static void encode_riscv_relative_shifted(SegmentedBuffer* buffer, const Linkage& linkage, BufferMarker src, size_t) {
 		BufferMarker dst = linkage.target;
 		const int64_t dist = buffer->get_offset(src) - buffer->get_offset(dst) + linkage.addend + 4;
 
@@ -143,24 +143,24 @@ namespace asmio {
 	 * class LinkageType
 	 */
 
-	Linkage::Type LinkageType::RISCV_BRANCH {ElfRelocationType::RISCV_BRANCH, encode_riscv_b};
-	Linkage::Type LinkageType::RISCV_JUMP {ElfRelocationType::RISCV_JAL, encode_riscv_j};
-	Linkage::Type LinkageType::RISCV_PCREL_HI20 {ElfRelocationType::RISCV_PCREL_HI20, encode_riscv_relative_shifted<12, 20, 12, 0x0000'0800>};
-	Linkage::Type LinkageType::RISCV_PCREL_LO12 {ElfRelocationType::RISCV_PCREL_LO12_I, encode_riscv_relative_shifted<0, 12, 20, 0x0000'0000>};
+	Linkage::Type LinkageType::RISCV_BRANCH {ElfRelocationType::RISCV_BRANCH, Linkage::RELATIVE, encode_riscv_b};
+	Linkage::Type LinkageType::RISCV_JUMP {ElfRelocationType::RISCV_JAL, Linkage::RELATIVE, encode_riscv_j};
+	Linkage::Type LinkageType::RISCV_PCREL_HI20 {ElfRelocationType::RISCV_PCREL_HI20, Linkage::RELATIVE, encode_riscv_relative_shifted<12, 20, 12, 0x0000'0800>};
+	Linkage::Type LinkageType::RISCV_PCREL_LO12 {ElfRelocationType::RISCV_PCREL_LO12_I, Linkage::RELATIVE, encode_riscv_relative_shifted<0, 12, 20, 0x0000'0000>};
 
-	Linkage::Type LinkageType::AARCH64_21_5_LO_HI {ElfRelocationType::AARCH64_ADR_PREL_LO21, encode_21_5_lo_hi};
-	Linkage::Type LinkageType::AARCH64_14_5_ALIGNED {ElfRelocationType::AARCH64_TSTBR14, encode_shifted_aligned<14, 5>};
-	Linkage::Type LinkageType::AARCH64_19_5_ALIGNED {ElfRelocationType::AARCH64_CONDBR19, encode_shifted_aligned<19, 5>};
-	Linkage::Type LinkageType::AARCH64_26_0_ALIGNED {ElfRelocationType::AARCH64_JUMP26, encode_shifted_aligned<26, 0>};
+	Linkage::Type LinkageType::AARCH64_21_5_LO_HI {ElfRelocationType::AARCH64_ADR_PREL_LO21, Linkage::RELATIVE, encode_21_5_lo_hi};
+	Linkage::Type LinkageType::AARCH64_14_5_ALIGNED {ElfRelocationType::AARCH64_TSTBR14, Linkage::RELATIVE, encode_shifted_aligned<14, 5>};
+	Linkage::Type LinkageType::AARCH64_19_5_ALIGNED {ElfRelocationType::AARCH64_CONDBR19, Linkage::RELATIVE, encode_shifted_aligned<19, 5>};
+	Linkage::Type LinkageType::AARCH64_26_0_ALIGNED {ElfRelocationType::AARCH64_JUMP26, Linkage::RELATIVE, encode_shifted_aligned<26, 0>};
 
-	Linkage::Type LinkageType::X86_64_ABSOLUTE {ElfRelocationType::X86_64_64, encode_absolute<8>};
-	Linkage::Type LinkageType::X86_64_RELATIVE {ElfRelocationType::X86_64_PC64, encode_relative<8>};
-	Linkage::Type LinkageType::X86_32_ABSOLUTE {ElfRelocationType::X86_64_32, encode_absolute<4>};
-	Linkage::Type LinkageType::X86_32_SIGN_ABSOLUTE {ElfRelocationType::X86_64_32S, encode_absolute<4>};
-	Linkage::Type LinkageType::X86_32_SIGN_RELATIVE {ElfRelocationType::X86_64_PC32, encode_relative<4>};
-	Linkage::Type LinkageType::X86_16_ABSOLUTE {ElfRelocationType::X86_64_16, encode_absolute<2>};
-	Linkage::Type LinkageType::X86_16_SIGN_RELATIVE {ElfRelocationType::X86_64_PC16, encode_relative<2>};
-	Linkage::Type LinkageType::X86_8_SIGN_ABSOLUTE {ElfRelocationType::X86_64_8, encode_absolute<1>};
-	Linkage::Type LinkageType::X86_8_SIGN_RELATIVE {ElfRelocationType::X86_64_PC8, encode_relative<1>};
+	Linkage::Type LinkageType::X86_64_ABSOLUTE {ElfRelocationType::X86_64_64, Linkage::ABSOLUTE, encode_absolute<8>};
+	Linkage::Type LinkageType::X86_64_RELATIVE {ElfRelocationType::X86_64_PC64, Linkage::RELATIVE, encode_relative<8>};
+	Linkage::Type LinkageType::X86_32_ABSOLUTE {ElfRelocationType::X86_64_32, Linkage::ABSOLUTE, encode_absolute<4>};
+	Linkage::Type LinkageType::X86_32_SIGN_ABSOLUTE {ElfRelocationType::X86_64_32S, Linkage::ABSOLUTE, encode_absolute<4>};
+	Linkage::Type LinkageType::X86_32_SIGN_RELATIVE {ElfRelocationType::X86_64_PC32, Linkage::RELATIVE, encode_relative<4>};
+	Linkage::Type LinkageType::X86_16_ABSOLUTE {ElfRelocationType::X86_64_16, Linkage::ABSOLUTE, encode_absolute<2>};
+	Linkage::Type LinkageType::X86_16_SIGN_RELATIVE {ElfRelocationType::X86_64_PC16, Linkage::RELATIVE, encode_relative<2>};
+	Linkage::Type LinkageType::X86_8_SIGN_ABSOLUTE {ElfRelocationType::X86_64_8, Linkage::ABSOLUTE, encode_absolute<1>};
+	Linkage::Type LinkageType::X86_8_SIGN_RELATIVE {ElfRelocationType::X86_64_PC8, Linkage::RELATIVE, encode_relative<1>};
 
 }

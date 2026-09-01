@@ -4303,5 +4303,47 @@ namespace test {
 
 	};
 
+	TEST (exec_segmented_buffer_merge) {
+		SegmentedBuffer a, b;
+
+		if (BufferWriter writer {a}) {
+
+			writer.section(MemoryFlag::R);
+			writer.label("blob");
+			writer.put_qword(100);
+
+			writer.section(MemoryFlag::X | MemoryFlag::R);
+			writer.label("helper");
+			writer.put_add(RAX, ref<QWORD>("blob"));
+			writer.put_ret();
+
+		}
+
+		if (BufferWriter writer {b}) {
+
+			writer.section(MemoryFlag::R);
+			writer.label("goomba");
+			writer.put_qword(50);
+
+			writer.section(MemoryFlag::X | MemoryFlag::R);
+			writer.label("start");
+			writer.put_xor(RAX, RAX);
+			writer.put_add(RAX, ref<QWORD>("goomba"));
+			writer.put_call("helper");
+			writer.put_ret();
+
+		}
+
+		a.merge(std::move(b));
+
+		CHECK(a.segments().size(), 5); // on of the RWX sections gets dropped
+
+		auto exe = to_executable(a);
+		int result = exe.call_u64("start");
+
+		CHECK(result, 150);
+
+	}
+
 #endif
 ;}

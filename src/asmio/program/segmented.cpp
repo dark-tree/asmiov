@@ -231,4 +231,47 @@ namespace asmio {
 		return source_files.items();
 	}
 
+	void SegmentedBuffer::merge(SegmentedBuffer&& other) {
+
+		int section_offset = sections.size();
+
+		for (BufferSegment& segment : other.sections) {
+			if (segment.empty()) {
+				section_offset --;
+				continue;
+			}
+
+			segment.index += section_offset;
+			sections.emplace_back(std::move(segment));
+		}
+
+		for (auto& entry : other.labels) {
+			entry.second.section += section_offset;
+			labels.emplace(std::move(entry));
+		}
+
+		for (Linkage& linkage : other.linkages) {
+			linkage.target.section += section_offset;
+			linkages.emplace_back(std::move(linkage));
+		}
+
+		for (ExportSymbol& exported : other.exported_symbols) {
+			exported_symbols.emplace_back(std::move(exported));
+		}
+
+		for (auto& entry : other.external_symbols) {
+			external_symbols.emplace(std::move(entry));
+		}
+
+		for (SourceLocation& location : other.source_locations) {
+			location.marker.section += section_offset;
+			source_locations.emplace_back(std::move(location));
+		}
+
+		for (const std::string& file : other.source_files.items()) {
+			source_files.put(std::move(file));
+		}
+
+	}
+
 }

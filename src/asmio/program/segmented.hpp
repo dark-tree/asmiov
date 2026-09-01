@@ -207,6 +207,9 @@ namespace asmio {
 			/// Get source file list
 			const std::vector<std::string>& files() const;
 
+			/// Merge the other buffer into this one
+			void merge(SegmentedBuffer&& other);
+
 	};
 
 }

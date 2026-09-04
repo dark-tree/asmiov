@@ -27,7 +27,7 @@ namespace asmio {
 
 		allocated = true;
 		ptr = ref_allocate<char>(length);
-		hash = util::hash_djb2(str, length);
+		hash = util::djb2(str, length);
 
 		memcpy(ptr, str, length);
 	}
@@ -41,7 +41,7 @@ namespace asmio {
 
 		allocated = true;
 		ptr = ref_allocate<char>(length);
-		hash = util::hash_djb2(view.data(), length);
+		hash = util::djb2(view.data(), length);
 
 		memcpy(ptr, view.data(), length);
 	}
@@ -55,7 +55,7 @@ namespace asmio {
 		ptr = ref_allocate<char>(str.size());
 
 		length = str.length();
-		hash = util::hash_djb2(str.c_str(), length);
+		hash = util::djb2(str.c_str(), length);
 		memcpy(ptr, str.c_str(), length);
 	}
 
@@ -83,7 +83,7 @@ namespace asmio {
 		}
 
 		label.length = strlen(str);
-		label.hash = util::hash_djb2(str, label.length);
+		label.hash = util::djb2(str, label.length);
 
 		if (label.length == 0) {
 			throw std::runtime_error {"Label text can't be empty!"};
@@ -98,7 +98,7 @@ namespace asmio {
 		label.allocated = false;
 		label.str = view.data();
 		label.length = view.length();
-		label.hash = util::hash_djb2(label.str, label.length);
+		label.hash = util::djb2(label.str, label.length);
 
 		if (label.length == 0) {
 			throw std::runtime_error {"Label text can't be empty!"};

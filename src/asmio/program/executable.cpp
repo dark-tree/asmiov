@@ -2,6 +2,7 @@
 #include "executable.hpp"
 
 #include <asmio/util/platform.hpp>
+#include <asmio/util.hpp>
 
 namespace asmio {
 
@@ -23,6 +24,10 @@ namespace asmio {
 			throw std::runtime_error {"Failed to allocate memory map!"};
 		}
 
+	}
+
+	ExecutableBuffer::ExecutableBuffer(uint8_t* buffer, size_t length) noexcept
+		: buffer(buffer), length(length) {
 	}
 
 	ExecutableBuffer::ExecutableBuffer(ExecutableBuffer&& other) noexcept {
@@ -85,8 +90,18 @@ namespace asmio {
 		return buffer;
 	}
 
-	uint8_t* ExecutableBuffer::address(Label label) const {
-		return buffer + labels.at(label);
+	uint8_t* ExecutableBuffer::own() {
+		uint8_t* ptr = buffer;
+		buffer = nullptr;
+		return ptr;
+	}
+
+	uint8_t* ExecutableBuffer::address(const Label& label) const {
+		return buffer + offset(label);
+	}
+
+	uint64_t ExecutableBuffer::offset(const Label& label) const {
+		return labels.at(label);
 	}
 
 	size_t ExecutableBuffer::size() const {
@@ -106,7 +121,7 @@ namespace asmio {
 		ExecutableBuffer buffer {segmented.total()};
 
 		// now that we have a buffer allocated we can link
-		segmented.link((uint64_t) buffer.address());
+		segmented.link(reinterpret_cast<uint64_t>(buffer.address()));
 
 		// finally copy data and setting to the final image
 		buffer.bake(segmented);

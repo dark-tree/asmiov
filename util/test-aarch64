@@ -1,0 +1,14 @@
+#!/bin/env bash
+
+docker build --platform="linux/arm64" -f util/Dockerfile -t asmiov/arm64 .
+
+BUILD_DIR="docker-build-arm64"
+
+read -r -d '' COMMAND <<- EOM
+    cmake -B $BUILD_DIR . &&
+    cmake --build $BUILD_DIR -j\$(nproc) &&
+    cd $BUILD_DIR &&
+    ./test
+EOM
+
+docker run --rm -it -v "$PWD:/src" -w /src asmiov/arm64 bash -c "$COMMAND"

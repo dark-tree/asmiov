@@ -2353,6 +2353,46 @@ namespace test {
 
 	};
 
+	TEST (aarch64_exec_external_call) {
+
+		int (*function) () = [] () {
+			return 41;
+		};
+
+		SegmentedBuffer buffer;
+		BufferWriter writer(buffer);
+
+		writer.put_istp(X29, X30, SP, -16);
+		writer.put_mov(X28, SP);
+
+		writer.put_mov(X9, reinterpret_cast<uint64_t>(function));
+		writer.put_blr(X9);
+
+		writer.put_ldpi(X29, X30, SP, 16);
+		writer.put_ret();
+
+		ExecutableBuffer exe = to_executable(buffer);
+		CHECK(exe.call_u64(), 41);
+
+	};
+
+	TEST (aarch64_exec_external_tail_call) {
+
+		int (*function) () = [] () {
+			return 42;
+		};
+
+		SegmentedBuffer buffer;
+		BufferWriter writer(buffer);
+
+		writer.put_mov(X9, reinterpret_cast<uint64_t>(function));
+		writer.put_br(X9);
+
+		ExecutableBuffer exe = to_executable(buffer);
+		CHECK(exe.call_u64(), 42);
+
+	};
+
 #endif
 
 }

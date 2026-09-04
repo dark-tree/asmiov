@@ -2,6 +2,7 @@
 
 #include <asmio/external.hpp>
 #include <asmio/program/segmented.hpp>
+#include <asmio/util/string.hpp>
 
 namespace tasml {
 

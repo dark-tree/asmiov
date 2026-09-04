@@ -348,6 +348,12 @@ namespace asmio::x86 {
 		if (raw == "ng") return Condition::NG;
 		if (raw == "nle") return Condition::NLE;
 		if (raw == "g") return Condition::G;
+		if (raw == "gt") return Condition::GT;
+		if (raw == "lt") return Condition::LT;
+		if (raw == "gtu") return Condition::GTU;
+		if (raw == "ltu") return Condition::LTU;
+		if (raw == "geu") return Condition::GEU;
+		if (raw == "leu") return Condition::LEU;
 
 		throw std::runtime_error {"Unknown condition '" + raw + "'"};
 	}

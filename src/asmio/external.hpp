@@ -41,6 +41,33 @@
 #	define ARCH_AARCH64 false
 #endif
 
-#if !(ARCH_X86 || ARCH_AARCH64)
+#if defined(__riscv)
+#	if (__riscv_xlen == 64)
+#		define ARCH_RISCV64 true
+#	else
+#		define ARCH_RISCV64 false
+#	endif
+#else
+#	define ARCH_RISCV64 false
+#endif
+
+// platforms
+#if defined(_WIN32)
+#	define PLATFORM_WINDOWS true
+#else
+#	define PLATFORM_WINDOWS false
+#endif
+
+#if defined(__linux__) || defined(__APPLE__) || defined(__unix__)
+#	define PLATFORM_UNIX true
+#else
+#	define PLATFORM_UNIX false
+#endif
+
+#if !(ARCH_X86 || ARCH_AARCH64 || ARCH_RISCV64)
 #	error "Unsupported target architecture!"
+#endif
+
+#if !(PLATFORM_WINDOWS || PLATFORM_UNIX)
+#	error "Unsupported target platform!"
 #endif

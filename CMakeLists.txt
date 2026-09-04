@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 2.28...3.31)
 project(ASMIOV C CXX)
 include(FetchContent)
 
@@ -7,24 +7,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Python3 COMPONENTS Interpreter)
 
+option(USE_MOLD "Use mold linker if installed" ON)
+
 # Use the mold linker automatically for GCC if available,
 # as it is faster, more modern, and produces better errors.
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-	find_program(MOLD_PROGRAM mold)
+if (USE_MOLD)
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		find_program(MOLD_PROGRAM mold)
 
-	if (MOLD_PROGRAM)
-		message(STATUS "The MOLD linker was found: ${MOLD_PROGRAM}")
-		set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=mold")
-		set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=mold")
-	else()
-		message(STATUS "The MOLD linker was NOT found!")
+		if (MOLD_PROGRAM)
+			message(STATUS "The MOLD linker was found: ${MOLD_PROGRAM}")
+			set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=mold")
+			set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=mold")
+		else()
+			message(STATUS "The MOLD linker was NOT found!")
+		endif()
 	endif()
 endif()
 
 FetchContent_Declare(
 		vstl
 		GIT_REPOSITORY https://github.com/magistermaks/lib-vstl
-		GIT_TAG c7f1069ea12fbe8087067841c491940fc3f6dc7f
+		GIT_TAG v3.5
 )
 
 FetchContent_MakeAvailable(vstl)
@@ -32,6 +36,7 @@ FetchContent_MakeAvailable(vstl)
 set(ASMIO_WRITERS
 		src/asmio/x86/writer.hpp
 		src/asmio/aarch64/writer.hpp
+		src/asmio/riscv/writer.hpp
 )
 
 set(ASMIO_BRIDGES "${ASMIO_WRITERS}")
@@ -68,6 +73,7 @@ add_executable(test
 		test/x86.cpp
 		test/aarch64.cpp
 		test/elf.cpp
+		test/riscv.cpp
 )
 target_link_libraries(test PRIVATE asmiov)
 target_include_directories(test PRIVATE ${ASMIOV_INCLUDE_DIRS})

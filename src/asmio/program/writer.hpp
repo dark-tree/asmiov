@@ -14,6 +14,10 @@ namespace asmio {
 
 		public:
 
+			constexpr operator bool() const {
+				return true;
+			}
+
 			BasicBufferWriter(SegmentedBuffer& buffer);
 
 			/// Begin (or continue) writing to a section with the given memory flags

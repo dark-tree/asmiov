@@ -6,6 +6,11 @@ namespace asmio {
 
 	struct LinkageType {
 
+		static Linkage::Type RISCV_BRANCH;
+		static Linkage::Type RISCV_JUMP;
+		static Linkage::Type RISCV_PCREL_HI20;
+		static Linkage::Type RISCV_PCREL_LO12;
+
 		static Linkage::Type AARCH64_21_5_LO_HI;
 		static Linkage::Type AARCH64_14_5_ALIGNED;
 		static Linkage::Type AARCH64_19_5_ALIGNED;

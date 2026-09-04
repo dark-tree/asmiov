@@ -21,17 +21,31 @@ namespace asmio {
 
 		using Linker = std::function<void(class SegmentedBuffer* buffer, const Linkage& link, BufferMarker label, size_t mount)>;
 
+		enum Kind : uint32_t {
+			RELATIVE, //< Those linkages don't need the mount to be resolved
+			ABSOLUTE  //< Those linkages require the mount to be known before resolving
+		};
+
 		struct Type {
 			ElfRelocationType relocation;
+			Kind kind;
 			Linker linker;
+
+			constexpr bool is_relative() const noexcept {
+				return kind == RELATIVE;
+			}
+
+			constexpr Type(ElfRelocationType elf_relocation, Kind kind, const Linker& linker) noexcept
+				: relocation(elf_relocation), kind(kind), linker(linker) {
+			}
 		};
 
 		Label label;
 		BufferMarker target;
-		Type type;
+		const Type* type;
 		int64_t addend;
 
-		constexpr Linkage(Label label, BufferMarker target, Type type, int64_t addend)
+		constexpr Linkage(const Label& label, BufferMarker target, const Type* type, int64_t addend) noexcept
 			: label(label), target(target), type(type), addend(addend) {
 		}
 
@@ -192,6 +206,9 @@ namespace asmio {
 
 			/// Get source file list
 			const std::vector<std::string>& files() const;
+
+			/// Merge the other buffer into this one
+			void merge(SegmentedBuffer&& other);
 
 	};
 
